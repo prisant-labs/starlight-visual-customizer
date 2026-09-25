@@ -1,1 +1,4 @@
 _local/
+
+# Browser-automation tool cache (Playwright MCP)
+.playwright-mcp/
