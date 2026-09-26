@@ -811,7 +811,7 @@ async function main() {
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
 
-		// SPEC-C phase 2, workstream E: the baseline walk above ran while Presets was active (the hit-
+		// The baseline walk above ran while Presets was active (the hit-
 		// test audit loop leaves it there) - Colors' hex fields and Structure's tree/form are only in
 		// the DOM while THEIR OWN group is active, so they need their own walk pass each.
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors', { scroll: false }));
@@ -821,7 +821,7 @@ async function main() {
 		check('every chrome text node meets its contrast floor (Colors group)', colorsWalk.failCount === 0, JSON.stringify(colorsWalk.rows));
 
 		// =========================================================================================
-		// SPEC-C phase 3, workstream P (P3): the color popover, open - both the hit-test audit and the
+		// The color popover, open - both the hit-test audit and the
 		// contrast walk, extended to cover it. The popover legitimately sits on top of (occludes)
 		// whatever card is beneath it, so the hit-test pass here is SCOPED to the popover's own
 		// subtree, not the whole panel (the panel-wide `hitTestAuditSnapshot` would wrongly flag an
@@ -904,8 +904,8 @@ async function main() {
 		await page.waitForTimeout(200);
 
 		// "a slider drag is one step": a REAL mouse drag (mousedown -> stepped mousemove -> mouseup)
-		// along the track, not several script-dispatched `input` events, per the coordinator's P1
-		// review - the coalescing logic (core/history.js) only ever sees genuine `input` events either
+		// along the track, not several script-dispatched `input` events - the coalescing logic
+		// (core/history.js) only ever sees genuine `input` events either
 		// way, but a real drag also exercises the browser's own native range-input hit-testing.
 		const baseline = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().values['color.accent.hue']);
 		const accentHueSlider = await shadowQuery(page, "[data-control-id='color.accent.hue'] input[type=range]");
@@ -1003,7 +1003,7 @@ async function main() {
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
 		// refreshStudioChrome() (which updates the reset-group button's disabled state) runs inside
-		// scheduleApply's rAF debounce - poll rather than a fixed sleep (SPEC-C section 6).
+		// scheduleApply's rAF debounce - poll rather than a fixed sleep.
 		const resetBtnState = await waitForComputed(
 			() =>
 				page.evaluate(() => {
@@ -1043,7 +1043,7 @@ async function main() {
 			input.value = '10';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
-		// scheduleApply is rAF-debounced (panel.js) - poll rather than a fixed sleep (SPEC-C section 6).
+		// scheduleApply is rAF-debounced (panel.js) - poll rather than a fixed sleep.
 		const countAfter = await waitForComputed(
 			() => page.evaluate(() => document.getElementById('svc-status-left').textContent),
 			(t) => t.startsWith('1 ')
@@ -1059,7 +1059,7 @@ async function main() {
 			() => page.evaluate(() => !!document.querySelector('sl-customizer').shadowRoot.querySelector("[data-control-id='color.role.link']")),
 			(v) => v === true
 		);
-		// Coordinator polish round: the "auto" checkbox was removed (a role override now has just the
+		// The "auto" checkbox was removed (a role override now has just the
 		// hex field + a clear button, "Follow the palette") - set the override through the hex field
 		// itself, the same path a real user would take, and commit it the way `blur` does.
 		await page.evaluate(() => {
