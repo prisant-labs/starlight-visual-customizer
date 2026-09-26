@@ -135,8 +135,8 @@ describe('emitApplyTheme: site.title (SPEC-C E4)', () => {
 		const s = setValue(defaultState(), 'site.title', 'Acme Docs');
 		const out = emitApplyTheme(s);
 		assert.match(out, /a custom site title \("Acme Docs"\)/);
-		assert.match(out, /Header → Site title text:\*\* the header now reads "Acme Docs"/);
-		assert.doesNotMatch(out, /Header → Site title text:.*should now read/);
+		assert.match(out, /Header → Site title text\*\* \(`\.site-title`\): the header now reads "Acme Docs"/);
+		assert.doesNotMatch(out, /Header → Site title text.*target value/);
 	});
 
 	test('same state produces byte-identical output (determinism holds for site.title too)', () => {
@@ -146,11 +146,11 @@ describe('emitApplyTheme: site.title (SPEC-C E4)', () => {
 });
 
 describe('emitApplyTheme: alignment controls (SPEC.md Round 2)', () => {
-	test('a changed alignment control appears in the Verification checklist with its group/label/value (generic, no per-control code needed)', () => {
+	test('a changed alignment control appears in the Verification checklist with its group/label/selector/value (generic, no per-control code needed)', () => {
 		let s = defaultState();
 		s = setValue(s, 'toc.position', 'left');
 		const out = emitApplyTheme(s);
-		assert.match(out, /\*\*TOC → TOC placement:\*\* should now read as "Left"/);
+		assert.match(out, /\*\*TOC → TOC placement\*\* \(`\.right-sidebar-container`\): target value "Left"/);
 	});
 
 	test('an alignment control at its default value does not appear anywhere in the checklist', () => {
@@ -176,6 +176,81 @@ describe('emitApplyTheme: fonts', () => {
 		const installLine = out.split('\n').find((l) => l.includes('npm i @fontsource'));
 		const occurrences = (installLine.match(/@fontsource-variable\/inter/g) || []).length;
 		assert.equal(occurrences, 1);
+	});
+
+	test('gap 4: notes the fallback font stack and a way to verify the package name if npm i fails', () => {
+		const s = setValue(defaultState(), 'type.font.body', 'inter');
+		const out = emitApplyTheme(s);
+		assert.match(out, /If a package fails to install/);
+		assert.match(out, /fallback/i);
+		assert.match(out, /npm view <pkg> version/);
+	});
+});
+
+// W1 instruction-gap follow-up: closes gaps 1-5 found by following an earlier generated
+// APPLY-THEME.md literally against a real, fresh Starlight site with no foreknowledge of the
+// customizer's own vocabulary.
+describe('emitApplyTheme: instruction gaps (W1 follow-up)', () => {
+	test('gap 1: a changed control names its CSS selector and a target value, not the studio\'s "should now read as" phrasing', () => {
+		const s = setValue(defaultState(), 'color.accent.hue', 200);
+		const out = emitApplyTheme(s);
+		assert.doesNotMatch(out, /should now read as/);
+		assert.match(out, /\*\*Colors → Accent hue\*\* \(`[^`]+`\): target value "200"/);
+	});
+
+	test('gap 1: the Verification intro explains where to look (element + page) and how to check a computed value', () => {
+		const out = emitApplyTheme(defaultState());
+		assert.match(out, /find an element matching the given CSS selector/);
+		assert.match(out, /getComputedStyle/);
+	});
+
+	test('gap 1: a token-backed control (a single named custom property) names that property instead of a selector', () => {
+		const s = setValue(defaultState(), 'color.hue.orange', 100);
+		const out = emitApplyTheme(s);
+		assert.match(out, /\*\*Colors → Caution hue \(orange\)\*\* \(custom property `--sl-hue-orange` on `:root`\): target value "100"/);
+		// Not ALSO shown as a bare selector - the two are mutually exclusive per control.
+		assert.doesNotMatch(out, /Caution hue \(orange\)\*\* \(`\.starlight-aside--caution`\)/);
+	});
+
+	test('gap 1: a non-token control (a treatment/selector-based rule) still names its CSS selector, not a custom property', () => {
+		let s = defaultState();
+		s = setValue(s, 'sidebar.activeStyle', 'left-bar');
+		const out = emitApplyTheme(s);
+		assert.match(out, /\*\*Sidebar → Active item style\*\* \(`\.sidebar-content a\[aria-current='page'\]`\): target value "Left bar"/);
+	});
+
+	test('gap 1: the jointly-generated accent/gray palette (PALETTE_IDS) is NOT claimed as a single custom property', () => {
+		const s = setValue(defaultState(), 'color.accent.hue', 200);
+		const out = emitApplyTheme(s);
+		assert.doesNotMatch(out, /Accent hue\*\* \(custom property/);
+	});
+
+	test('gap 2: the build step notes that a running astro preview only needs a refresh, and astro dev hot-reloads', () => {
+		const out = emitApplyTheme(defaultState());
+		assert.match(out, /astro preview.*refresh the browser tab/);
+		assert.match(out, /astro dev.*picks up the change on its own/);
+	});
+
+	test('gap 3: an existing customCss array is told to keep its entries and add this theme LAST', () => {
+		const out = emitApplyTheme(defaultState());
+		assert.match(out, /keep every entry already there/);
+		assert.match(out, /as the LAST item in the array/);
+		assert.match(out, /unlayered.*array order decides the tie/);
+	});
+
+	test('gap 5: a hand-tuned theme still carrying preset "starlight-default" reads as a custom theme, not as "the Starlight default theme"', () => {
+		let s = defaultState();
+		s = setValue(s, 'color.accent.hue', 200);
+		s = setValue(s, 'color.accent.chroma', 0.2);
+		assert.equal(s.preset, 'starlight-default');
+		const out = emitApplyTheme(s);
+		assert.match(out, /This applies a custom theme built on Starlight’s defaults, with/);
+		assert.doesNotMatch(out, /This applies the "Starlight default" theme with/);
+	});
+
+	test('gap 5: an actually-untouched starlight-default state keeps the literal "no changes" phrasing', () => {
+		const out = emitApplyTheme(defaultState());
+		assert.match(out, /This applies the "Starlight default" theme with no changes from Starlight’s own defaults\./);
 	});
 });
 

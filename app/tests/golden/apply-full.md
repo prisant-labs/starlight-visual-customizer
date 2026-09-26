@@ -20,7 +20,7 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
    - Copy the `theme.css` file (exported alongside this document) to `src/styles/theme.css` in the target repo, creating `src/styles/` if it does not exist.
    - Open `astro.config.mjs` (or `astro.config.ts`) and find the `starlight({ ... })` options object.
    - If `customCss` does not exist yet, add `customCss: ['./src/styles/theme.css']`.
-   - If `customCss` already exists, add `'./src/styles/theme.css'` to the array **only if it is not already present** (idempotent: do not add a duplicate entry on a re-run).
+   - If `customCss` already exists, **keep every entry already there** and add `'./src/styles/theme.css'` **as the LAST item in the array** -- only if it is not already present (idempotent: do not add a duplicate entry on a re-run). This theme's CSS is intentionally unlayered, so for any selector another stylesheet also styles, array order decides the tie; adding it last is what makes it win.
 
 2. **Install the chosen fonts.**
    - Run: `npm i @fontsource-variable/lora @fontsource-variable/playfair-display @fontsource-variable/fira-code`
@@ -31,6 +31,7 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
      @import '@fontsource-variable/fira-code';
      ```
    - Nothing else to edit for fonts; re-running `npm i` on an already-installed package is a no-op.
+   - **If a package fails to install** (no network access, or it was renamed/removed on the registry), the site still works: an `@import` that fails to resolve is simply dropped by the browser, and every font-family declaration this theme emits already ends in a fallback stack (e.g. a system serif, sans, or monospace font). The page keeps rendering with that fallback instead of the chosen web font -- less distinctive, not broken. To retry, confirm the exact package name first with `npm view <pkg> version`.
 
 3. **Update Starlight config options.** In the same `starlight({ ... })` options object, set (each of these differs from Starlight’s default, so only the ones listed are added -- an already-correct key is left as-is, making this idempotent):
    - `tableOfContents: { minHeadingLevel: 1, maxHeadingLevel: 3 }`
@@ -81,11 +82,11 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
 
 ## Verification
 
-1. Run `npx astro build`. It must succeed (including the Pagefind index step).
-2. Visual checks:
-   - **Colors → Accent hue:** should now read as "200".
-   - **Colors → Accent chroma:** should now read as "0.2".
-   - **Sidebar → Active item style:** should now read as "Left bar".
+1. Run `npx astro build`. It must succeed (including the Pagefind index step). If `astro preview` is already running against this repo, just refresh the browser tab afterward -- no restart needed. `astro dev` picks up the change on its own; no rebuild required at all.
+2. Visual checks. These describe the target site itself, not this tool -- open any page that contains the listed element (most exist on nearly every content page; a few, such as the table of contents, pagination links, or the splash-page hero, only appear on pages that have one). For each line, find an element matching the given CSS selector and confirm it now matches the target value. The exact CSS property/value is whatever the exported `theme.css` sets for that same selector -- read it there, or in a browser console run `getComputedStyle(document.querySelector(SELECTOR))` to check a specific property without eyeballing it.
+   - **Colors → Accent hue** (`.sidebar-content a[aria-current='page'], .sl-markdown-content a`): target value "200".
+   - **Colors → Accent chroma** (`.sidebar-content a[aria-current='page'], .sl-markdown-content a`): target value "0.2".
+   - **Sidebar → Active item style** (`.sidebar-content a[aria-current='page']`): target value "Left bar".
    - The sidebar navigation matches the new structure (labels, order, groups, badges).
 
 ## Rollback

@@ -11,6 +11,7 @@
  */
 
 import { controls, FONTS, GROUPS } from './manifest.js';
+import { TOKEN_VAR_NAMES } from './emit-css.js';
 import { getValue, defaultState } from './state.js';
 import { presets } from './presets.js';
 import { iaToConfigSource, iaToFrontmatterTable, titleCase } from './ia.js';
@@ -131,6 +132,17 @@ function summarizeTheme(state, base) {
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) notable.push(`a custom site title ("${siteTitle}")`);
 
+	// A state can carry `preset: 'starlight-default'` (the base every custom theme starts from) yet
+	// still have real, non-default control values -- a hand-tuned theme built by adjusting
+	// individual controls rather than picking a named preset first. Calling that "the 'Starlight
+	// default' theme with ..." is misleading (it reads as if the preset itself carries those
+	// changes); "a custom theme built on Starlight's defaults" says the same thing without implying
+	// a named preset exists for it. Only applies when there ARE changes -- literally no changes at
+	// all is exactly what "Starlight default" means, so that phrasing stays for the truly-untouched
+	// case just below.
+	if (state.preset === 'starlight-default' && notable.length) {
+		return `This applies a custom theme built on Starlight’s defaults, with ${notable.join(', ')}.`;
+	}
 	let summary = `This applies the "${presetLabel}" theme`;
 	summary += notable.length ? ` with ${notable.join(', ')}.` : ' with no changes from Starlight’s own defaults.';
 	return summary;
@@ -147,7 +159,7 @@ function buildCssStep(cssFileName) {
 		`   - Copy the \`${cssFileName}\` file (exported alongside this document) to \`${cssPath}\` in the target repo, creating \`src/styles/\` if it does not exist.`,
 		'   - Open `astro.config.mjs` (or `astro.config.ts`) and find the `starlight({ ... })` options object.',
 		`   - If \`customCss\` does not exist yet, add \`customCss: ['./${cssPath}']\`.`,
-		`   - If \`customCss\` already exists, add \`'./${cssPath}'\` to the array **only if it is not already present** (idempotent: do not add a duplicate entry on a re-run).`,
+		`   - If \`customCss\` already exists, **keep every entry already there** and add \`'./${cssPath}'\` **as the LAST item in the array** -- only if it is not already present (idempotent: do not add a duplicate entry on a re-run). This theme's CSS is intentionally unlayered, so for any selector another stylesheet also styles, array order decides the tie; adding it last is what makes it win.`,
 	].join('\n');
 }
 
@@ -170,6 +182,7 @@ function renderFontStep(stepNumber, { pkgs }) {
 		...imports.map((l) => `     ${l}`),
 		'     ```',
 		'   - Nothing else to edit for fonts; re-running `npm i` on an already-installed package is a no-op.',
+		'   - **If a package fails to install** (no network access, or it was renamed/removed on the registry), the site still works: an `@import` that fails to resolve is simply dropped by the browser, and every font-family declaration this theme emits already ends in a fallback stack (e.g. a system serif, sans, or monospace font). The page keeps rendering with that fallback instead of the chosen web font -- less distinctive, not broken. To retry, confirm the exact package name first with `npm view <pkg> version`.',
 	].join('\n');
 }
 
@@ -311,10 +324,15 @@ function buildIaStep(state, stepNumber) {
 // ---------------------------------------------------------------------------
 
 function buildVerification(state, base) {
-	const lines = ['## Verification', '', '1. Run `npx astro build`. It must succeed (including the Pagefind index step).', '2. Visual checks:'];
+	const lines = [
+		'## Verification',
+		'',
+		'1. Run `npx astro build`. It must succeed (including the Pagefind index step). If `astro preview` is already running against this repo, just refresh the browser tab afterward -- no restart needed. `astro dev` picks up the change on its own; no rebuild required at all.',
+		'2. Visual checks. These describe the target site itself, not this tool -- open any page that contains the listed element (most exist on nearly every content page; a few, such as the table of contents, pagination links, or the splash-page hero, only appear on pages that have one). For each line, find an element matching the given CSS selector and confirm it now matches the target value. The exact CSS property/value is whatever the exported `theme.css` sets for that same selector -- read it there, or in a browser console run `getComputedStyle(document.querySelector(SELECTOR))` to check a specific property without eyeballing it.',
+	];
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) {
-		lines.push(`   - **Header → Site title text:** the header now reads "${siteTitle}".`);
+		lines.push(`   - **Header → Site title text** (\`.site-title\`): the header now reads "${siteTitle}".`);
 	}
 	const changedControls = controls.filter((c) => !FIXED_BUILD_IDS.has(c.id) && changed(state, base, c.id));
 	if (changedControls.length === 0 && !siteTitle) {
@@ -323,7 +341,15 @@ function buildVerification(state, base) {
 		for (const group of GROUPS) {
 			const inGroup = changedControls.filter((c) => c.group === group);
 			for (const c of inGroup) {
-				lines.push(`   - **${c.group} → ${c.label}:** should now read as "${formatControlValue(c, getValue(state, c.id))}".`);
+				const value = formatControlValue(c, getValue(state, c.id));
+				const tokenVar = TOKEN_VAR_NAMES[c.id];
+				// A token-backed control (a single named custom property) can be checked exactly with
+				// `getComputedStyle` on the root element, with no need to guess which declaration in
+				// `theme.css` corresponds to it - more precise than the general selector-based note above.
+				const where = tokenVar
+					? `custom property \`${tokenVar}\` on \`:root\``
+					: `\`${c.target}\``;
+				lines.push(`   - **${c.group} → ${c.label}** (${where}): target value "${value}".`);
 			}
 		}
 	}
