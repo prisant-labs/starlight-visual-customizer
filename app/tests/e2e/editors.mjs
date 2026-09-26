@@ -761,6 +761,42 @@ async function main() {
 		);
 	}
 
+	// --- the no-op guard specifically: a rename, a pause LONGER than history.js's 650ms coalescing
+	// window, THEN a real click on the top-bar Undo button (which blurs the field, firing `change`) -
+	// without panel.js's "unchanged ia" no-op guard this would record a second, redundant step (same
+	// class of bug as the hex field's own blur-recommit bug, E1's repro above), so ONE Undo click
+	// must still fully revert it. ---
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		const canUndoBeforePausedRename = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		const firstRow = await shadowQuery(page, '.svc-structure-row');
+		await realClick(page, firstRow);
+		await page.waitForTimeout(120);
+		const labelInput = await shadowQuery(page, '.svc-structure-form .svc-ia-label-input');
+		const originalLabel = await page.evaluate((el) => el.value, labelInput);
+		await realClick(page, labelInput);
+		await page.keyboard.press('Control+A');
+		await page.keyboard.type('Paused Rename', { delay: 15 });
+		await page.waitForTimeout(800); // longer than history.js's 650ms coalesceMs
+		await realClick(page, await lightQuery(page, "button[aria-label='Undo']")); // blurs the field -> `change` fires its own onIaChange call
+		await page.waitForTimeout(150);
+		const labelAfterRealUndoClick = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-form .svc-ia-label-input')?.value);
+		const canUndoAfterRealUndoClick = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check(
+			'a real Undo click after a long pause still fully reverts the rename (the no-op guard, not just coalescing timing, stops a second step)',
+			labelAfterRealUndoClick === originalLabel,
+			`${originalLabel} vs ${labelAfterRealUndoClick}`
+		);
+		check(
+			'nothing more is left to undo (the paused blur did not record its own redundant step)',
+			canUndoAfterRealUndoClick === canUndoBeforePausedRename,
+			`before: ${canUndoBeforePausedRename}, after: ${canUndoAfterRealUndoClick}`
+		);
+	}
+
 	// --- a toolbar action (Indent) then Undo. ---
 	{
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
@@ -882,28 +918,43 @@ async function main() {
 		check('the drop landed INSIDE the group, exactly where the marker was shown', Array.isArray(groupChildrenAfter) && groupChildrenAfter.includes(draggedLabelBefore), JSON.stringify(groupChildrenAfter));
 
 		// --- (b) marker mid-drag: drag a row toward another row's TOP edge ("before"), then complete it. ---
-		const rowB2 = await rowAtIdx(1); // the item that landed inside the group, now flattened right after it
-		const rowB1 = await rowAtIdx(0); // the (now empty) group itself
+		const rowB2 = await rowAtIdx(1); // "Style guide", still nested inside "New group" at this point
+		const rowB1 = await rowAtIdx(0); // "New group" - the drop target, still containing "Style guide"
 		const labelB1 = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, rowB1);
 		const labelB2 = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, rowB2);
+		const targetTopBefore = (await rowB1.boundingBox()).y;
 		finishDrag = await realDragTo(page, rowB2, rowB1, { toFraction: 0.1, pauseMs: 150 });
 		const midDragBefore = await page.evaluate(() => {
 			const rows = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row'));
 			const dropRow = rows.find((r) => r.dataset.drop);
 			const line = document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-drop-line');
 			const lineCs = line ? getComputedStyle(line) : null;
+			const lineRect = line ? line.getBoundingClientRect() : null;
+			const dropRowRect = dropRow ? dropRow.getBoundingClientRect() : null;
 			return {
 				dropPos: dropRow?.dataset.drop ?? null,
+				dropRowLabel: dropRow?.querySelector('.svc-structure-label')?.textContent ?? null,
 				lineVisible: !!line && lineCs.display !== 'none',
 				lineBg: lineCs?.backgroundColor ?? null,
 				lineHeight: lineCs?.height ?? null,
+				lineTop: lineRect?.top ?? null,
+				dropRowTop: dropRowRect?.top ?? null,
 			};
 		});
 		check('dragging toward a row\'s top edge shows a "before" insertion marker', midDragBefore.dropPos === 'before', JSON.stringify(midDragBefore));
+		check('the "before" marker is shown on the actual hovered target row ("New group")', midDragBefore.dropRowLabel === labelB1, JSON.stringify({ midDragBefore, labelB1 }));
 		check(
 			'the "before" marker is a visible line (non-zero height, opaque color)',
 			midDragBefore.lineVisible && midDragBefore.lineHeight && parseFloat(midDragBefore.lineHeight) > 0 && midDragBefore.lineBg && !midDragBefore.lineBg.includes('0, 0, 0, 0'),
 			JSON.stringify(midDragBefore)
+		);
+		// Geometry, not just presence: the line must sit AT the target row's own top edge (within a
+		// couple of px for the 3px line's own half-height/centering), not on some other row - proves
+		// "marker at the right place", not just "a marker exists somewhere".
+		check(
+			'the "before" marker sits at the target row\'s own top edge',
+			midDragBefore.lineTop != null && midDragBefore.dropRowTop != null && Math.abs(midDragBefore.lineTop - midDragBefore.dropRowTop) <= 3,
+			JSON.stringify({ lineTop: midDragBefore.lineTop, dropRowTop: midDragBefore.dropRowTop, targetTopBefore })
 		);
 		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c2-structure-drag-marker-before.png') });
 		await finishDrag();

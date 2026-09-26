@@ -97,8 +97,12 @@ function buildBadgeFields(item, isGroup, commit) {
  * this dispatch are the only things the two share on purpose - S16/overlay mode must stay
  * byte-identical (smoke.mjs/ui-round2.mjs assert its exact DOM shape: `.svc-ia-row`,
  * `.svc-ia-details`, `.svc-ia-btn`, live-typing `.svc-ia-label-input`), so `createOverlayTreeEditor`
- * below is that pre-existing implementation, UNCHANGED. `createStudioTreeEditor` is new: Codex's
- * tree shape (A6), restyle only - no new structure capability, per the settled decision.
+ * below is that pre-existing implementation - its DOM shape is still exactly that, byte-identical;
+ * coordinator bug fix: its label input's `input`/`change` handlers now pass the same undo-coalescing
+ * key `createStudioTreeEditor`'s do (see each one's own comment), since panel.js's single shared
+ * `onIaChange` callback needed it for BOTH builders to fix the Structure-undo bug. `createStudioTreeEditor`
+ * is new: Codex's tree shape (A6), restyle only - no new structure capability, per the settled
+ * decision - plus its own drag insertion marker and Escape-cancel (feedback only, same restriction).
  * @param {import('../core/state.js').ThemeState} initialState
  * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null, coalesceKey?: string) => void}} callbacks
  * @param {{studio?: boolean}} [opts]
