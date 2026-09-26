@@ -1013,7 +1013,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-group-eyebrow { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ui-muted); margin: 0 0 0.2rem; }
 .svc-group-title { font-size: 1.125rem; font-weight: 700; color: var(--ui-ink); margin: 0 0 0.3rem; }
 .svc-group-desc { font-size: 0.8125rem; color: var(--ui-muted); margin: 0 0 0.6rem; line-height: 1.4; }
-/* SPEC-C P4: Expand all / Collapse all sit beside the existing reset-group button, all three sharing
+/* Expand all / Collapse all sit beside the existing reset-group button, all three sharing
    one small-pill look (.svc-reset-group's own styling below, reused rather than duplicated). */
 .svc-group-header-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 /* Reset on the left; Expand all / Collapse all grouped on the right (the reset button is the first child). */
@@ -1068,12 +1068,12 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
    cards previously sharing indistinguishable near-white tones. */
 :host([data-docked='true']) .svc-group-body { background: transparent; padding: 0.2rem 0; gap: 0.6rem; border-inline-start: 0; }
 :host([data-docked='true']) .svc-section { background: var(--ui-bg); border: 1px solid var(--ui-line); }
-/* Item 4 (maintainer fix): .svc-section-body's base rule (above) has ZERO top padding, so the
+/* .svc-section-body's base rule (above) has ZERO top padding, so the
    section header band's bottom border sat flush against the first card's top border - no breathing
    room between the band and its content, unlike the (already-consistent) gap BETWEEN cards. Give it
    the same 0.625rem the body already uses as its inter-card spacing, so the header-to-first-card
    space reads the same as card-to-card space, in every group, docked (light chrome) only - overlay's
-   dark accordion (S16) stays byte-identical. */
+   dark accordion stays byte-identical. */
 :host([data-docked='true']) .svc-section-body { padding-block-start: 0.625rem; }
 :host([data-docked='true']) .svc-section-toggle { background: var(--ui-panel); border-bottom: 1px solid var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-section[data-open='false'] .svc-section-toggle { border-bottom-color: transparent; }
@@ -1112,12 +1112,12 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	color: var(--ui-ink);
 }
 :host([data-docked='true']) input[type='color'] { border-color: var(--ui-line); }
-/* SPEC-C P3: the popover picker, restyled light. */
+/* The popover picker, restyled light. */
 :host([data-docked='true']) .svc-color-picker { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-color-popover { background: var(--ui-panel); border-color: var(--ui-line); box-shadow: 0 12px 32px rgba(27, 33, 48, 0.25); }
 :host([data-docked='true']) .svc-eyedropper-btn { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-eyedropper-btn:hover { background: var(--ui-bg); }
-/* SPEC-C E1: hex field messages. The "note" reuses --ui-muted exactly (the A4 walk's own 4.5:1
+/* Hex field messages. The "note" reuses --ui-muted exactly (the contrast walk's own 4.5:1
    exception for muted text); the "error" is a dedicated red verified at >=7:1 on both --ui-panel and
    --ui-bg (the walk's default floor for anything that ISN'T muted/on-accent). */
 :host([data-docked='true']) .svc-color-hex-msg[data-kind='note'] { color: var(--ui-muted); }
@@ -1172,7 +1172,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-ia-import { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-ia-children { border-color: var(--ui-line); }
 
-/* ---- SPEC-C E3: the studio's restyled structure tree, light ---- */
+/* ---- The studio's restyled structure tree, light ---- */
 :host([data-docked='true']) .svc-structure-note { color: var(--ui-muted); }
 :host([data-docked='true']) .svc-structure-row { background: var(--ui-panel); border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-structure-row:hover { border-color: var(--ui-accent); }
