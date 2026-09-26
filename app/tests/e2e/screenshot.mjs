@@ -24,6 +24,12 @@
  * `page.evaluate`, decoded via `<img>` + `<canvas>.getImageData`, and diffed pixel-by-pixel there -
  * see `compareImages`. All PNGs plus a red/grey diff visualization for every scenario are saved to
  * `BATCH_DIR` for the coordinator.
+ *
+ * Round 2 addition: a dedicated ALIGNMENT check (`alignmentProbesFor`/`checkAlignment`) catches a
+ * systematic render offset directly, by comparing the pixel position of a distinctive edge (the
+ * header's bottom border row, the left sidebar's right border column) between `ours` and the
+ * reference, 1px tolerance - this is what should have caught (and now does catch) the ~8px
+ * top/left margin offset that round 1's region-diff-fraction thresholds were loose enough to miss.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -45,32 +51,49 @@ const BATCH_DIR =
 // differs from the reference at the pixel level because the two use different text/font rasterizers -
 // most visibly at glyph edges and hairline borders. These thresholds are sized to comfortably pass
 // that expected antialiasing noise while still failing hard on a real defect (wrong content, a blank
-// region, or a select showing the wrong option) - see the measured numbers logged per scenario below,
-// and the PR report, for what a real run of this suite actually produces.
+// region, a select showing the wrong option, or a systematic render offset - see ALIGNMENT_TOLERANCE_PX
+// below for that last one specifically).
+//
+// Round 2 recalibration: these were originally set from a run that (unknowingly) had the ~8px margin
+// offset this round fixes baked into every capture, which inflated every diff number well above what
+// a genuinely correct capture produces - loose enough that the offset itself passed every threshold.
+// Retuned against a real post-fix run on kitchen-sink/Editorial Serif/Desktop 1440 (measured numbers
+// logged per scenario below; see the PR report for the full table). Before/after, for context: the
+// offset bug measured ~6.95-8.44% overall diff and ~7.43-11.22% region diff; fixed, the SAME scenarios
+// measure ~1.4-2.4% and ~0.03-2.61% respectively - roughly a 3-5x drop, which is what actually fixing a
+// structural bug (rather than just tolerating it) should look like.
 /** Per-channel (R/G/B) absolute difference above which a pixel counts as "different" for the
  * fraction-based checks below. Text/icon edges alone can differ by 40-90 in a single channel between
  * the two rasterizers; 40 keeps that noise out while still catching a genuinely wrong pixel (which
- * differs by hundreds, not tens, e.g. sidebar background vs. blank white). */
+ * differs by hundreds, not tens, e.g. sidebar background vs. blank white). Unchanged in round 2 - this
+ * is a per-pixel noise filter, not where the offset bug hid (that's why ALIGNMENT_TOLERANCE_PX exists
+ * as a separate, geometric check rather than a tighter version of this one). */
 const PIXEL_CHANNEL_TOLERANCE = 40;
 /** Fraction of pixels (beyond the tolerance above) allowed over an ENTIRE viewport-sized capture.
- * A viewport is mostly large flat regions (backgrounds, whitespace) with text sprinkled through it,
- * so even with every glyph's edges differing, the differing-pixel fraction stays in the low single
- * digits in practice; 10% leaves real headroom above that while still failing a capture that's
- * structurally wrong (e.g. a large region shifted, missing, or the wrong color). */
-const OVERALL_DIFF_FRACTION_THRESHOLD = 0.1;
+ * Measured post-fix: 1.41-2.40% across all four scenarios (mid-scroll light/dark, scroll0, Full page's
+ * top slice). 5% is a little over 2x that ceiling - enough headroom that ordinary rasterizer/font
+ * variance across machines won't flake it, while a real regression (the fixed offset bug alone would
+ * have read 6.95-8.44% here) still fails clearly. */
+const OVERALL_DIFF_FRACTION_THRESHOLD = 0.05;
 /** Same idea, scoped to the sidebar/TOC regions specifically - these are TEXT-DENSE (a nav tree, a
- * heading list), so a higher edge-pixel fraction is expected than the viewport average; 20% is still
- * far below what a genuinely blank or mispositioned region would show (see BLANK_STDDEV below, which
- * catches "blank" independently of this). */
-const REGION_DIFF_FRACTION_THRESHOLD = 0.2;
+ * heading list), so a higher edge-pixel fraction than the viewport average is expected. Measured
+ * post-fix: sidebar 2.40-2.61%, TOC 0.03-0.76%. 6% covers both with headroom (roughly 2.3x the higher
+ * of the two ceilings) while still comfortably failing the offset bug's 7.43-11.22%. "Blank" is caught
+ * independently by BLANK_STDDEV below, and a systematic shift specifically by the alignment check -
+ * this threshold's remaining job is just "recognizably the same content", so it doesn't need to (and,
+ * post-fix, no longer has to) carry the offset-detection burden on its own. */
+const REGION_DIFF_FRACTION_THRESHOLD = 0.06;
 /** The theme-select box is small and almost entirely TEXT ("Light"/"Dark"/"Auto" plus an icon and a
  * caret) - the right word and the wrong word look completely different pixel-for-pixel (different
- * glyphs, different widths), so this threshold is deliberately much wider apart from the "correct"
- * case (typically well under 20% - see the logged numbers) than from the "wrong word" case (typically
- * 60%+, since most of the box's pixels are glyph vs. background). 40% sits in the gap between them. */
-const THEME_SELECT_DIFF_FRACTION_THRESHOLD = 0.4;
+ * glyphs, different widths). Measured post-fix (correct word): 2.23-2.64%. A wrong word replaces most
+ * of the box's glyph pixels with different glyph pixels over the same background, which - from the
+ * ~2.6% ceiling measured here for a MATCHING word - puts a mismatch far higher (well over 50%, same
+ * order of magnitude as swapping "Auto" for "Light" entirely). 15% sits with real headroom above the
+ * correct case (~5.7x) while staying far below where a wrong word would land. */
+const THEME_SELECT_DIFF_FRACTION_THRESHOLD = 0.15;
 /** Luminance standard deviation below which a region counts as "blank" (a flat fill has ~0-3; real
- * nav/TOC content - text, hover backgrounds, the active-item highlight - runs well into the tens). */
+ * nav/TOC content - text, hover backgrounds, the active-item highlight - measured post-fix at
+ * 20.06-34.15, so 10 sits with wide margin below every real measurement and well above a flat fill). */
 const BLANK_STDDEV_THRESHOLD = 10;
 
 let failures = 0;
@@ -194,14 +217,20 @@ async function snapshotLiveState(frame) {
  * Decodes both PNGs via `<canvas>`/`getImageData` IN THE BROWSER (no new npm dependency, per the
  * coordinator's brief) and diffs them: overall stats over the full overlapping area, plus per-region
  * stats for whatever rects are passed in `regions` (frame-viewport-relative `{x,y,width,height}`,
- * e.g. the sidebar/TOC/theme-select boxes). Also renders a diff visualization: pixels over
+ * e.g. the sidebar/TOC/theme-select boxes), plus an ALIGNMENT check (round 2 - see `ALIGNMENT_TOLERANCE_PX`):
+ * for each entry in `alignmentProbes`, scans a line of pixels in `ours` and the same line in `ref` and
+ * finds the position of the single sharpest luminance jump (the real edge, e.g. a border or a
+ * background-color change) - a systematic render offset moves that position in `ours` relative to
+ * `ref` even when every region-level diff fraction stays "close enough" (region checks are fooled by
+ * a shift because a shifted region still overlaps its own content heavily; this checks a geometric
+ * position directly, not a fuzzy pixel match). Also renders a diff visualization: pixels over
  * `PIXEL_CHANNEL_TOLERANCE` painted solid red, everything else a dim grayscale passthrough of `ours`.
  * @param {import('playwright-core').Page} page
- * @param {{oursB64: string, refB64: string, regions: Record<string, {x:number,y:number,width:number,height:number}>}} args
+ * @param {{oursB64: string, refB64: string, regions: Record<string, {x:number,y:number,width:number,height:number}>, alignmentProbes: {name: string, axis: 'x'|'y', fixed: number, scanStart: number, scanEnd: number}[]}} args
  */
-async function compareImages(page, { oursB64, refB64, regions }) {
+async function compareImages(page, { oursB64, refB64, regions, alignmentProbes }) {
 	return page.evaluate(
-		async ({ oursB64, refB64, regions, tolerance }) => {
+		async ({ oursB64, refB64, regions, alignmentProbes, tolerance }) => {
 			function loadImage(b64) {
 				return new Promise((resolve, reject) => {
 					const img = new Image();
@@ -218,10 +247,46 @@ async function compareImages(page, { oursB64, refB64, regions }) {
 				ctx.drawImage(img, 0, 0);
 				return { width: c.width, height: c.height, data: ctx.getImageData(0, 0, c.width, c.height).data };
 			}
+			/** Finds the position (between two adjacent samples, so e.g. 63.5) along a fixed row/column
+			 * where consecutive-pixel luminance changes the MOST - the sharpest real edge in that line,
+			 * as opposed to individual pixels differing from noise/antialiasing. */
+			function findEdge(imgData, axis, fixed, scanStart, scanEnd) {
+				const { width, data } = imgData;
+				const lumAt = (x, y) => {
+					const i = (y * width + x) * 4;
+					return 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+				};
+				let bestPos = scanStart;
+				let bestDelta = -1;
+				for (let p = scanStart; p < scanEnd - 1; p++) {
+					const l1 = axis === 'y' ? lumAt(fixed, p) : lumAt(p, fixed);
+					const l2 = axis === 'y' ? lumAt(fixed, p + 1) : lumAt(p + 1, fixed);
+					const delta = Math.abs(l2 - l1);
+					if (delta > bestDelta) {
+						bestDelta = delta;
+						bestPos = p + 0.5;
+					}
+				}
+				return { position: bestPos, delta: bestDelta };
+			}
 
 			const [oursImg, refImg] = await Promise.all([loadImage(oursB64), loadImage(refB64)]);
 			const ours = toImageData(oursImg);
 			const ref = toImageData(refImg);
+
+			/** @type {Record<string, {ours: number, ref: number, offsetPx: number, oursEdgeStrength: number, refEdgeStrength: number}>} */
+			const alignment = {};
+			for (const probe of alignmentProbes || []) {
+				const oursEdge = findEdge(ours, probe.axis, probe.fixed, probe.scanStart, probe.scanEnd);
+				const refEdge = findEdge(ref, probe.axis, probe.fixed, probe.scanStart, probe.scanEnd);
+				alignment[probe.name] = {
+					ours: oursEdge.position,
+					ref: refEdge.position,
+					offsetPx: oursEdge.position - refEdge.position,
+					oursEdgeStrength: oursEdge.delta,
+					refEdgeStrength: refEdge.delta,
+				};
+			}
 
 			const w = Math.min(ours.width, ref.width);
 			const h = Math.min(ours.height, ref.height);
@@ -303,11 +368,49 @@ async function compareImages(page, { oursB64, refB64, regions }) {
 				sameDimensions: ours.width === ref.width && ours.height === ref.height,
 				overall: { totalPixels: w * h, diffPixels, diffFraction: diffPixels / (w * h), meanChannelDiff: sumChannelDiff / (w * h) },
 				regions: regionResults,
+				alignment,
 				diffPngB64: diffCanvas.toDataURL('image/png').split(',')[1],
 			};
 		},
-		{ oursB64, refB64, regions, tolerance: PIXEL_CHANNEL_TOLERANCE }
+		{ oursB64, refB64, regions, alignmentProbes, tolerance: PIXEL_CHANNEL_TOLERANCE }
 	);
+}
+
+/** Round 2: 1px tolerance on the alignment probes above, per the coordinator's brief - a real render
+ * (different rasterizer, subpixel antialiasing) can legitimately land an edge's exact sharpest-jump
+ * position a fraction of a pixel apart between two otherwise-identical images; a SYSTEMATIC render
+ * offset (the ~8px margin bug this round fixes) moves it by whole pixels, so 1px cleanly separates
+ * "same rasterizer noise" from "actually shifted". */
+const ALIGNMENT_TOLERANCE_PX = 1;
+
+/** @param {{x:number,y:number,width:number,height:number}} headerRect
+ * @param {{x:number,y:number,width:number,height:number}} sidebarRect
+ * @returns {{name: string, axis: 'x'|'y', fixed: number, scanStart: number, scanEnd: number}[]} */
+function alignmentProbesFor(headerRect, sidebarRect) {
+	const probes = [];
+	if (headerRect) {
+		// Header's bottom border row: scan straight down through the header's own flat left padding
+		// (x=4 - inside the nav bar, before any logo/text glyph starts) from the top of the frame past
+		// where the header should end, looking for the header-background -> below-header-background
+		// step.
+		probes.push({ name: 'headerBottomEdge', axis: 'y', fixed: 4, scanStart: 0, scanEnd: Math.round(headerRect.height) + 60 });
+	}
+	if (sidebarRect) {
+		// Left sidebar's right border column: scan across a row comfortably inside the sidebar's own
+		// vertical extent, from just past the sidebar's left edge to well past its right edge, looking
+		// for the sidebar-background -> main-content-background step.
+		const y = Math.round(sidebarRect.y) + 40;
+		probes.push({ name: 'sidebarRightEdge', axis: 'x', fixed: y, scanStart: Math.round(sidebarRect.x) + 50, scanEnd: Math.round(sidebarRect.x + sidebarRect.width) + 100 });
+	}
+	return probes;
+}
+
+/** @param {string} label @param {Record<string, {ours: number, ref: number, offsetPx: number}>} alignment */
+function checkAlignment(label, alignment) {
+	for (const [name, result] of Object.entries(alignment)) {
+		console.log(`[${label}] alignment "${name}": ours=${result.ours} ref=${result.ref} offset=${result.offsetPx.toFixed(2)}px`);
+		check(`[${label}] alignment "${name}" is within ${ALIGNMENT_TOLERANCE_PX}px of the reference (no systematic offset)`, Math.abs(result.offsetPx) <= ALIGNMENT_TOLERANCE_PX, `${result.offsetPx.toFixed(2)}px`);
+	}
 }
 
 /**
@@ -337,6 +440,7 @@ async function runVisibleAreaScenario(page, { label, scrollY, themeLabel }) {
 			width: window.innerWidth,
 			viewportHeight: window.innerHeight,
 			scrollY: window.scrollY,
+			header: rect(document.querySelector('.header')),
 			sidebar: rect(document.querySelector('.sidebar-pane')),
 			toc: rect(document.querySelector('.right-sidebar')),
 			themeSelect: rect(document.querySelector('starlight-theme-select label')),
@@ -372,7 +476,8 @@ async function runVisibleAreaScenario(page, { label, scrollY, themeLabel }) {
 	if (geo.toc) regions.toc = geo.toc;
 	if (geo.themeSelect) regions.themeSelect = geo.themeSelect;
 
-	const cmp = await compareImages(page, { oursB64: oursBuffer.toString('base64'), refB64: referenceBuffer.toString('base64'), regions });
+	const alignmentProbes = alignmentProbesFor(geo.header, geo.sidebar);
+	const cmp = await compareImages(page, { oursB64: oursBuffer.toString('base64'), refB64: referenceBuffer.toString('base64'), regions, alignmentProbes });
 	if (cmp.diffPngB64) writeFileSync(path.join(BATCH_DIR, `screenshot-${label}-diff.png`), Buffer.from(cmp.diffPngB64, 'base64'));
 
 	console.log(
@@ -382,6 +487,10 @@ async function runVisibleAreaScenario(page, { label, scrollY, themeLabel }) {
 		if (r.skipped) console.log(`[${label}] region "${name}" skipped (no rect)`);
 		else console.log(`[${label}] region "${name}": diff ${(r.diffFraction * 100).toFixed(2)}%, stdDev luminance ${r.stdDevLuminance.toFixed(2)}`);
 	}
+
+	// Round 2: the alignment check - fails hard on any systematic render offset, regardless of
+	// whether the region-diff-fraction checks below happen to still pass.
+	checkAlignment(label, cmp.alignment);
 
 	// (a) same dimensions
 	check(`[${label}] "Visible area" PNG dimensions equal the frame's viewport (W x H)`, cmp.dims.ours.w === geo.width && cmp.dims.ours.h === geo.viewportHeight, JSON.stringify(cmp.dims.ours));
@@ -424,8 +533,10 @@ async function runVisibleAreaScenario(page, { label, scrollY, themeLabel }) {
 /** Full page smoke check: dimensions = W x full scroll height, and the top viewport-height slice
  * matches a Playwright reference (a real iframe screenshot only ever shows the current viewport, so
  * it's naturally a "top of the page" reference - this reuses `compareImages`'s overlap-clamped overall
- * diff, since `min(oursHeight, refHeight)` IS exactly that top slice when `ours` is much taller). */
-async function runFullPageScenario(page, { label, regions }) {
+ * diff, since `min(oursHeight, refHeight)` IS exactly that top slice when `ours` is much taller).
+ * `header` is passed separately from `regions` (rather than folded into it) because it only drives the
+ * alignment probes here, not a blank/diff-fraction region check like sidebar/toc get. */
+async function runFullPageScenario(page, { label, regions, header }) {
 	const frame = await getFrame(page);
 	await frame.evaluate(() => window.scrollTo(0, 0));
 	await page.waitForTimeout(200);
@@ -453,10 +564,16 @@ async function runFullPageScenario(page, { label, regions }) {
 	writeFileSync(path.join(BATCH_DIR, `screenshot-${label}-ours.png`), oursBuffer);
 	writeFileSync(path.join(BATCH_DIR, `screenshot-${label}-reference-top.png`), referenceBuffer);
 
-	const cmp = await compareImages(page, { oursB64: oursBuffer.toString('base64'), refB64: referenceBuffer.toString('base64'), regions });
+	const alignmentProbes = alignmentProbesFor(header, regions?.sidebar);
+	const cmp = await compareImages(page, { oursB64: oursBuffer.toString('base64'), refB64: referenceBuffer.toString('base64'), regions, alignmentProbes });
 	if (cmp.diffPngB64) writeFileSync(path.join(BATCH_DIR, `screenshot-${label}-diff.png`), Buffer.from(cmp.diffPngB64, 'base64'));
 
 	console.log(`[${label}] dims ours=${cmp.dims.ours.w}x${cmp.dims.ours.h} (expected ${geo.width}x${geo.fullHeight}); top-slice overall diff ${(cmp.overall.diffFraction * 100).toFixed(2)}%`);
+
+	// Round 2: same alignment check as the Visible area scenarios - the ~8px margin bug this round
+	// fixed hit Full page identically (it happens at scroll 0, and Full page always renders from
+	// scroll 0 regardless of the live page's current scroll position).
+	checkAlignment(label, cmp.alignment);
 
 	check(`[${label}] "Full page" PNG dimensions equal W x full scroll height`, cmp.dims.ours.w === geo.width && cmp.dims.ours.h === geo.fullHeight, `${cmp.dims.ours.w}x${cmp.dims.ours.h} vs ${geo.width}x${geo.fullHeight}`);
 	check(`[${label}] "Full page" top region matches the reference (diff < ${OVERALL_DIFF_FRACTION_THRESHOLD * 100}%)`, cmp.overall.diffFraction < OVERALL_DIFF_FRACTION_THRESHOLD, `${(cmp.overall.diffFraction * 100).toFixed(2)}%`);
@@ -528,7 +645,7 @@ async function main() {
 		// ---- Scenario 4: Full page smoke check, reusing scenario 2's sidebar/TOC rects
 		// (position:fixed, viewport-relative, so unaffected by scroll or by which capture produced
 		// them). ----------------------------------------------------------------------------------------
-		await runFullPageScenario(page, { label: 'full-page', regions: { sidebar: scenario2.geo.sidebar, toc: scenario2.geo.toc } });
+		await runFullPageScenario(page, { label: 'full-page', regions: { sidebar: scenario2.geo.sidebar, toc: scenario2.geo.toc }, header: scenario2.geo.header });
 
 		console.log(`\n${errors.length} browser console/page errors observed across the whole suite.`);
 		for (const e of errors.slice(0, 20)) console.log(e);
