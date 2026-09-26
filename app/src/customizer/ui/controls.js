@@ -306,17 +306,17 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	const wrap = document.createElement('div');
 	wrap.className = 'svc-color-assist-row';
 
-	// Coordinator polish round: one consistent layout for every color-assist control - a hex+picker
+	// One consistent layout for every color-assist control - a hex+picker
 	// row, THEN the swatch strip, THEN the note/help (previously the swatch strip came first and
 	// accent's own extra help paragraph made its row look different from gray's).
 	const hexRow = document.createElement('div');
 	hexRow.className = 'svc-color-hexrow';
 
-	// SPEC-C E1: hex text field, PRIMARY editor (B2 - the maintainer wants hex entry because
-	// Chrome's native `<input type=color>` dialog can't be forced into hex mode). Applies hue (and,
+	// Hex text field, PRIMARY editor - hex entry is the primary way colors are set here because
+	// Chrome's native `<input type=color>` dialog can't be forced into hex mode. Applies hue (and,
 	// for accent/gray, chroma) through the same back-solve the native picker below uses, so both
 	// stay in exact sync; the two-id accent/gray case commits through `onChangeMany` (one undo
-	// step, not two - see panel.js's marked workstream-E block).
+	// step, not two - see panel.js's `onControlChangeMany`).
 	const hexInput = document.createElement('input');
 	hexInput.type = 'text';
 	hexInput.className = 'svc-color-hex';
@@ -329,7 +329,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	hexMsg.className = 'svc-color-hex-msg';
 	hexMsg.hidden = true;
 
-	// Coordinator bug fix: `lastKnownValue` is whatever the field currently shows because WE put it
+	// `lastKnownValue` is whatever the field currently shows because it was put
 	// there (initial paint, a produced-color readback, or an external refresh) - never because the
 	// user's own edit is still pending. A commit (Enter or blur) is a no-op whenever the field's text
 	// already equals this, so blurring right after Enter (e.g. a real click on the top-bar Undo
@@ -342,12 +342,12 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 		lastKnownValue = value;
 	}
 
-	// SPEC-C P3: shared back-solve, used by BOTH the row's own primary hex field (Enter/blur, below)
+	// Shared back-solve, used by BOTH the row's own primary hex field (Enter/blur, below)
 	// and the popover picker (hex-color-picker drag/keyboard + its own hex field/eyedropper) - one
 	// path, so the two stay in exact sync. `coalesceKey`, when given, lets many rapid calls (a
 	// popover drag fires `color-changed` continuously) merge into ONE undo step, the same way a
-	// plain slider drag's many `input` events already coalesce by control id - see panel.js's marked
-	// P3 addition threading a coalesce key through `onChangeMany`.
+	// plain slider drag's many `input` events already coalesce by control id - see panel.js's
+	// `coalesceKey` parameter threaded through `onChangeMany`.
 	function applyHex(normalized, { coalesceKey } = {}) {
 		if (assist.kind === 'semantic') {
 			const hue = clampNum(hexToHslHue(normalized), control.min, control.max);
@@ -417,7 +417,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	hexInput.addEventListener('blur', () => commitHex());
 	hexRow.appendChild(hexInput);
 
-	// SPEC-C P3: the popover swatch button replaces the native `<input type=color>` - see
+	// The popover swatch button replaces the native `<input type=color>` - see
 	// color-picker.js's file header for why (Chrome's own picker dialog can't open in hex mode).
 	const picker = createColorPopover({
 		label: control.label,
@@ -462,7 +462,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
  * @param {import('../core/state.js').ThemeState} state
  * @param {ControlHandlers} handlers
  * @param {{isCardOpen?: (controlId: string) => boolean, onCardToggle?: (controlId: string, open: boolean) => void}} [opts]
- *   SPEC-C phase 3, workstream P (P4): per-card open/closed state, same contract as
+ *   Per-card open/closed state, same contract as
  *   `createGroupSection`'s `isSectionOpen`/`onSectionToggle` one level up - `onCardToggle` fires
  *   only on a genuine user click (not the filter's auto-open), so panel.js persists just the user's
  *   own choices.
@@ -474,14 +474,13 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	root.dataset.controlId = control.id;
 	root.dataset.label = control.label.toLowerCase();
 
-	// SPEC-C P4: every card starts OPEN unless a restored sessionStorage choice says otherwise
-	// (default settled with the maintainer 2026-09-24 - see SPEC-C section 5b).
+	// Every card starts OPEN unless a restored sessionStorage choice says otherwise.
 	const startOpen = opts.isCardOpen ? opts.isCardOpen(control.id) !== false : true;
 	root.dataset.open = startOpen ? 'true' : 'false';
 
-	// `target` (SPEC.md Round 2, owner CORE-2) is optional and may not exist on every control yet -
+	// `target` is optional and may not exist on every control yet -
 	// every use below is guarded, so a manifest without it just never scrolls/highlights (graceful
-	// degrade), no per-control UI code needed once CORE-2's field lands.
+	// degrade), no per-control UI code needed once it's added.
 	const notifyTarget = (scroll) => {
 		if (control.target) handlers.onTarget?.(control.target, { scroll });
 	};
@@ -489,11 +488,11 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		root.addEventListener('pointerenter', () => notifyTarget(false));
 	}
 
-	// SPEC-C P4: the card header is now a collapsible toggle - a real <button> (Enter/Space
+	// The card header is a collapsible toggle - a real <button> (Enter/Space
 	// activation for free) holding the label, an optional build-tag, a value SUMMARY shown only
 	// while collapsed ("720 px", "Filled pill", a color chip + hex, "On"), and a chevron; the whole
-	// row is the click target. Deliberately NOT a `<label for=...>` around the input the way B's
-	// original row was: clicking to collapse a TOGGLE card must never also flip its checkbox, and a
+	// row is the click target. Deliberately NOT a `<label for=...>` around the input: clicking to
+	// collapse a TOGGLE card must never also flip its checkbox, and a
 	// `<label for>` on a range control would focus (and scroll to) the frame on every collapse click.
 	// Every input below gets its own `aria-label` instead (several already had one).
 	const head = document.createElement('div');
