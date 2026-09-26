@@ -1,6 +1,5 @@
 /**
- * @file Per-control sample markup for live-sample tiles (SPEC.md Round "B" tiles item 2, first
- * bullet). Two sourcing strategies, chosen per control:
+ * @file Per-control sample markup for live-sample tiles. Two sourcing strategies, chosen per control:
  *  - **Clone, don't construct** (mirrors `sidebar-render.js`'s own rule) for anything styled by an
  *    Astro-component-scoped `<style>` block (Header, Search, Sidebar, TOC, Tabs, Pagination): this
  *    build's Astro scoping strategy adds a per-component `astro-XXXXXXXX` class to both the
@@ -19,10 +18,9 @@
  * scales the whole thing down to fit. Clone-based builders fall back to a hand-built approximation
  * when the current page has no live instance of that element (e.g. Tabs/Pagination on a page that
  * doesn't use them, or `.sidebar-content`/`starlight-toc` on a splash page with no sidebar/TOC) - a
- * known fidelity trade-off documented in the build report, not chased further per SPEC.md's
- * screenshot-judged bar.
+ * known fidelity trade-off, not chased further - judged against the samples' own screenshots.
  *
- * PAGE-facing (studio.astro's design doc, item C): every "clone a live element" lookup below reads
+ * PAGE-facing: every "clone a live element" lookup below reads
  * from `getPageDoc()` (the previewed document - the frame's, in studio mode) via `pageQuery`, not
  * the module's own `document` - so tiles clone whatever the studio is currently previewing, falling
  * back to the hand-built approximation exactly as they already do for a page missing that element.
@@ -55,7 +53,7 @@ function capListItems(root, max) {
 /**
  * `header.header` (PageFrame.astro's outer element) composed with a "page content" block directly
  * beneath/behind it - a heading and a couple of text lines, absolutely positioned so their top edge
- * sits right at the header's own bottom edge (coordinator review, round 2: the four header.style
+ * sits right at the header's own bottom edge (the four header.style
  * options were indistinguishable with nothing but empty page background under the bar - border and
  * shadow need a content edge to read against, and translucent-blur needs something to actually
  * blur). Used by `header.style` only; `header.searchTriggerStyle` gets its own narrower sample
