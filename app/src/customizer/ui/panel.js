@@ -281,7 +281,7 @@ function initCustomizer(host) {
 	// page-facing operation at the frame(s) instead of `document` (see attachToPageDoc below, and
 	// page-doc.js). Absent in plain overlay mode, where every getPageDoc()/getPageWin() call below
 	// resolves to `document`/`window` and behavior is byte-identical to before the studio existed.
-	// SPEC-C S9 (Split): there can be TWO frames (light + dark lanes); `setFrameEls` records all of
+	// Split mode: there can be TWO frames (light + dark lanes); `setFrameEls` records all of
 	// them, `getPageDoc()`/`getFrameEl()` stay pinned to the first (the primary lane).
 	const frameEls = Array.from(host.ownerDocument.querySelectorAll('iframe[data-svc-preview]'));
 	if (frameEls.length) {
@@ -295,9 +295,9 @@ function initCustomizer(host) {
 	let lastSaveOk = persistState(state);
 	let lastSaveAt = Date.now();
 
-	// ---- UI-state contract (SPEC.md Round 2 item 2): open groups, panel scroll offset, filter
+	// ---- UI-state contract: open groups, panel scroll offset, filter
 	// text, and drawer-collapsed persist in sessionStorage (per-tab, not per-theme) and are restored
-	// synchronously before this function returns. Extended by SPEC-C S4's `activeGroup`. -------------
+	// synchronously before this function returns. Also carries `activeGroup` (below). -------------
 	let uiState = loadUiState();
 	function persistUi(partial) {
 		// Re-reads sessionStorage fresh on every write - studio.js owns its OWN fields
@@ -310,14 +310,14 @@ function initCustomizer(host) {
 	let openGroupsSet = new Set(Array.isArray(uiState.openGroups) ? uiState.openGroups : DEFAULT_OPEN_GROUPS);
 	let pendingScrollTop = typeof uiState.scrollTop === 'number' ? uiState.scrollTop : 0;
 	let followOnPage = uiState.followOnPage !== false; // default on
-	/** SPEC-C S4: "Active group persists in sessionStorage['svc-ui']." */
+	/** Active group persists in sessionStorage['svc-ui']. */
 	let activeGroupName = RAIL_GROUPS.includes(uiState.activeGroup) ? uiState.activeGroup : 'Presets';
 
-	// ---- item 3: per-section open/closed state. Keyed by `group::section` so an absent key means
-	// "use the default", not "closed". SPEC-C P4 (settled with the maintainer 2026-09-24): the
-	// default is now "every section starts open" (superseding B's original "only the first section
-	// starts open" - `isFirstInGroup` is still threaded through for callers/bookkeeping that need to
-	// know which section is first, but no longer gates the default). -------------------------------
+	// ---- Per-section open/closed state. Keyed by `group::section` so an absent key means
+	// "use the default", not "closed". The default is "every section starts open" (an earlier
+	// build only opened the first section by default - `isFirstInGroup` is still threaded through
+	// for callers/bookkeeping that need to know which section is first, but no longer gates the
+	// default). -------------------------------
 	let sectionOpenOverrides =
 		uiState.openSections && typeof uiState.openSections === 'object' && !Array.isArray(uiState.openSections)
 			? { ...uiState.openSections }
@@ -339,9 +339,7 @@ function initCustomizer(host) {
 	let sectionDotRefreshers = [];
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4) - marked block per SPEC-C section 5b's ownership rule ("In
-	// ui/panel.js: only section/card open-state and the expand/collapse controls"). Per-CARD
-	// open/closed state, one level below the section state just above - same "every card starts
+	// Per-CARD open/closed state, one level below the section state just above - same "every card starts
 	// open unless a restored choice says otherwise" contract, keyed by the globally-unique control id
 	// (a control's id is scoped to exactly one group/section by construction, so this is equivalent
 	// to "per group" without needing a compound key).
@@ -359,7 +357,7 @@ function initCustomizer(host) {
 	// End marked block (continues below at the group-header Expand all / Collapse all buttons).
 	// =============================================================================================
 
-	// ---- SPEC-C S11: undo/redo. `historyStepCounter` gives every discrete action (preset/reset-
+	// ---- Undo/redo. `historyStepCounter` gives every discrete action (preset/reset-
 	// group/reset-all/import) its own never-coalescing key; ordinary control edits key off the
 	// control id itself so a slider drag - many `input` events, one id - coalesces into one step. ----
 	const history = createHistory({ limit: 100, coalesceMs: 650 });
@@ -422,7 +420,7 @@ function initCustomizer(host) {
 
 		doc.getElementById(PRELOAD_STYLE_ID)?.remove();
 		stampTocLevels(doc);
-		applySiteTitle(doc, getValue(state, 'site.title')); // SPEC-C phase 2, workstream E (E4): reapply on every lane/navigation - see the marked block below.
+		applySiteTitle(doc, getValue(state, 'site.title')); // Reapply on every lane/navigation.
 		harvestSidebarTemplates(doc);
 
 		const win = doc.defaultView || window;
@@ -435,8 +433,8 @@ function initCustomizer(host) {
 		renderSidebar(doc, state.ia);
 
 		const isPrimary = doc === getPageDoc();
-		// Host mirrors the PRIMARY lane's theme (S2). A secondary Split lane's theme is FORCED by
-		// studio.js instead (S9) and must never drive the host/chrome mode.
+		// Host mirrors the PRIMARY lane's theme. A secondary Split lane's theme is FORCED by
+		// studio.js instead and must never drive the host/chrome mode.
 		if (isPrimary && doc.documentElement.dataset.theme) {
 			document.documentElement.dataset.theme = doc.documentElement.dataset.theme;
 			syncThemeButton();
@@ -467,7 +465,7 @@ function initCustomizer(host) {
 			rafHandle = null;
 			applyCssEverywhere(emitCss(state, { forPreview: true }));
 			for (const doc of laneSheets.keys()) ensureFontsInjectedIn(doc, state);
-			for (const doc of laneSheets.keys()) applySiteTitle(doc, getValue(state, 'site.title')); // SPEC-C phase 2, workstream E (E4): live as you type - see the marked block below.
+			for (const doc of laneSheets.keys()) applySiteTitle(doc, getValue(state, 'site.title')); // Live as you type.
 			lastSaveOk = persistState(state);
 			lastSaveAt = Date.now();
 			persistPreviewCss();
@@ -489,8 +487,8 @@ function initCustomizer(host) {
 	styleEl.textContent = panelStyles;
 	shadow.appendChild(styleEl);
 
-	// ---- "what does this control change?" (SPEC.md Round 2 item 4; S10 reuses `notify` for
-	// rail-driven scroll-to-surface) ----------------------------------------------------------------
+	// ---- "what does this control change?" (the rail's own scroll-to-surface reuses this same
+	// `notify`) ----------------------------------------------------------------
 	const targetHighlighter = createTargetHighlighter(shadow, { getPageDoc, getFrameEl });
 	targetHighlighter.setEnabled(followOnPage);
 
@@ -510,23 +508,19 @@ function initCustomizer(host) {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 2, workstream E - one small, additive hook (contract section 5: "in panel.js add
-	// only small additive hooks... in ONE clearly marked block"; the two `applySiteTitle` call sites
-	// above, in `attachToPageDoc` and `scheduleApply`, are the other half of E4 and are marked the
-	// same way). `onChangeMany` lets E1's hex color field commit hue AND (for accent/gray) chroma -
+	// `onChangeMany` lets the hex color field commit hue AND (for accent/gray) chroma -
 	// two different control ids - as ONE undo step: routing both through `onControlChange` would
-	// record two separate history snapshots (different coalescing keys), failing E1's "one undo
-	// step" acceptance. Same one-history-step shape `onApplyPreset`/`onResetGroup` already use below.
+	// record two separate history snapshots (different coalescing keys), breaking the "one undo
+	// step" contract for a single hex-field commit. Same one-history-step shape `onApplyPreset`/
+	// `onResetGroup` already use below.
 	//
-	// SPEC-C phase 3, workstream P (P3) - one additional, minimal parameter, `coalesceKey` (reported
-	// in the build report as a deliberate exception to "only section/card open-state" - it's a one-
-	// line, backward-compatible addition needed for the color popover's own drag coalescing, not
-	// section/card state, but touching `panel.js` anywhere else to get the same effect would have
-	// meant a much larger change). Every EXISTING caller (the hex field's Enter/blur commit) omits it
-	// and keeps recording a distinct step per call, exactly as before. The popover's `color-changed`
-	// event fires continuously during a drag - without a STABLE key repeated across those calls, each
-	// one would record its own undo step (unlike a plain slider's `input` events, which already
-	// coalesce by the single control id they share) - see controls.js's `buildColorAssistRow`.
+	// The optional `coalesceKey` parameter is a one-line, backward-compatible addition needed for
+	// the color popover's own drag coalescing. Every EXISTING caller (the hex field's Enter/blur
+	// commit) omits it and keeps recording a distinct step per call, exactly as before. The
+	// popover's `color-changed` event fires continuously during a drag - without a STABLE key
+	// repeated across those calls, each one would record its own undo step (unlike a plain slider's
+	// `input` events, which already coalesce by the single control id they share) - see
+	// controls.js's `buildColorAssistRow`.
 	// =============================================================================================
 	function onControlChangeMany(entries, coalesceKey) {
 		history.record(state, coalesceKey ? `multi:${coalesceKey}` : distinctHistoryKey('multi'), Date.now());
@@ -560,7 +554,7 @@ function initCustomizer(host) {
 		fullRerenderControls();
 	}
 
-	/** SPEC-C S5: the panel column's reset-group button - one undo step. */
+	/** The panel column's reset-group button - one undo step. */
 	function onResetGroup(groupName) {
 		if (groupName === 'Navigation') {
 			if (state.ia === null) return;
@@ -627,7 +621,7 @@ function initCustomizer(host) {
 	// ---- IA editor ("Navigation structure (advanced)"/"Structure (advanced)"), built once so it
 	// keeps its own internal state, shared by whichever chrome wraps it. ----------------------------
 	const iaEditor = createIaEditor(state, {
-		// Coordinator bug fix: a Structure (advanced) edit never called `history.record` at all, so
+		// A Structure (advanced) edit never called `history.record` at all, so
 		// Undo silently skipped it and undid whatever OTHER step preceded it instead (repro: apply a
 		// preset, drag a row, Undo once - the preset was undone, not the drag). `coalesceKey` (from
 		// ia-editor.js's per-item rename key) lets a whole typing+blur gesture coalesce into one step,
@@ -647,7 +641,7 @@ function initCustomizer(host) {
 			notifySubscribers();
 			if (studio) refreshStudioChrome();
 		},
-	}, { studio }); // SPEC-C E3: studio gets the restyled Codex-shaped tree; overlay stays exactly as before.
+	}, { studio }); // Studio gets the restyled tree; overlay stays exactly as before.
 
 	// ---- export dialog -------------------------------------------------------------------------
 	const exportDialog = createExportDialog({
@@ -655,7 +649,7 @@ function initCustomizer(host) {
 		onImportState: importStateFromJson,
 	});
 	shadow.appendChild(exportDialog.root);
-	// SPEC-C S12: the status bar's contrast-warnings dialog lives here (not in studio.js's light
+	// The status bar's contrast-warnings dialog lives here (not in studio.js's light
 	// DOM) so it can reuse this shadow root's `.svc-dialog*` CSS - a dialog built in light DOM would
 	// have no styling at all (styles.js's stylesheet only applies inside this shadow root).
 	const contrastDialog = createContrastDialog();
