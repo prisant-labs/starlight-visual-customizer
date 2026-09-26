@@ -527,6 +527,13 @@ export function createExportDialog(handlers) {
 	shotHint.textContent = 'Rendered from the page DOM, not a browser screenshot - effects like backdrop blur and sticky-positioned bars may not match exactly.';
 	extra.appendChild(shotHint);
 
+	// Privacy note: reuses the same muted-text style/token as the screenshot hint above, which the
+	// shell.mjs contrast walk already checks with this dialog open, so this text is covered too.
+	const privacyHint = document.createElement('p');
+	privacyHint.className = 'svc-export-hint';
+	privacyHint.textContent = 'Your theme stays in your browser; web fonts load from jsDelivr.';
+	extra.appendChild(privacyHint);
+
 	dialog.appendChild(extra);
 
 	const footer = document.createElement('div');
