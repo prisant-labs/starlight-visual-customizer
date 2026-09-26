@@ -620,8 +620,11 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 10. F3 (SPEC-C phase 3, point 6): clicking the already-selected rail item collapses the panel
-	//     column; any rail item, the header button, or '\' reopens/toggles it; state persists.
+	// 10. F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the already-selected
+	//     rail item used to collapse the panel column - it now just re-selects the group like any
+	//     other rail click instead (Builder A, fix/structure-undo-rail), so the panel column stays
+	//     open. Collapsing happens only via the panel column's own header button or '\'; any rail
+	//     item click, the button again, or '\' again reopens/toggles it; state persists.
 	// =============================================================================================
 	{
 		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]'));
@@ -629,13 +632,21 @@ async function main() {
 		const wide = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('sl-customizer')).width));
 		check('a rail item is selected before the collapse check', wide > 300, String(wide));
 
-		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]'));
+		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]')); // re-click the already-selected item
+		await page.waitForTimeout(200);
+		const afterReclick = await page.evaluate(() => {
+			const host = document.querySelector('sl-customizer');
+			return { width: parseFloat(getComputedStyle(host).width), panelHidden: host.shadowRoot.getElementById('svc-panel-col').hidden };
+		});
+		check('clicking the already-selected rail item no longer collapses the panel (F3 reversed)', afterReclick.width > 300 && !afterReclick.panelHidden, JSON.stringify(afterReclick));
+
+		await realClick(page, await shadowQuery(page, '.svc-panel-collapse-btn'));
 		await page.waitForTimeout(200);
 		let collapsedState = await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');
 			return { width: parseFloat(getComputedStyle(host).width), panelHidden: host.shadowRoot.getElementById('svc-panel-col').hidden };
 		});
-		check('clicking the already-selected rail item collapses the panel (rail stays)', collapsedState.width < 100 && collapsedState.panelHidden, JSON.stringify(collapsedState));
+		check('the panel column\'s own collapse button collapses the panel (rail stays)', collapsedState.width < 100 && collapsedState.panelHidden, JSON.stringify(collapsedState));
 		const railStillVisible = await page.evaluate(() => !!document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-rail-item[aria-selected="true"]'));
 		check('the rail stays visible while the panel is collapsed', railStillVisible);
 		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c3-panel-collapsed.png') });

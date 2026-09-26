@@ -97,10 +97,14 @@ function buildBadgeFields(item, isGroup, commit) {
  * this dispatch are the only things the two share on purpose - S16/overlay mode must stay
  * byte-identical (smoke.mjs/ui-round2.mjs assert its exact DOM shape: `.svc-ia-row`,
  * `.svc-ia-details`, `.svc-ia-btn`, live-typing `.svc-ia-label-input`), so `createOverlayTreeEditor`
- * below is that pre-existing implementation, UNCHANGED. `createStudioTreeEditor` is new: Codex's
- * tree shape (A6), restyle only - no new structure capability, per the settled decision.
+ * below is that pre-existing implementation - its DOM shape is still exactly that, byte-identical;
+ * coordinator bug fix: its label input's `input`/`change` handlers now pass the same undo-coalescing
+ * key `createStudioTreeEditor`'s do (see each one's own comment), since panel.js's single shared
+ * `onIaChange` callback needed it for BOTH builders to fix the Structure-undo bug. `createStudioTreeEditor`
+ * is new: Codex's tree shape (A6), restyle only - no new structure capability, per the settled
+ * decision - plus its own drag insertion marker and Escape-cancel (feedback only, same restriction).
  * @param {import('../core/state.js').ThemeState} initialState
- * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null) => void}} callbacks
+ * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null, coalesceKey?: string) => void}} callbacks
  * @param {{studio?: boolean}} [opts]
  * @returns {{root: HTMLElement, refresh: (state: import('../core/state.js').ThemeState) => void}}
  */
@@ -110,7 +114,7 @@ export function createIaEditor(initialState, callbacks, opts = {}) {
 
 /**
  * @param {import('../core/state.js').ThemeState} initialState
- * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null) => void}} callbacks
+ * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null, coalesceKey?: string) => void}} callbacks
  * @returns {{root: HTMLElement, refresh: (state: import('../core/state.js').ThemeState) => void}}
  */
 function createOverlayTreeEditor(initialState, callbacks) {
@@ -390,13 +394,22 @@ function createOverlayTreeEditor(initialState, callbacks) {
 		labelInput.className = 'svc-ia-label-input';
 		labelInput.value = item.label ?? '';
 		labelInput.disabled = item.type === 'autogenerate';
+		// Coordinator bug fix (undo-after-rename): `input` (every keystroke, live preview) and
+		// `change` (blur/Enter) both feed the SAME per-item coalescing key so panel.js's
+		// `history.record` merges a whole typing+blur gesture into ONE undo step - the same "many
+		// events, one key, one step" contract a slider drag already gets. `change` still needs its
+		// own call (not just relying on the last `input`) so a rename committed with no intervening
+		// keystroke (e.g. programmatic) still records; panel.js's own no-op guard (unchanged `ia`)
+		// is what stops `change` from recording a SECOND, redundant step after `input` already did.
+		const renameKey = `label:${item.id}`;
 		labelInput.addEventListener('input', () => {
 			item.label = labelInput.value;
-			callbacks.onIaChange(cloneTree(workingTree));
+			callbacks.onIaChange(cloneTree(workingTree), renameKey);
 		});
 		labelInput.addEventListener('change', () => {
 			item.label = labelInput.value;
-			commit();
+			callbacks.onIaChange(cloneTree(workingTree), renameKey);
+			renderTree();
 		});
 		main.appendChild(labelInput);
 
@@ -477,7 +490,7 @@ function structureIconSvg(inner) {
 
 /**
  * @param {import('../core/state.js').ThemeState} initialState
- * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null) => void}} callbacks
+ * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null, coalesceKey?: string) => void}} callbacks
  * @returns {{root: HTMLElement, refresh: (state: import('../core/state.js').ThemeState) => void}}
  */
 function createStudioTreeEditor(initialState, callbacks) {
@@ -574,8 +587,36 @@ function createStudioTreeEditor(initialState, callbacks) {
 	 * (chromium-1228) the instant `mousedown` is followed by `mousemove` on a `draggable` element -
 	 * the same real-mouse-event pattern already used for range-slider drags elsewhere in this
 	 * codebase (`realSliderDrag` in the e2e suites) has no such issue, since it never engages the
-	 * browser's native drag state machine. */
+	 * browser's native drag state machine.
+	 * Sa (drag feedback): `overId`/`overPos` also drive a visible insertion marker (see
+	 * `showDropLine`/`hideDropLine` below) - feedback only, the drop logic itself (this same
+	 * before/after/inside calculation) is unchanged. Escape while `pointerDrag` is non-null cancels
+	 * the whole gesture (`cancelPointerDrag`): no `moveNode`/`commit()` ever runs, so no structure
+	 * change and no history step. */
 	let pointerDrag = null;
+	/** @type {HTMLElement | null} A single reusable marker element, lazily (re)created in
+	 * `treeContainer` - `renderTree()`'s `replaceChildren()` detaches it on every commit, so
+	 * `showDropLine` re-appends it whenever it finds it missing/detached rather than trusting the
+	 * cached reference alone. */
+	let dropLineEl = null;
+
+	/** @param {HTMLElement} targetRowEl @param {'before'|'after'} edge */
+	function showDropLine(targetRowEl, edge) {
+		if (!dropLineEl || !treeContainer.contains(dropLineEl)) {
+			dropLineEl = document.createElement('div');
+			dropLineEl.className = 'svc-structure-drop-line';
+			treeContainer.appendChild(dropLineEl);
+		}
+		const containerRect = treeContainer.getBoundingClientRect();
+		const rowRect = targetRowEl.getBoundingClientRect();
+		dropLineEl.style.top = `${(edge === 'before' ? rowRect.top : rowRect.bottom) - containerRect.top}px`;
+		dropLineEl.style.left = `${rowRect.left - containerRect.left}px`;
+		dropLineEl.style.width = `${rowRect.width}px`;
+		dropLineEl.style.display = 'block';
+	}
+	function hideDropLine() {
+		if (dropLineEl) dropLineEl.style.display = 'none';
+	}
 
 	function commit() {
 		callbacks.onIaChange(cloneTree(workingTree));
@@ -701,6 +742,7 @@ function createStudioTreeEditor(initialState, callbacks) {
 
 	function clearDropIndicators() {
 		for (const el of treeContainer.querySelectorAll('[data-drop]')) delete el.dataset.drop;
+		hideDropLine();
 	}
 
 	function flattenIds(list = workingTree) {
@@ -762,15 +804,39 @@ function createStudioTreeEditor(initialState, callbacks) {
 			hovered.dataset.drop = pos;
 			pointerDrag.overId = hovered.dataset.rowId;
 			pointerDrag.overPos = pos;
+			// Sa: feedback only - `data-drop` (above) still drives the 'inside' highlight (CSS) and
+			// stays the source of truth `moveNode` reads from; 'before'/'after' additionally get a
+			// clear line BETWEEN rows rather than a mark on the row's own edge.
+			if (pos === 'inside') hideDropLine();
+			else showDropLine(hovered, pos);
 		} else {
 			pointerDrag.overId = null;
 			pointerDrag.overPos = null;
 		}
 	}
 
+	/** Sa: Escape while dragging cancels the whole gesture - no `moveNode`/`commit()` runs, so no
+	 * structure change and no history step, and every visual trace (dim + marker) is removed. */
+	function onPointerDragKeydown(event) {
+		if (event.key !== 'Escape' || !pointerDrag) return;
+		event.preventDefault();
+		event.stopPropagation();
+		cancelPointerDrag();
+	}
+	function cancelPointerDrag() {
+		document.removeEventListener('mousemove', onPointerDragMove);
+		document.removeEventListener('keydown', onPointerDragKeydown, true);
+		if (!pointerDrag) return;
+		const { id } = pointerDrag;
+		pointerDrag = null;
+		clearDropIndicators();
+		treeContainer.querySelector(`[data-row-id="${CSS.escape(id)}"]`)?.classList.remove('svc-structure-row-dragging');
+	}
+
 	function onPointerDragUp() {
 		document.removeEventListener('mousemove', onPointerDragMove);
-		if (!pointerDrag) return;
+		document.removeEventListener('keydown', onPointerDragKeydown, true);
+		if (!pointerDrag) return; // already cancelled (Escape) - nothing left to do
 		const { id, moved, overId, overPos } = pointerDrag;
 		pointerDrag = null;
 		clearDropIndicators();
@@ -839,6 +905,9 @@ function createStudioTreeEditor(initialState, callbacks) {
 			pointerDrag = { id: item.id, startX: event.clientX, startY: event.clientY, moved: false, overId: null, overPos: null };
 			document.addEventListener('mousemove', onPointerDragMove);
 			document.addEventListener('mouseup', onPointerDragUp, { once: true });
+			// Capture phase: wins over any other Escape handler (e.g. Inspect's, a dialog's) while a
+			// drag is in flight, and is removed again in `cancelPointerDrag`/`onPointerDragUp`.
+			document.addEventListener('keydown', onPointerDragKeydown, true);
 		});
 
 		wrap.appendChild(row);
@@ -896,15 +965,20 @@ function createStudioTreeEditor(initialState, callbacks) {
 		labelInput.className = 'svc-ia-label-input';
 		labelInput.value = item.label ?? '';
 		labelInput.disabled = item.type === 'autogenerate';
+		// Coordinator bug fix (undo-after-rename): see the overlay editor's identical comment above -
+		// the same per-item coalescing key across `input`/`change` keeps a whole typing+blur gesture
+		// as ONE undo step (panel.js's own no-op guard drops `change`'s redundant re-commit).
+		const renameKey = `label:${item.id}`;
 		labelInput.addEventListener('input', () => {
 			item.label = labelInput.value;
-			callbacks.onIaChange(cloneTree(workingTree));
+			callbacks.onIaChange(cloneTree(workingTree), renameKey);
 			const rowLabel = treeContainer.querySelector(`[data-row-id="${CSS.escape(item.id)}"] .svc-structure-label`);
 			if (rowLabel) rowLabel.textContent = labelInput.value;
 		});
 		labelInput.addEventListener('change', () => {
 			item.label = labelInput.value;
-			commit();
+			callbacks.onIaChange(cloneTree(workingTree), renameKey);
+			renderAll();
 		});
 		formContainer.appendChild(field('Label', labelInput));
 

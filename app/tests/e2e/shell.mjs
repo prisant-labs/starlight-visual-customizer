@@ -316,6 +316,57 @@ async function main() {
 	}
 
 	// =============================================================================================
+	// F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the ALREADY-selected rail
+	// item used to collapse the panel column - that affordance is removed. Collapsing is still
+	// reachable via the panel-header collapse button and the `\` key; any rail item click (even the
+	// one already selected before collapsing) reopens a collapsed panel.
+	// =============================================================================================
+	{
+		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Colors"]'));
+		await page.waitForTimeout(150);
+		const stateBeforeReclick = await page.evaluate(() => {
+			const host = document.querySelector('sl-customizer');
+			return { collapsed: host.__svc.isPanelCollapsed(), width: getComputedStyle(host).width };
+		});
+		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Colors"]')); // re-click the already-selected item
+		await page.waitForTimeout(150);
+		const afterReclick = await page.evaluate(() => {
+			const host = document.querySelector('sl-customizer');
+			const col = host.shadowRoot.querySelector('.svc-panel-col');
+			return { collapsed: host.__svc.isPanelCollapsed(), colHidden: col.hidden, colVisible: getComputedStyle(col).display !== 'none', width: getComputedStyle(host).width };
+		});
+		check(
+			're-clicking the already-selected rail item keeps the panel open (F3 reversed)',
+			afterReclick.collapsed === false && !afterReclick.colHidden && afterReclick.colVisible && afterReclick.width === stateBeforeReclick.width,
+			JSON.stringify({ stateBeforeReclick, afterReclick })
+		);
+		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c1-rail-reclick-stays-open.png') });
+
+		// Collapsing is still reachable via the panel-header collapse button...
+		const collapseBtn = await shadowQuery(page, '.svc-panel-collapse-btn');
+		await realClick(page, collapseBtn);
+		await page.waitForTimeout(150);
+		const afterCollapseClick = await page.evaluate(() => document.querySelector('sl-customizer').__svc.isPanelCollapsed());
+		check('the panel-header collapse button still collapses the panel', afterCollapseClick === true, String(afterCollapseClick));
+
+		// ...and any rail item click (even the one already selected before collapsing) reopens it.
+		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Colors"]'));
+		await page.waitForTimeout(150);
+		const afterReopenClick = await page.evaluate(() => document.querySelector('sl-customizer').__svc.isPanelCollapsed());
+		check('any rail item click reopens a collapsed panel', afterReopenClick === false, String(afterReopenClick));
+
+		// ...and the `\` key still toggles it (studio.js's own shortcut, unchanged by this fix).
+		await page.keyboard.press('\\');
+		await page.waitForTimeout(150);
+		const afterBackslash = await page.evaluate(() => document.querySelector('sl-customizer').__svc.isPanelCollapsed());
+		check('the "\\" key still collapses the panel', afterBackslash === true, String(afterBackslash));
+		await page.keyboard.press('\\');
+		await page.waitForTimeout(150);
+		const afterBackslashAgain = await page.evaluate(() => document.querySelector('sl-customizer').__svc.isPanelCollapsed());
+		check('the "\\" key still expands the panel again', afterBackslashAgain === false, String(afterBackslashAgain));
+	}
+
+	// =============================================================================================
 	// P1(b) (coordinator review): a generic hit-test audit, not just spot-checks. For every rail
 	// group, for every visible interactive element in the host document and the panel's shadow root
 	// (button, input, select, textarea, summary, [role=tab], and tile labels, each in their own
@@ -392,14 +443,12 @@ async function main() {
 
 		// Item 4 (maintainer fix): a section's header band must not touch its first card - the gap
 		// above the first card should read the same as the gap BETWEEN cards, in every group. Checked
-		// on Colors (here) and Layout (below), per the maintainer's own screenshot request. Detour
-		// through Presets first each time: Colors is ALREADY the selected rail item at this point (the
-		// two checks just above ran against it), and F3 makes clicking an ALREADY-selected rail item
-		// collapse the panel column instead of a no-op - re-clicking it here would measure a collapsed
-		// (zero-size) panel instead of Colors' real layout.
+		// on Colors (here) and Layout (below), per the maintainer's own screenshot request. Colors is
+		// ALREADY the selected rail item at this point (the two checks just above ran against it), so
+		// the first iteration below is itself a re-click of the selected item - F3 (reversed) makes
+		// that a plain re-selection now (it used to collapse the panel instead of a no-op measuring
+		// against a collapsed, zero-size panel - see the dedicated F3 regression check above).
 		for (const groupName of ['Colors', 'Layout']) {
-			await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]'));
-			await page.waitForTimeout(120);
 			await realClick(page, await shadowQuery(page, `.svc-rail-item[data-group="${groupName}"]`));
 			await page.waitForTimeout(200);
 			const gaps = await page.evaluate((group) => {
@@ -1289,12 +1338,10 @@ async function main() {
 		await page.waitForTimeout(500);
 		let frame = await getFrame(page, 'light');
 		await frame.evaluate(() => window.scrollTo(0, 0));
-		// F3 (SPEC-C phase 3, point 6 - geometry edit): the Footer test above already left "Footer" as
-		// the SELECTED rail item; F3 makes clicking an already-selected rail item collapse the panel
-		// instead of re-opening it, so a real click here needs a different group selected first, or it
-		// would collapse instead of triggering S10's scroll-to-surface at all.
-		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]'));
-		await page.waitForTimeout(150);
+		// F3 (reversed): the Footer test above already left "Footer" as the SELECTED rail item, so
+		// this click is itself a re-click - which must still re-select (and re-scroll/re-navigate,
+		// S10) exactly like any other rail click now that the old collapse-on-reclick affordance is
+		// gone (see the dedicated F3 regression check earlier in this file).
 		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Footer"]'));
 		await page.waitForFunction(
 			() => {
