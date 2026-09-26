@@ -560,7 +560,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	let colorAssistHelpEl = null;
 	/** @type {HTMLInputElement | null} */
 	let colorPickerEl = null;
-	/** @type {HTMLInputElement | null} SPEC-C E1: the hex text field beside the picker. */
+	/** @type {HTMLInputElement | null} The hex text field beside the picker. */
 	let colorHexEl = null;
 	/** @type {((value: string) => void) | null} The ONLY way `refresh()` may update `colorHexEl`'s
 	 * displayed value - see `buildColorAssistRow`'s `syncHexDisplay` for why a bare `.value =` would
@@ -569,7 +569,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	/** @type {((value: string) => void) | null} Same contract as `colorHexSync`, for a `color`-type
 	 * (role override) control's own hex field. */
 	let colorRoleHexSync = null;
-	/** @type {{setSwatch: (hex: string) => void} | null} SPEC-C P3: a `color`-type (role override)
+	/** @type {{setSwatch: (hex: string) => void} | null} A `color`-type (role override)
 	 * control's own popover swatch button - `refresh()` re-seeds its swatch color the same way it
 	 * already re-seeds `colorHexSync`. */
 	let colorRoleSwatchPopover = null;
@@ -586,7 +586,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 
 	if (control.type === 'font' || (control.type === 'select' && TILE_CONTROL_IDS.has(control.id))) {
 		// Visual selects render as clickable tile grids, and every font control renders as a
-		// vertical list of font-name rows (SPEC.md "B" tiles item 1) - both own their full
+		// vertical list of font-name rows - both own their full
 		// selection UI (native radios), so this row only wires the shared commit/notify plumbing.
 		const commit = (value) => {
 			resetBtn.hidden = value === control.default;
@@ -606,7 +606,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		inputEl.value = String(getValue(state, control.id));
 		inputEl.setAttribute('aria-label', control.label);
 
-		// SPEC-C S15: the slider ALWAYS stays in the control's own stored unit (unchanged from B) -
+		// The slider ALWAYS stays in the control's own stored unit -
 		// only the adjacent number box's displayed/accepted unit and an optional secondary readout
 		// vary, per `unitDisplayMode`. `toDisplay`/`fromDisplay` convert stored <-> shown; the range
 		// input itself never goes through them.
@@ -747,7 +747,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	} else if (control.type === 'color') {
 		const currentValue = getValue(state, control.id);
 
-		// Coordinator polish round: three affordances for one idea (a clear button, an "auto"
+		// Three affordances for one idea (a clear button, an "auto"
 		// checkbox, and the row's own generic reset ↺) collapsed to two. The hex field is the PRIMARY
 		// editor; a small "Auto" tag shows/hides opposite the clear button (never both at once), and
 		// the generic resetBtn stays permanently hidden for this control type (below, and again at
@@ -825,7 +825,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			notifyTarget(true);
 		});
 
-		// SPEC-C P3: the popover swatch button replaces the native `<input type=color>` - always
+		// The popover swatch button replaces the native `<input type=color>` - always
 		// clickable (unlike the old native input, which was `disabled` while "auto"): opening the
 		// popover and picking a color is now just as valid a way to START an override as typing hex.
 		colorRoleSwatchPopover = createColorPopover({
@@ -843,7 +843,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		row.appendChild(clearBtn);
 		body.appendChild(hexMsg);
 	} else if (control.type === 'text') {
-		// SPEC-C E4: a free-text control (site.title so far). Commits on every keystroke (`input`,
+		// A free-text control (site.title so far). Commits on every keystroke (`input`,
 		// not just `change`) so the preview updates live as you type - `panel.js`'s
 		// `history.record(state, 'control:' + id, ...)` coalesces same-id/same-tick edits into one
 		// undo step (identical mechanism to the range/number-box live-typing path above), so a whole
@@ -876,7 +876,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	}
 
 	if (!tileControl && control.type !== 'range') inputEl.id = inputId;
-	// Coordinator polish round: a role override's own clear button ("Follow the palette") already
+	// A role override's own clear button ("Follow the palette") already
 	// does what this generic reset arrow would - showing both is two affordances for one idea.
 	resetBtn.hidden = control.type === 'color' ? true : isDefaultNow();
 	head.appendChild(resetBtn);
