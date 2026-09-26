@@ -2,6 +2,12 @@
   "name": "starlight-visual-customizer",
   "type": "module",
   "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prisant-labs/astro-starlight-visual-customizer.git",
+    "directory": "app"
+  },
   "scripts": {
     "dev": "astro dev --port 4700",
     "start": "astro dev --port 4700",
@@ -23,11 +29,11 @@
   "dependencies": {
     "@astrojs/starlight": "0.42.4",
     "astro": "7.3.5",
-    "culori": "^4.0.2",
-    "fflate": "^0.8.3",
-    "modern-screenshot": "^4.7.0",
-    "sharp": "^0.35.3",
-    "vanilla-colorful": "^0.7.2"
+    "culori": "4.0.2",
+    "fflate": "0.8.3",
+    "modern-screenshot": "4.7.0",
+    "sharp": "0.35.4",
+    "vanilla-colorful": "0.7.2"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0"
