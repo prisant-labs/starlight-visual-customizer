@@ -4,19 +4,19 @@
  * `document.adoptedStyleSheets`, font injection, persistence, and wiring between
  * `controls.js` / `ia-editor.js` / `sidebar-render.js` / `preview-approx.js` / `export.js`.
  *
- * Mounted once per page by `src/components/CustomizerFooter.astro` (owner: FIXTURE):
+ * Mounted once per page by `src/components/CustomizerFooter.astro`:
  * `<sl-customizer></sl-customizer>` + `<script>import '../customizer/ui/panel.js';</script>`.
  *
- * SPEC-C: two DOM shapes come out of `initCustomizer`, chosen once by `isStudio()` (page-doc.js) at
- * connect time (a page never switches shape mid-session):
- *  - **Overlay** (a direct page visit carrying the `?svc-overlay` escape hatch, S16): byte-identical
- *    to B - the floating drawer/FAB, the accordion group list, the sun/moon toggle. Untouched by C.
- *  - **Studio** (`/studio/`, S1-S15): a rail (tablist, S4) + panel column (tabpanel, S5) replace the
- *    drawer. `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage,
- *    status bar) in the studio's own light DOM and talks to this module through a small controller
- *    this file sets on the host element, `host.__svc` (see its assignment below for the full
- *    surface). Putting the rail INSIDE this shadow root (rather than in studio.js's light DOM) keeps
- *    S4's `aria-controls` reference intra-document and gives the rail direct access to live
+ * Two DOM shapes come out of `initCustomizer`, chosen once by `isStudio()` (page-doc.js) at connect
+ * time (a page never switches shape mid-session):
+ *  - **Overlay** (a direct page visit carrying the `?svc-overlay` escape hatch): the floating
+ *    drawer/FAB, the accordion group list, the sun/moon toggle.
+ *  - **Studio** (`/studio/`): a rail (tablist) + panel column (tabpanel) replace the drawer.
+ *    `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage, status bar)
+ *    in the studio's own light DOM and talks to this module through a small controller this file
+ *    sets on the host element, `host.__svc` (see its assignment below for the full surface).
+ *    Putting the rail INSIDE this shadow root (rather than in studio.js's light DOM) keeps the
+ *    rail's `aria-controls` reference intra-document and gives the rail direct access to live
  *    state/history with no extra indirection.
  *
  * Both shapes are built as nested closures inside ONE `initCustomizer` call so every piece of
@@ -24,11 +24,11 @@
  * per-lane stylesheets, history) is a plain local variable both branches close over directly - no
  * cross-module "deps object" plumbing.
  *
- * SPEC-C phase 3, workstream F (F1): a THIRD outcome exists above both of these - a direct page
- * visit with NEITHER `?svc-overlay` nor a studio preview iframe mounts no panel at all.
- * `connectedCallback`'s own marked block returns before `initCustomizer` ever runs; the page shows
- * exactly as a real visitor sees it (the existing no-flash preload path already applies the saved
- * theme, no JS required) plus a small "Open in Studio" pill that same block builds directly.
+ * A THIRD outcome exists above both of these - a direct page visit with NEITHER `?svc-overlay` nor
+ * a studio preview iframe mounts no panel at all. `connectedCallback`'s own marked block returns
+ * before `initCustomizer` ever runs; the page shows exactly as a real visitor sees it (the existing
+ * no-flash preload path already applies the saved theme, no JS required) plus a small "Open in
+ * Studio" pill that same block builds directly.
  */
 import { useMode, modeRgb, formatHex } from 'culori/fn';
 
@@ -62,7 +62,7 @@ import { withBase, stripBase } from '../core/base-path.js';
 
 useMode(modeRgb); // registers the rgb color model with culori/fn's shared registry (idempotent)
 
-/** Sun/moon icon-button glyphs (overlay header only - studio mode drops this button, S2: the
+/** Sun/moon icon-button glyphs (overlay header only - studio mode drops this button: the
  * toolbar's Light/Dark/Split replaces it). */
 const SUN_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`;
 const MOON_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"></path></svg>`;
@@ -73,7 +73,7 @@ const LOCALSTORAGE_CSS_KEY = 'svc-css';
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 const PRELOAD_STYLE_ID = 'svc-preload';
 /** Groups open by default the very first time a visitor arrives (no `svc-ui` yet), overlay mode
- * only. Navigation is intentionally absent - demoted, collapsed by default (SPEC.md Round 2 item 1). */
+ * only. Navigation is intentionally absent - demoted, collapsed by default. */
 const DEFAULT_OPEN_GROUPS = ['Presets', 'Colors'];
 const FONT_CONTROL_IDS = ['type.font.body', 'type.font.heading', 'type.font.mono'];
 /** Every control id `getResolvedColor` can resolve to a live hex, by DOM-probing the custom
@@ -93,7 +93,7 @@ const RESOLVABLE_COLOR_TOKEN_BY_ID = {
 	'color.hue.red': '--sl-color-red',
 };
 
-/** SPEC-C S4 rail order + separators: GROUPS is already in the exact order S4 specifies
+/** Rail order + separators: GROUPS is already in the display order the rail wants
  * ('Presets, Colors, Typography, Layout | Header, Sidebar, TOC | Content, Components, Code,
  * Footer, Page options | Structure (advanced)') - 'Navigation' (the manifest key behind the
  * retitled "Structure (advanced)" item) is appended last. A separator renders AFTER each of these
@@ -102,9 +102,9 @@ const RAIL_GROUPS = [...GROUPS, 'Navigation'];
 const RAIL_SEPARATOR_AFTER = new Set(['Presets', 'Layout', 'TOC', 'Page options']);
 const RAIL_TITLES = { Navigation: 'Structure (advanced)' };
 
-/** Coordinator review (phase 1 polish, P3): the group-header eyebrow used to just repeat the group
- * name ("COLORS / Colors"). These are the same clusters the rail's own separators already group
- * groups into (RAIL_SEPARATOR_AFTER), given a category name instead. */
+/** The group-header eyebrow used to just repeat the group name ("COLORS / Colors"). These are the
+ * same clusters the rail's own separators already group groups into (RAIL_SEPARATOR_AFTER), given
+ * a category name instead. */
 const RAIL_CATEGORY_EYEBROW = {
 	Presets: 'Foundations',
 	Colors: 'Foundations',
@@ -121,10 +121,10 @@ const RAIL_CATEGORY_EYEBROW = {
 	Navigation: 'Advanced',
 };
 
-/** S10: "No scroll for Presets, Colors, Typography, Page options, Structure." */
+/** No scroll-to-target for Presets, Colors, Typography, Page options, Structure. */
 const SCROLL_EXCLUDED_GROUPS = new Set(['Presets', 'Colors', 'Typography', 'Page options', 'Navigation']);
 
-/** SPEC-C S12 status bar contrast: token PAIRS, resolved via the same DOM-probe `resolveCssColor`
+/** Status bar contrast: token PAIRS, resolved via the same DOM-probe `resolveCssColor`
  * already used for the Colors group's live readout (below) rather than re-deriving Starlight's
  * cascade by hand - every token here is a plain custom-property reference (verified against
  * `node_modules/@astrojs/starlight/dist/style/{props,asides}.css` and `SiteTitle.astro`,
@@ -147,7 +147,7 @@ const STATUS_CONTRAST_PAIRS = [
 /** @type {Map<string, import('../core/manifest.js').Control>} */
 const controlsById = new Map(controls.map((c) => [c.id, c]));
 
-/** Coordinator bug fix: a `color`-type role-override control's hex field must show the freshly
+/** A `color`-type role-override control's hex field must show the freshly
  * resolved color after ANY change that can move it (undo/redo/preset/group-reset/reset-all/import
  * for an 'auto' role, and the light/dark toggle for one too) - `getResolvedColor` DOM-probes a
  * computed style that is only accurate AFTER `applyCssEverywhere` has actually run, so a role
@@ -159,7 +159,7 @@ class SlCustomizer extends HTMLElement {
 	connectedCallback() {
 		if (this._svcInitialized) return;
 		this._svcInitialized = true;
-		// Studio design doc, item D: this same `<sl-customizer>` + panel.js pairing is mounted by
+		// This same `<sl-customizer>` + panel.js pairing is mounted by
 		// EVERY Starlight page via CustomizerFooter.astro, including every page the studio's own
 		// preview iframe(s) load - `data-svc-preview` marks those iframes, so a copy of this element
 		// running INSIDE one must not build a second, redundant panel (the studio's own top-level
@@ -184,14 +184,13 @@ class SlCustomizer extends HTMLElement {
 		const inStudioShell = this.ownerDocument.querySelector('iframe[data-svc-preview]') != null;
 
 		// =========================================================================================
-		// SPEC-C phase 3, workstream F (F1) - overlay-mount gate. Point 1: "the two top-right icons
-		// open a different UX" - the maintainer wants a top-level page visit to show exactly what a
-		// real visitor sees (the saved theme, applied purely by the no-flash preload path already in
-		// place - no JS needed for that part) instead of always dropping them into the overlay
-		// drawer. The overlay stays reachable, but only behind an explicit URL flag now used solely by
-		// this project's own engine test suites (smoke/ui-round2/treatments/targets/tiles.mjs all pass
-		// it explicitly) - a real visitor never has a reason to type it. `?svc-overlay` is checked with
-		// `.has()` (bare `?svc-overlay` or `?svc-overlay=1`, either works; no value comparison needed).
+		// Overlay-mount gate: a top-level page visit should show exactly what a real visitor sees (the
+		// saved theme, applied purely by the no-flash preload path already in place - no JS needed for
+		// that part) instead of always dropping them into the overlay drawer. The overlay stays
+		// reachable, but only behind an explicit URL flag now used solely by this project's own engine
+		// test suites (smoke/ui-round2/treatments/targets/tiles.mjs all pass it explicitly) - a real
+		// visitor never has a reason to type it. `?svc-overlay` is checked with `.has()` (bare
+		// `?svc-overlay` or `?svc-overlay=1`, either works; no value comparison needed).
 		// =========================================================================================
 		if (!inStudioShell) {
 			let hasOverlayFlag = false;
@@ -202,11 +201,11 @@ class SlCustomizer extends HTMLElement {
 			}
 			if (!hasOverlayFlag) {
 				mountOpenInStudioPill(this);
-				return; // F1: no panel mounts - the page is exactly what a real visitor sees
+				return; // no panel mounts - the page is exactly what a real visitor sees
 			}
 		}
 		// =========================================================================================
-		// End F1 overlay-mount gate.
+		// End overlay-mount gate.
 		// =========================================================================================
 
 		if (!inStudioShell && this.parentElement !== document.body) document.body.appendChild(this);
@@ -215,14 +214,13 @@ class SlCustomizer extends HTMLElement {
 }
 
 // ==================================================================================================
-// SPEC-C phase 3, workstream F (F1) - the "Open in Studio" pill mounted by the overlay-mount gate
-// above for a plain top-level page visit. Deliberately outside `initCustomizer`/the shadow root: no
-// panel state exists on this path at all, so this needs nothing `initCustomizer` builds. Its CSS is
-// injected here (a plain `<style>` in the light document), never added to `styles.js` (workstream
-// P's file, and that file's rules only ever apply inside `<sl-customizer>`'s own shadow root anyway -
-// this pill deliberately lives in the page's light DOM so `--sl-color-*` custom properties resolve
-// against whatever theme is ALREADY applied to the page, making it light/dark aware for free without
-// this file needing to track the page's mode itself).
+// The "Open in Studio" pill mounted by the overlay-mount gate above for a plain top-level page
+// visit. Deliberately outside `initCustomizer`/the shadow root: no panel state exists on this path
+// at all, so this needs nothing `initCustomizer` builds. Its CSS is injected here (a plain `<style>`
+// in the light document), never added to `styles.js` (whose rules only ever apply inside
+// `<sl-customizer>`'s own shadow root anyway - this pill deliberately lives in the page's light DOM
+// so `--sl-color-*` custom properties resolve against whatever theme is ALREADY applied to the page,
+// making it light/dark aware for free without this file needing to track the page's mode itself).
 // ==================================================================================================
 const OPEN_IN_STUDIO_PILL_STYLE_ID = 'svc-open-in-studio-style';
 const OPEN_IN_STUDIO_PILL_CSS = `
