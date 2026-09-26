@@ -25,16 +25,16 @@ const APP_ROOT = path.join(__dirname, '..', '..');
 /**
  * Env for every child process (`npm`/`npx`) spawned against the FRESH site - `process.env` minus
  * this suite's own `BASE_URL`. `BASE_URL` here means "the app's preview origin to compare against"
- * (see `harness.mjs`), but a bare `BASE_URL` env var is ALSO one of several conventional signals
- * some tooling in the Astro/Vite chain treats as a deploy-preview site origin hint: with it set,
- * `astro build` was observed emitting every internal link (sidebar hrefs, `site-title`, even
- * `favicon.svg`) as an ABSOLUTE url pointing at that origin instead of a relative path - which
- * silently broke `aria-current="page"` matching on the fresh site (its own links no longer matched
- * its own current URL) and cascaded into unrelated-looking surface mismatches (sidebar link colors,
- * pagination presence). Discovered empirically while developing this suite: build with `BASE_URL`
- * set vs. unset and diff `dist/specimen/index.html`'s hrefs to reproduce. Stripping it here is
- * what makes this suite safe to run with `BASE_URL` pointed at the app's preview - the FRESH site's
- * own build must never see it.
+ * (see `harness.mjs`), but with it set, `astro build` was observed emitting every internal link
+ * (sidebar hrefs, `site-title`, even `favicon.svg`) as an ABSOLUTE url pointing at that origin
+ * instead of a relative path - which silently broke `aria-current="page"` matching on the fresh
+ * site (its own links no longer matched its own current URL) and cascaded into
+ * unrelated-looking surface mismatches (sidebar link colors, pagination presence). The exact
+ * mechanism was NOT traced (it is not Vite's own `import.meta.env.BASE_URL`, which only reflects
+ * the `base` config option, not `process.env.BASE_URL` - confirmed by reading `create-vite.js`);
+ * this is an empirical fix, confirmed by building with `BASE_URL` set vs. unset and diffing
+ * `dist/specimen/index.html`'s hrefs. Stripping it here is what makes this suite safe to run with
+ * `BASE_URL` pointed at the app's preview - the FRESH site's own build must never see it.
  * @returns {NodeJS.ProcessEnv}
  */
 function freshSiteEnv() {
