@@ -1146,7 +1146,7 @@ function buildGroupSectionsInto(body, groupName, groupControls, state, handlers,
 }
 
 /**
- * SPEC-C S5: the studio's panel-column rendering of one group - no accordion (the rail selects
+ * The studio's panel-column rendering of one group - no accordion (the rail selects
  * which group shows; `svc-panel-sections[data-filtering]` in styles.js controls visibility), just a
  * heading (shown only while the control filter has matching text, so a multi-group search result
  * still says which group each row belongs to) followed by the SAME section/control DOM
@@ -1211,11 +1211,11 @@ function getPresetLightPalette(preset) {
 }
 
 /**
- * SPEC-C E2: a small, self-drawn "mini page preview" for a preset card - a header bar, a sidebar
+ * A small, self-drawn "mini page preview" for a preset card - a header bar, a sidebar
  * with an active item styled per the preset's own `sidebar.activeStyle`, a heading in the preset's
  * own heading font, two text lines, and an accent callout, entirely in the preset's LIGHT palette
  * (`getPresetLightPalette`). Every line except the "Aa" heading sample is a plain colored bar (no
- * text) - deliberate: shell.mjs's A4 contrast walk inspects every real text node in this shadow root
+ * text) - deliberate: shell.mjs's contrast walk inspects every real text node in this shadow root
  * (preset cards aren't tile-sample previews, so they're not exempt), and a decorative bar carries no
  * text to check. The "Aa" sample uses the palette's own ink-on-page pair, which `getPalettes`
  * already tunes for readability, so it clears the walk's floor by construction.
@@ -1341,8 +1341,8 @@ export function createPresetGallery(presetList, state, handlers) {
 
 		card.appendChild(buildPresetMiniDoc(preset));
 
-		// P1 (point 2): the description moved to the card's own `title` tooltip above - showing it a
-		// second time as body text was the maintainer's specific complaint, so it isn't rendered here.
+		// The description moved to the card's own `title` tooltip above - showing it a
+		// second time as body text was redundant, so it isn't rendered here.
 		const meta = document.createElement('div');
 		meta.className = 'svc-preset-meta';
 		const name = document.createElement('span');
@@ -1411,7 +1411,7 @@ export function createContrastBlock() {
 }
 
 /**
- * SPEC-C S12: the status bar's contrast-warnings dialog (a table: mode, pair, swatches, ratio,
+ * The status bar's contrast-warnings dialog (a table: mode, pair, swatches, ratio,
  * target, pass/fail). Built in `controls.js` (not `studio.js`, which lives in the studio's light
  * DOM) so it can reuse the SAME `.svc-dialog*` shadow-DOM CSS `export.js`'s dialog already has -
  * appended into `panel.js`'s shadow root, alongside the export dialog.
@@ -1497,7 +1497,7 @@ function setSectionOpen(section, open) {
 	section.querySelector('.svc-section-toggle')?.setAttribute('aria-expanded', String(open));
 }
 
-/** SPEC-C P4: same contract, one level down, for a control card. @param {HTMLElement} card @param {boolean} open */
+/** Same contract, one level down, for a control card. @param {HTMLElement} card @param {boolean} open */
 function setCardOpen(card, open) {
 	card.dataset.open = open ? 'true' : 'false';
 	card.querySelector(':scope > .svc-control-head .svc-control-toggle')?.setAttribute('aria-expanded', String(open));
@@ -1511,7 +1511,7 @@ function setCardOpen(card, open) {
  *   filter match forced it open to. Falls back to "leave as-is" when omitted.
  * @param {(groupName: string, sectionName: string) => boolean} [restoreSectionOpen] Item 3: same
  *   contract, one level down, for each section's own open/closed state.
- * @param {(controlId: string) => boolean} [restoreCardOpen] SPEC-C P4: same contract, one level
+ * @param {(controlId: string) => boolean} [restoreCardOpen] Same contract, one level
  *   further down, for each control card's own open/closed state.
  */
 export function applyControlFilter(bodyRoot, filterText, restoreOpen, restoreSectionOpen, restoreCardOpen) {
