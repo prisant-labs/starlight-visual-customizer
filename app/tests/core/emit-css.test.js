@@ -36,15 +36,18 @@ describe('emitCss determinism', () => {
 		assert.equal(out.includes(':root {'), false);
 	});
 
-	test('default state in forPreview mode emits only the header plus the credits hide (its default is off)', () => {
-		// page.pagination and page.headingLinks default to true (nothing to hide); page.credits
-		// defaults to false, and preview approximations are value-based (see emit-css.js header),
-		// so the credits hide fires even though nothing was "changed" from default.
+	test('default (untouched) state in forPreview mode emits nothing at all, including no credits hide', () => {
+		// Preview approximations are explicit-based (see emit-css.js header): page.credits's own
+		// manifest default is "off", but an untouched control must never force an approximation -
+		// the previewed page's own real astro.config.mjs decides whether credits shows, independent
+		// of this control ever being touched. See `buildPreviewApprox`'s "untouched" doc comment.
 		const out = emitCss(defaultState(), { forPreview: true });
 		assert.equal(out.includes(':root {'), false);
 		assert.equal(out.includes('.pagination-links'), false);
 		assert.equal(out.includes('.sl-anchor-link'), false);
-		assert.match(out, /footer \.kudos\s*\{\s*display: none;/);
+		assert.equal(out.includes('footer .kudos'), false);
+		assert.equal(out.includes('data-svc-level'), false);
+		assert.equal(out.trim().endsWith('*/'), true);
 	});
 });
 
@@ -152,8 +155,26 @@ describe('forPreview build-time approximations', () => {
 		assert.match(out, /\.sl-anchor-link\s*\{\s*display: none;/);
 	});
 
-	test('credits off (the manifest default) hides footer .kudos even with no other changes', () => {
+	test('credits left untouched (at its "off" manifest default) does NOT hide footer .kudos', () => {
+		// Regression test for the W1 round-trip mismatch: page.credits's manifest default is "off",
+		// but a real target page can (and the app's own demo site does) set `credits: true`, so an
+		// untouched control must not force the preview to hide a link the real page actually shows.
 		const out = emitCss(defaultState(), { forPreview: true });
+		assert.equal(out.includes('footer .kudos'), false);
+	});
+
+	test('explicitly turning credits on emits no hide rule either (nothing to hide)', () => {
+		const state = setValue(defaultState(), 'page.credits', true);
+		const out = emitCss(state, { forPreview: true });
+		assert.equal(out.includes('footer .kudos'), false);
+	});
+
+	test('an explicit credits:false in state.values (e.g. a hand-authored/imported state.json) still hides footer .kudos', () => {
+		// `setValue` never stores a value equal to the default (see state.js), so this constructs the
+		// state by hand rather than via `setValue` - the one way `state.values.page.credits` can ever
+		// literally be `false` (explicit intent, not merely "untouched").
+		const state = { ...defaultState(), values: { 'page.credits': false } };
+		const out = emitCss(state, { forPreview: true });
 		assert.match(out, /footer \.kudos\s*\{\s*display: none;/);
 	});
 
@@ -165,13 +186,49 @@ describe('forPreview build-time approximations', () => {
 
 	test('excluding a TOC level hides its <li> contents via display:contents + hidden <a>, not display:none on the <li>', () => {
 		let state = setValue(defaultState(), 'page.toc.minLevel', 3);
-		state = setValue(state, 'page.toc.maxLevel', 3);
+		// maxLevel stays at its default (3) here on purpose - setting it to its own default would be
+		// dropped by `setValue` anyway (see state.js), so this also covers the "only one bound
+		// touched" case below.
 		const out = emitCss(state, { forPreview: true });
 		assert.match(out, /li\[data-svc-level='2'\][\s\S]*?display: contents;/);
 		assert.match(out, /li\[data-svc-level='2'\] > a[\s\S]*?display: none;/);
 		// The excluded level's container must NOT be display:none (that would also hide nested,
 		// in-range descendants).
 		assert.doesNotMatch(out, /li\[data-svc-level='2'\]\s*\{\s*display: none;/);
+	});
+
+	test('untouched TOC min/max levels emit no level-filtering CSS at all', () => {
+		// Regression test for the same mismatch class as page.credits: the manifest default range
+		// (2-3) does not match the app's own demo site config (2-4), so an untouched control must
+		// leave every level exactly as the real page's own tableOfContents config renders it.
+		const out = emitCss(defaultState(), { forPreview: true });
+		assert.equal(out.includes('data-svc-level'), false);
+	});
+
+	test('an explicit maxLevel with an untouched minLevel excludes only levels above max, never below the default min', () => {
+		const state = setValue(defaultState(), 'page.toc.maxLevel', 4);
+		const out = emitCss(state, { forPreview: true });
+		// Level 5/6 (above the explicit max) are excluded.
+		assert.match(out, /li\[data-svc-level='5'\][\s\S]*?display: contents;/);
+		assert.match(out, /li\[data-svc-level='6'\][\s\S]*?display: contents;/);
+		// Level 1 (below the manifest's default min of 2, but minLevel was never touched) is NOT
+		// excluded - the untouched bound imposes no constraint.
+		assert.equal(out.includes("data-svc-level='1'"), false);
+		// Level 4 (within the new max) is not excluded either.
+		assert.equal(out.includes("data-svc-level='4'"), false);
+	});
+
+	test('an explicit minLevel with an untouched maxLevel excludes only levels below min, never above the default max', () => {
+		const state = setValue(defaultState(), 'page.toc.minLevel', 4);
+		const out = emitCss(state, { forPreview: true });
+		// Levels 1-3 (below the explicit min) are excluded.
+		for (const level of [1, 2, 3]) {
+			assert.match(out, new RegExp(`li\\[data-svc-level='${level}'\\][\\s\\S]*?display: contents;`));
+		}
+		// Levels 5/6 (above the manifest's default max of 3, but maxLevel was never touched) are NOT
+		// excluded.
+		assert.equal(out.includes("data-svc-level='5'"), false);
+		assert.equal(out.includes("data-svc-level='6'"), false);
 	});
 });
 

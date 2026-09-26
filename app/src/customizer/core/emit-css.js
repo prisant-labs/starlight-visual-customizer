@@ -16,11 +16,17 @@
  * no color tokens at all) while avoiding a surprising blast radius for the independent controls.
  *
  * `forPreview`-only build-time approximations (TOC level filtering, pagination/headingLinks/
- * credits hiding) are value-based, not diff-based: they fire whenever the *current* value is
- * "off", regardless of whether that happens to equal the manifest default. That's intentional -
- * the fixture's real astro.config.mjs (owned by FIXTURE) decides what actually renders in the
- * DOM, independent of this module's notion of "default", so an accurate preview must hide
- * whatever is genuinely off right now rather than only what changed.
+ * credits hiding) are EXPLICIT-based, not default-based: each one fires only when the user has
+ * actually set that control away from its manifest default (i.e. the id is present in
+ * `state.values` - see `isExplicit` below), never merely because the *effective* value happens to
+ * equal an "off" default. This matters because whatever real `astro.config.mjs` the previewed
+ * page is actually built from is free to differ from the manifest default (e.g. a project that
+ * already sets `credits: true`, or a wider `tableOfContents` range, before ever touching this
+ * tool) - an untouched control must leave that page exactly as its own config renders it, not
+ * silently force it toward the manifest's notion of "default". Only a control the user genuinely
+ * changed should ever add an approximation on top of the page's real build. (Previously this was
+ * value-based - `getValue(...) === false` - which broke exactly for `page.credits`, whose default
+ * is itself "off": every untouched theme hid a credits link the target page's own config showed.)
  */
 import { controls } from './manifest.js';
 import { FONTS } from './manifest.js';
@@ -42,6 +48,19 @@ function def(id) {
 /** @param {import('./state.js').ThemeState} state @param {string} id @returns {boolean} */
 function isDefault(state, id) {
 	return getValue(state, id) === def(id);
+}
+
+/**
+ * @param {import('./state.js').ThemeState} state @param {string} id
+ * @returns {boolean} Whether the user explicitly set `id` (present as its own key in
+ *   `state.values`), as opposed to it merely reading its manifest default. `state.js`'s
+ *   `setValue`/`applyPreset` never store a value equal to the control's default (they delete the
+ *   key instead), so in practice this is "changed from default" for any state built through the
+ *   UI - but a hand-authored/imported `state.json` could set a key explicitly to its default
+ *   value, and this still honors that as explicit intent (see `buildPreviewApprox`'s header note).
+ */
+function isExplicit(state, id) {
+	return !!(state && state.values && Object.prototype.hasOwnProperty.call(state.values, id));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -145,6 +164,20 @@ const K_TOGGLE_IDS = [
 	'content.headingDivider',
 	'footer.paginationShadow',
 ];
+
+/**
+ * Every control id whose emitted CSS is a single named custom property (as opposed to a
+ * selector-based rule, a multi-token generated palette, or a treatment with several
+ * declarations) - id -> the exact `--custom-property` name `buildRootTokens` writes for it.
+ * Exported so `emit-apply.js`'s Verification section (gap 1: an APPLY-THEME.md reader has no
+ * studio to read "should now read as X" against) can point at something checkable with
+ * `getComputedStyle(document.documentElement).getPropertyValue(...)` instead of only a selector.
+ * Deliberately does NOT cover `PALETTE_IDS` (five inputs jointly generate a whole token set - no
+ * single property reflects any one of them) or any `TREATMENT_IDS`/`K_*_IDS` id (several
+ * declarations, no single custom property).
+ * @type {Record<string, string>}
+ */
+export const TOKEN_VAR_NAMES = { ...HUE_VAR_NAMES, ...ROLE_VAR_NAMES, ...FONT_TOKEN_VAR_NAMES };
 
 /**
  * Every non-build-tier control id this emitter knows how to turn into CSS. Used by
@@ -612,26 +645,35 @@ function buildTreatmentRules(state) {
 
 /**
  * @param {import('./state.js').ThemeState} state
- * @returns {string} `forPreview`-only build-time approximations. Value-based (see file header),
- *   not diff-based.
+ * @returns {string} `forPreview`-only build-time approximations. Explicit-based (see file
+ *   header), not default-based: each check below only fires for a control the user actually
+ *   touched (`isExplicit`), so an untouched control leaves the previewed page's own real build
+ *   exactly as it renders it.
  */
 function buildPreviewApprox(state) {
 	/** @type {string[]} */
 	const blocks = [];
 
-	if (getValue(state, 'page.pagination') === false) {
+	if (isExplicit(state, 'page.pagination') && getValue(state, 'page.pagination') === false) {
 		blocks.push(`.pagination-links {\n\tdisplay: none;\n}`);
 	}
-	if (getValue(state, 'page.headingLinks') === false) {
+	if (isExplicit(state, 'page.headingLinks') && getValue(state, 'page.headingLinks') === false) {
 		blocks.push(`.sl-anchor-link {\n\tdisplay: none;\n}`);
 	}
-	if (getValue(state, 'page.credits') === false) {
+	if (isExplicit(state, 'page.credits') && getValue(state, 'page.credits') === false) {
 		blocks.push(`footer .kudos {\n\tdisplay: none;\n}`);
 	}
 
+	// Each bound only constrains levels on ITS OWN side, and only when the user explicitly set
+	// it - an untouched bound imposes no constraint at all, leaving that side exactly as the
+	// previewed page's own `tableOfContents` config (whatever it is) already renders it. This
+	// means an explicit min with an untouched max excludes only levels below min, never levels
+	// above the manifest's default max (which may not match the real page's own max at all).
+	const minTouched = isExplicit(state, 'page.toc.minLevel');
+	const maxTouched = isExplicit(state, 'page.toc.maxLevel');
 	const min = getValue(state, 'page.toc.minLevel');
 	const max = getValue(state, 'page.toc.maxLevel');
-	const excluded = [1, 2, 3, 4, 5, 6].filter((level) => level < min || level > max);
+	const excluded = [1, 2, 3, 4, 5, 6].filter((level) => (minTouched && level < min) || (maxTouched && level > max));
 	if (excluded.length > 0) {
 		const containerSelectors = excluded.flatMap((level) => [
 			`starlight-toc li[data-svc-level='${level}']`,
