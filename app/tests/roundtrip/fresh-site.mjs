@@ -24,22 +24,35 @@ const APP_ROOT = path.join(__dirname, '..', '..');
 
 /**
  * Env for every child process (`npm`/`npx`) spawned against the FRESH site - `process.env` minus
- * this suite's own `BASE_URL`. `BASE_URL` here means "the app's preview origin to compare against"
- * (see `harness.mjs`), but with it set, `astro build` was observed emitting every internal link
- * (sidebar hrefs, `site-title`, even `favicon.svg`) as an ABSOLUTE url pointing at that origin
- * instead of a relative path - which silently broke `aria-current="page"` matching on the fresh
- * site (its own links no longer matched its own current URL) and cascaded into
- * unrelated-looking surface mismatches (sidebar link colors, pagination presence). The exact
- * mechanism was NOT traced (it is not Vite's own `import.meta.env.BASE_URL`, which only reflects
- * the `base` config option, not `process.env.BASE_URL` - confirmed by reading `create-vite.js`);
- * this is an empirical fix, confirmed by building with `BASE_URL` set vs. unset and diffing
- * `dist/specimen/index.html`'s hrefs. Stripping it here is what makes this suite safe to run with
- * `BASE_URL` pointed at the app's preview - the FRESH site's own build must never see it.
+ * a plain, generic `BASE_URL` that might be INHERITED from an outer shell (this suite's own var for
+ * "the app's preview origin to compare against" is now `SVC_BASE_URL` - see `harness.mjs` - but the
+ * empirical hazard below is about `BASE_URL` specifically, by that exact name, regardless of what
+ * this suite itself calls its own setting). With a `BASE_URL` env var set, `astro build` was
+ * observed emitting every internal link (sidebar hrefs, `site-title`, even `favicon.svg`) as an
+ * ABSOLUTE url pointing at that origin instead of a relative path - which silently broke
+ * `aria-current="page"` matching on the fresh site (its own links no longer matched its own current
+ * URL) and cascaded into unrelated-looking surface mismatches (sidebar link colors, pagination
+ * presence). The exact mechanism was NOT traced (it is not Vite's own `import.meta.env.BASE_URL`,
+ * which only reflects the `base` config option, not `process.env.BASE_URL` - confirmed by reading
+ * `create-vite.js`); this is an empirical fix, confirmed by building with `BASE_URL` set vs. unset
+ * and diffing `dist/specimen/index.html`'s hrefs. Stripping it here is what makes this suite safe to
+ * run even if a caller's shell happens to have `BASE_URL` set for something else entirely - the
+ * FRESH site's own build must never see it.
+ *
+ * D3a: `SVC_SITE_BASE` gets the same guard, for the opposite direction - if the round-trip suite is
+ * ever run from an outer shell that has `SVC_SITE_BASE` set (e.g. while also building/serving the
+ * app itself under a sub-path), that value must never reach the fresh site's own `npm install`/
+ * `astro build`/`astro preview` - this generated `FRESH_ASTRO_CONFIG` never reads it and always
+ * builds at `/`, but stripping it here keeps that true defensively rather than by the accident of
+ * the generated config simply not looking. `SVC_SITE_URL` is stripped alongside it for the same
+ * reason, even though today's generated config has no `site` option either.
  * @returns {NodeJS.ProcessEnv}
  */
 function freshSiteEnv() {
 	const env = { ...process.env };
 	delete env.BASE_URL;
+	delete env.SVC_SITE_BASE;
+	delete env.SVC_SITE_URL;
 	return env;
 }
 

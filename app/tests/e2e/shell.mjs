@@ -8,7 +8,8 @@
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/shell.mjs
- * Env overrides: BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
+ * origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
@@ -17,9 +18,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { contrastRatio } from '../../src/customizer/core/color.js';
+import { stripBase } from '../../src/customizer/core/base-path.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
+// D3a: see studio.mjs's identical constant for why this is derived, not hardcoded.
+const BASE_PATH = new URL(SVC_BASE_URL).pathname;
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
@@ -274,7 +278,7 @@ async function main() {
 
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 	trackErrors(page);
-	await page.goto(`${BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
 	await waitForPanelBody(page);
 	await page.waitForTimeout(300);
 
@@ -1159,8 +1163,8 @@ async function main() {
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Document'));
 		await Promise.all([lightFrame.waitForURL(/kitchen-sink/, { timeout: 10000 }).catch(() => {}), darkFrame.waitForURL(/kitchen-sink/, { timeout: 10000 }).catch(() => {})]);
 		await page.waitForTimeout(400);
-		const lightPath = normalizePath(new URL((await getFrame(page, 'light')).url()).pathname);
-		const darkPath = normalizePath(new URL((await getFrame(page, 'dark')).url()).pathname);
+		const lightPath = normalizePath(stripBase(new URL((await getFrame(page, 'light')).url()).pathname, BASE_PATH));
+		const darkPath = normalizePath(stripBase(new URL((await getFrame(page, 'dark')).url()).pathname, BASE_PATH));
 		check('Split: the page switcher navigates the light lane', lightPath === '/guides/kitchen-sink/', lightPath);
 		check('Split: the page switcher navigates the dark lane too', darkPath === '/guides/kitchen-sink/', darkPath);
 
@@ -1391,7 +1395,7 @@ async function main() {
 		).catch(() => {});
 		await page.waitForTimeout(400);
 		frame = await getFrame(page, 'light');
-		const path_ = normalizePath(new URL(frame.url()).pathname);
+		const path_ = normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH));
 		check('a TOC rail click from Landing switches the frame to /specimen/', path_ === '/specimen/', path_);
 	}
 

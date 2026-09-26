@@ -7,7 +7,7 @@
  *   node tests/e2e/smoke.mjs
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run build`) or `npm run dev:bg`.
- * Env overrides: BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server), SVC_CHROME_PATH.
  *
  * Everything that touches the panel goes through `page.evaluate` reaching into
  * `document.querySelector('sl-customizer').shadowRoot` directly with native DOM APIs (set
@@ -24,7 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
@@ -53,7 +53,7 @@ async function main() {
 		if (msg.type() === 'error') console.log('[browser console error]', msg.text());
 	});
 
-	await page.goto(`${BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'networkidle' });
 
 	// ---- 1. panel exists in the shadow root ----------------------------------------------
 	const panelExists = await page.evaluate(() => {
@@ -140,7 +140,7 @@ async function main() {
 	);
 
 	// ---- 5. state persists across a full-page navigation ---------------------------------
-	await page.goto(`${BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'networkidle' });
 	await page.waitForTimeout(250);
 	const persisted = await page.evaluate(() => {
 		const link = Array.from(document.querySelectorAll('.sidebar-content a')).find(

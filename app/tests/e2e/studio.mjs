@@ -29,15 +29,24 @@
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/studio.mjs
- * Env overrides: BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
+ * origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { withBase, stripBase } from '../../src/customizer/core/base-path.js';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
+// D3a: the app's own configured base, e.g. '/' at root or '/astro-starlight-visual-customizer'
+// under a sub-path build - derived from SVC_BASE_URL's own pathname, never hardcoded, so this suite
+// passes at any base. Every check below that compares a real browser pathname against one of this
+// app's own base-free constants (STUDIO_PAGES paths, '/studio/', '/') routes through
+// `stripBase(..., BASE_PATH)`/`withBase(..., BASE_PATH)` rather than a bare '/foo/' literal.
+const BASE_PATH = new URL(SVC_BASE_URL).pathname;
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
@@ -144,12 +153,12 @@ async function main() {
 		const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 		trackErrors(page);
 
-		await page.goto(`${BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		await page.waitForTimeout(300);
 
 		const frame = await getFrame(page);
-		check('studio shows /specimen/ in the frame by default', normalizePath(new URL(frame.url()).pathname) === '/specimen/', frame.url());
+		check('studio shows /specimen/ in the frame by default', normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH)) === '/specimen/', frame.url());
 
 		const frameHasNoPanel = await frame.evaluate(() => !document.querySelector('sl-customizer')?.shadowRoot);
 		check('the frame never mounts its own panel', frameHasNoPanel);
@@ -157,13 +166,13 @@ async function main() {
 		const noPreloadInFrame = await frame.evaluate(() => !document.getElementById('svc-preload'));
 		check('no #svc-preload remains in the frame after attach', noPreloadInFrame);
 
-		await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(300);
-		check('/ redirects to /studio/', normalizePath(new URL(page.url()).pathname) === '/studio/', page.url());
+		check('/ redirects to /studio/', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/studio/', page.url());
 
-		await page.goto(`${BASE_URL}/?view`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/?view`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(300);
-		check('/?view does not redirect', normalizePath(new URL(page.url()).pathname) === '/', page.url());
+		check('/?view does not redirect', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/', page.url());
 
 		await page.close();
 	}
@@ -173,7 +182,7 @@ async function main() {
 	// =============================================================================================
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 	trackErrors(page);
-	await page.goto(`${BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
 	await waitForPanelBody(page);
 	let frame = await getFrame(page);
 	await frame.waitForLoadState('networkidle').catch(() => {});
@@ -292,7 +301,7 @@ async function main() {
 		await frame.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 		await page.waitForTimeout(350);
 		frame = await getFrame(page);
-		const framePath = normalizePath(new URL(frame.url()).pathname);
+		const framePath = normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH));
 		check(`switcher segment "${spec.label}" loads ${spec.path}`, framePath === normalizePath(spec.path), framePath);
 		const marked = await page.evaluate((label) => {
 			const btn = Array.from(document.querySelectorAll('.svc-page-tab')).find((b) => b.textContent.includes(label));
@@ -337,12 +346,12 @@ async function main() {
 	}
 
 	{
-		await page.goto(`${BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		frame = await getFrame(page);
 		await frame.waitForLoadState('networkidle').catch(() => {});
 		await page.waitForTimeout(300);
-		const restoredPath = normalizePath(new URL(frame.url()).pathname);
+		const restoredPath = normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH));
 		check('?page= restores the frame after reload', restoredPath === '/guides/kitchen-sink/', restoredPath);
 	}
 
@@ -522,13 +531,17 @@ async function main() {
 	{
 		const outsidePage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 		trackErrors(outsidePage);
-		await outsidePage.goto(`${BASE_URL}/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await outsidePage.goto(`${SVC_BASE_URL}/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		const noFlag = await outsidePage.evaluate(() => ({
 			hasShadowRoot: !!document.querySelector('sl-customizer')?.shadowRoot,
 			pill: document.getElementById('svc-open-in-studio-pill')?.getAttribute('href') ?? null,
 		}));
 		check('a plain page visit mounts no panel', !noFlag.hasShadowRoot, JSON.stringify(noFlag));
-		check('the "Open in Studio" pill exists and links to /studio/?page=...', noFlag.pill === '/studio/?page=%2Fguides%2Fkitchen-sink%2F', String(noFlag.pill));
+		check(
+			'the "Open in Studio" pill exists and links to /studio/?page=...',
+			noFlag.pill === `${withBase('/studio/', BASE_PATH)}?page=%2Fguides%2Fkitchen-sink%2F`,
+			String(noFlag.pill)
+		);
 
 		const pillBox = await outsidePage.locator('#svc-open-in-studio-pill').boundingBox();
 		const pillHit = await outsidePage.evaluate(
@@ -548,11 +561,11 @@ async function main() {
 		]);
 		check(
 			'clicking the pill opens /studio/ at the same page',
-			normalizePath(new URL(outsidePage.url()).pathname) === '/studio/' && outsidePage.url().includes('kitchen-sink'),
+			normalizePath(stripBase(new URL(outsidePage.url()).pathname, BASE_PATH)) === '/studio/' && outsidePage.url().includes('kitchen-sink'),
 			outsidePage.url()
 		);
 
-		await outsidePage.goto(`${BASE_URL}/guides/kitchen-sink/?svc-overlay`, { waitUntil: 'networkidle' });
+		await outsidePage.goto(`${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`, { waitUntil: 'networkidle' });
 		const withFlag = await outsidePage.evaluate(() => ({
 			hasDrawer: !!document.querySelector('sl-customizer')?.shadowRoot?.querySelector('.svc-drawer, .svc-fab'),
 			pillExists: !!document.getElementById('svc-open-in-studio-pill'),
@@ -688,7 +701,7 @@ async function main() {
 	{
 		const f0page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 		trackErrors(f0page);
-		await f0page.goto(`${BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await f0page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(f0page);
 		await f0page.waitForTimeout(150);
 		await clickDevice(f0page, '1440px');
