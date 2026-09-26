@@ -1,0 +1,121 @@
+---
+title: Style guide
+description: One instance of every themeable Starlight surface, compact enough to see most controls at once.
+banner:
+  content: Compact style guide page — everything themeable, nothing to scroll past.
+prev:
+  link: /guides/kitchen-sink/
+  label: Kitchen Sink
+next:
+  link: /guides/getting-started/
+  label: Getting Started
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 4
+---
+
+import { Badge, Card, CardGrid, FileTree, Icon, LinkButton, LinkCard, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import houston from '../../assets/houston.webp';
+
+## Type
+
+This is **bold**, this is _italic_, this is a [link](/guides/kitchen-sink/), this is `inline code`, and this is <kbd>Ctrl</kbd> + <kbd>K</kbd>.
+
+- Colors
+  - Accent hue, chroma
+- Typography
+
+1. Pick a preset
+2. Export CSS
+
+<dl>
+	<dt>Preset</dt>
+	<dd>A bundle of values applied in one click.</dd>
+</dl>
+
+> A theme editor that can't show you the real page is just a color picker with extra steps.
+
+---
+
+### Heading depth
+
+#### H4 example
+
+##### H5 example
+
+###### H6 example
+
+## Links & code
+
+```js title="specimen.js" {2}
+export function specimen() {
+	return 'themeable';
+}
+```
+
+```sh title="Apply" frame="terminal"
+npm run build
+```
+
+## Callouts
+
+:::note
+Recomputes on every keystroke.
+:::
+
+:::tip
+Start from the closest preset.
+:::
+
+:::caution
+Build-time options only show a note here.
+:::
+
+:::danger[Reset]
+No undo once confirmed.
+:::
+
+## Data
+
+| ID | Type | Default | Tier |
+|---|---|---|---|
+| `color.accent.hue` | range | `250` | `1` |
+| `sidebar.activeStyle` | select | `filled-pill` | `2` |
+
+<details>
+<summary>What happens to my custom CSS?</summary>
+
+It stays, loaded via `customCss`.
+
+</details>
+
+## Components
+
+<Tabs>
+<TabItem label="macOS">Search with Cmd+K.</TabItem>
+<TabItem label="Windows">Search with Ctrl+K.</TabItem>
+</Tabs>
+
+<Steps>
+1. Pick a preset.
+2. Adjust treatments.
+3. Export `theme.css`.
+</Steps>
+
+<FileTree>
+- src
+  - content
+    - docs/specimen.mdx
+</FileTree>
+
+<CardGrid>
+	<Card title="Compact" icon="rocket">Everything, once.</Card>
+	<Card title="Themeable" icon="puzzle">Every surface.</Card>
+</CardGrid>
+
+<LinkCard title="Kitchen Sink" description="The exhaustive version of this page." href="/guides/kitchen-sink/" />
+
+<LinkButton href="/guides/getting-started/" variant="primary" icon="right-arrow">Start</LinkButton> <LinkButton href="/resources/faq/" variant="secondary">FAQ</LinkButton> <LinkButton href="https://github.com/prisant-labs/astro-starlight-visual-customizer" variant="minimal" icon="github">GitHub</LinkButton>
+
+<Badge text="Default" variant="default" size="small" /> <Badge text="Note" variant="note" size="small" /> <Badge text="Tip" variant="tip" size="small" /> <Badge text="Caution" variant="caution" size="small" /> <Badge text="Danger" variant="danger" size="small" /> <Badge text="Success" variant="success" size="small" /> <Icon name="star" /> <Image src={houston} alt="Houston, the Starlight mascot" width={60} loading="eager" />

@@ -1,0 +1,295 @@
+---
+title: Kitchen Sink
+description: A single page exercising every Starlight surface the customizer can theme, from headings and tables to Tabs, Steps, and badges.
+lastUpdated: 2026-09-01
+---
+
+import { Badge, Card, CardGrid, FileTree, Icon, LinkButton, LinkCard, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+This page exists to be themed, not to be read start to finish. It deliberately packs in every content surface Starlight renders — headings, lists, tables, asides, code blocks, and the built-in components — so that a single accent hue change or treatment swap can be checked against the whole site in one place.
+
+## Text formatting
+
+Starlight Customizer supports **bold text**, _italic text_, and `inline code` in the same sentence, plus [links to other pages](/guides/getting-started/) and [links to external sites](https://starlight.astro.build). None of that is unusual for a docs site, but a customizer needs to get every one of those right at once, because a real page mixes them constantly.
+
+### Long-form paragraphs
+
+Here is a paragraph long enough to wrap across several lines at a typical content width, which is exactly the kind of text a line-height or body-font-size control needs to be checked against. Starlight Customizer's typography controls change the body font, the heading font, the monospace font, the base size, the type scale ratio, and the line height independently, and a short sentence or two rarely reveals whether a scale ratio has gone too aggressive — you need a paragraph like this one, with enough words per line to show where a font's default line-height starts to feel cramped or airy once the base size changes underneath it.
+
+### Lists
+
+An unordered list, with a nested sub-list:
+
+- Colors: accent hue and chroma, gray hue and chroma, five semantic hues
+  - Role overrides: page background, nav background, sidebar background, text, link
+  - Contrast floor: AA or AAA
+- Typography: body font, heading font, mono font, base size, scale ratio
+- Layout: content width, sidebar width, nav height, content gap, global radius, shadow elevation
+
+An ordered list:
+
+1. Pick a preset or start from the Starlight default.
+2. Adjust colors, typography, and layout to taste.
+3. Choose treatments for each themeable component.
+4. Export `theme.css` and `APPLY-THEME.md`.
+
+A loose list, where each item is its own paragraph:
+
+- The panel persists its state to `localStorage` on every change, since Starlight does a full page load between routes rather than a client-side transition.
+
+- The same state is also encodable into `location.hash` on demand, behind a "Copy share link" button, so a colleague can open an in-progress theme without you sending a file.
+
+- Import accepts either a pasted `state.json` or a pasted sidebar config, so migrating from a hand-written `astro.config.mjs` doesn't require starting over.
+
+#### Definition lists
+
+<dl>
+	<dt>Preset</dt>
+	<dd>A named bundle of control values that can be applied in one click, resetting every other value to that preset's own defaults.</dd>
+	<dt>Treatment</dt>
+	<dd>A component-level style choice, such as "pill" versus "left bar" for the active sidebar item, implemented as a small set of alternative CSS rules rather than a continuous slider.</dd>
+	<dt>Emitter</dt>
+	<dd>The pure function that turns a `ThemeState` into a CSS string. It never touches the DOM or `localStorage`.</dd>
+</dl>
+
+#### Blockquotes and dividers
+
+> A theme editor that can't show you the real page is just a color picker with extra steps.
+
+---
+
+##### Heading level 5 example
+
+Starlight's table of contents in this fixture is configured for levels 2 through 4, so this heading and the one below it won't appear in the "On this page" panel — but they still exist in the DOM, which matters for a customizer checking heading-level CSS in isolation from TOC filtering.
+
+###### Heading level 6 example
+
+The smallest heading level Markdown supports. Real docs rarely go this deep, but the customizer's typography scale still needs a value for it.
+
+## Media and disclosure
+
+### Images
+
+![Houston, the Starlight mascot, floating against a starfield](../../../assets/houston.webp)
+
+### Keyboard shortcuts
+
+Press <kbd>Cmd</kbd> + <kbd>K</kbd> on macOS, or <kbd>Ctrl</kbd> + <kbd>K</kbd> on Windows and Linux, to jump straight to the panel's control search box.
+
+### Collapsible details
+
+<details>
+<summary>What happens to my existing custom CSS?</summary>
+
+It stays. The customizer writes into a single stylesheet loaded via Starlight's `customCss` option; anything else you've added under `src/styles/` continues to load exactly as before, and cascade layer ordering keeps your own rules able to override the generated ones if you set them up that way.
+
+</details>
+
+## Tables
+
+### Wide reference table
+
+| Control ID | Group | Type | Default | Min | Max | Step | Tier | Notes |
+|---|---|---|---|---|---|---|---|---|
+| `color.accent.hue` | Colors | range | `250` | `0` | `360` | `1` | `1` | Degrees on the OKLCH hue wheel |
+| `color.accent.chroma` | Colors | range | `0.12` | `0` | `0.4` | `0.01` | `1` | Higher values look more saturated |
+| `type.font.body` | Typography | font | `inter` | — | — | — | `1` | A Fontsource variable font id |
+| `layout.contentWidth` | Layout | range | `48` | `32` | `80` | `1` | `1.5` | In `rem` |
+| `sidebar.activeStyle` | Sidebar | select | `filled-pill` | — | — | — | `2` | One of 4 options |
+| `toc.currentStyle` | TOC | select | `default` | — | — | — | `2` | One of 4 options |
+| `code.theme` | Code | select | `starlight-default` | — | — | — | `build` | Approximated in preview only |
+| `page.toc.minLevel` | Page options | range | `2` | `1` | `6` | `1` | `build` | Approximated via DOM filtering |
+| `page.pagination` | Page options | toggle | `true` | — | — | — | `build` | Hides `.pagination-links` when off |
+
+## Callouts
+
+### Note
+
+:::note
+The customizer's contrast readout re-computes on every keystroke, not just on release, so a WCAG failure shows up immediately while you're still dragging a slider.
+:::
+
+### Tip
+
+:::tip
+Start from the preset closest to your brand's existing colors, then adjust hue and chroma from there. It's faster than building a palette from a blank `starlight-default` state.
+:::
+
+### Caution
+
+:::caution
+Changing `code.theme` only shows a note in the live preview — Expressive Code themes are applied at build time, so you won't see a real syntax-highlighting swap until you export and rebuild.
+:::
+
+### Danger, with a custom title
+
+:::danger[Emergency Rollback]
+"Reset all" discards every control value back to the active preset's defaults, including the sidebar IA. There is no undo once you confirm it — export your `state.json` first if you might want to come back to this configuration.
+:::
+
+## Code blocks
+
+### Expressive Code basics
+
+```js title="emit-css.js"
+export function emitCss(state, { forPreview = false } = {}) {
+	const lines = [headerComment()];
+	if (!forPreview) lines.push(...fontImports(state));
+	lines.push(...darkTokens(state), ...lightTokens(state));
+	return lines.join('\n');
+}
+```
+
+### Terminal commands
+
+```sh title="Apply the exported theme" frame="terminal"
+npm install @fontsource-variable/inter
+cp theme.css src/styles/theme.css
+git add src/styles/theme.css
+git commit -m "Apply Starlight Customizer theme"
+```
+
+### Line markers
+
+```js title="apply-preset.js" {2-3} ins={9} del={8}
+import { presets } from './presets.js';
+import { setValue } from './state.js';
+import { emitCss } from './emit-css.js';
+
+export function applyPreset(state, presetId) {
+	const preset = presets.find((p) => p.id === presetId);
+	if (!preset) throw new Error(`Unknown preset: ${presetId}`);
+	return { ...state, values: { ...preset.values } };
+	return { ...state, preset: presetId, values: { ...preset.values } };
+}
+```
+
+#### Multi-language emitter calls
+
+<Tabs syncKey="language">
+<TabItem label="JavaScript" icon="seti:javascript">
+```js
+import { emitCss } from './customizer/core/emit-css.js';
+import { defaultState, setValue } from './customizer/core/state.js';
+
+const state = setValue(defaultState(), 'color.accent.hue', 260);
+const css = emitCss(state);
+```
+</TabItem>
+<TabItem label="Python" icon="seti:python">
+```python
+# The emitter itself is JS-only; call it through Node from a Python build step.
+import subprocess
+
+css = subprocess.run(
+    ["node", "scripts/emit-theme.mjs", "state.json"],
+    capture_output=True, text=True, check=True,
+).stdout
+```
+</TabItem>
+<TabItem label="Shell" icon="seti:shell">
+```sh
+node scripts/emit-theme.mjs state.json > src/styles/theme.css
+```
+</TabItem>
+</Tabs>
+
+## Tabs
+
+### Choose your platform
+
+<Tabs syncKey="platform">
+<TabItem label="macOS">
+Use <kbd>Cmd</kbd> + <kbd>K</kbd> to open the panel's search box and jump straight to a control by name.
+</TabItem>
+<TabItem label="Windows">
+Use <kbd>Ctrl</kbd> + <kbd>K</kbd> to open the panel's search box and jump straight to a control by name.
+</TabItem>
+<TabItem label="Linux">
+Use <kbd>Ctrl</kbd> + <kbd>K</kbd> (or <kbd>Super</kbd> + <kbd>K</kbd> on some window managers) to open the panel's search box.
+</TabItem>
+</Tabs>
+
+## Step-by-step workflows
+
+### Exporting a theme
+
+<Steps>
+1. Open the panel and pick a preset close to what you want, or start from **Starlight Default**.
+2. Adjust the accent hue, chroma, and any semantic hues you care about, watching the live contrast readout next to each color row.
+3. Switch to the treatments sections and choose an option for each themeable component: sidebar active style, TOC current item, asides, and so on.
+4. Open the export dialog and copy `theme.css` into `src/styles/theme.css` in your real project.
+5. Follow the remaining steps in the generated `APPLY-THEME.md`: install any fonts, add `customCss` to your Starlight config, and redeploy.
+</Steps>
+
+## Project structure
+
+### File tree
+
+<FileTree>
+- src
+  - content
+    - docs
+      - index.mdx
+      - guides
+        - kitchen-sink.mdx
+  - customizer
+    - core
+      - manifest.js
+      - state.js
+      - emit-css.js
+    - ui
+      - panel.js
+      - controls.js
+  - components
+    - CustomizerFooter.astro
+- astro.config.mjs
+- package.json
+</FileTree>
+
+## Cards and links
+
+### Feature cards
+
+<CardGrid>
+	<Card title="Deterministic" icon="approve-check">
+		The same `ThemeState` always emits byte-identical CSS, so exported stylesheets diff cleanly in version control.
+	</Card>
+	<Card title="Framework-free" icon="puzzle">
+		No React, Vue, or Svelte — the panel is a single web component built from plain ES modules.
+	</Card>
+	<Card title="Reversible" icon="random">
+		Every control has a per-control reset, and the whole panel has a "Reset all" that returns to the active preset.
+	</Card>
+</CardGrid>
+
+### Link cards
+
+<LinkCard title="Surfaces and Tokens Reference" description="Every CSS custom property and DOM hook the customizer can target." href="/reference/manifest/" />
+<LinkCard title="Scripting API" description="Call the pure emitter functions directly from your own build scripts." href="/guides/advanced/power/scripting/" />
+
+### Link buttons
+
+<LinkButton href="/guides/getting-started/" variant="primary" icon="right-arrow">Get started</LinkButton>
+<LinkButton href="/resources/faq/" variant="secondary">Read the FAQ</LinkButton>
+<LinkButton href="https://github.com/prisant-labs/astro-starlight-visual-customizer" variant="minimal" icon="github">View on GitHub</LinkButton>
+
+## Badges and icons
+
+### Badge variants
+
+**Default:** <Badge text="Default" variant="default" size="small" /> <Badge text="Default" variant="default" size="medium" /> <Badge text="Default" variant="default" size="large" />
+
+**Note:** <Badge text="Note" variant="note" size="small" /> <Badge text="Note" variant="note" size="medium" /> <Badge text="Note" variant="note" size="large" />
+
+**Tip:** <Badge text="Tip" variant="tip" size="small" /> <Badge text="Tip" variant="tip" size="medium" /> <Badge text="Tip" variant="tip" size="large" />
+
+**Caution:** <Badge text="Caution" variant="caution" size="small" /> <Badge text="Caution" variant="caution" size="medium" /> <Badge text="Caution" variant="caution" size="large" />
+
+**Danger:** <Badge text="Danger" variant="danger" size="small" /> <Badge text="Danger" variant="danger" size="medium" /> <Badge text="Danger" variant="danger" size="large" />
+
+**Success:** <Badge text="Success" variant="success" size="small" /> <Badge text="Success" variant="success" size="medium" /> <Badge text="Success" variant="success" size="large" />
+
+### Icons
+
+<Icon name="rocket" /> <Icon name="star" /> <Icon name="heart" /> <Icon name="puzzle" /> <Icon name="information" size="2rem" color="var(--sl-color-accent)" />

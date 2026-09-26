@@ -1,0 +1,6 @@
+/*
+ * Starlight Visual Customizer
+ * Target: Starlight 0.42.4 (@astrojs/starlight)
+ * Load via the `customCss` option in astro.config.mjs.
+ * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.
+ */
