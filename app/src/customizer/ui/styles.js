@@ -792,7 +792,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	position: fixed;
 	top: 0;
 	left: 0;
-	z-index: 0; /* below .svc-drawer (z-index:1) - "under the drawer" is acceptable per SPEC.md */
+	z-index: 0; /* below .svc-drawer (z-index:1) - "under the drawer" is acceptable here */
 	pointer-events: none;
 	box-sizing: border-box;
 	border: 2px solid #6d8dfa;
@@ -871,16 +871,16 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 }
 
 /* =================================================================================================
-   SPEC-C studio (docked) light chrome. Every selector below is either scoped under
+   Studio (docked) light chrome. Every selector below is either scoped under
    :host([data-docked='true']) or is a class name that panel.js only ever creates in studio mode
-   (.svc-rail*, .svc-panel-col*, .svc-group-studio*) - a direct page visit (overlay mode, S16) is
+   (.svc-rail*, .svc-panel-col*, .svc-group-studio*) - a direct page visit (overlay mode) is
    untouched: it never gets data-docked, so none of this ever applies there, and none of it changes
    any selector the overlay path itself uses.
 
-   S3 readability: --ui-ink ~16:1, --ui-text ~11:1 and --ui-accent-fg (white on --ui-accent) ~6.3:1
+   Readability: --ui-ink ~16:1, --ui-text ~11:1 and --ui-accent-fg (white on --ui-accent) ~6.3:1
    on white/--ui-bg were verified against the WCAG relative-luminance formula before committing to
-   SPEC-C's own starting palette (asked to "verify, not trust") - the accent's ~6.3:1 clears the
-   4.5:1 floor SPEC-C explicitly sets for white-on-accent text (buttons, the selected rail item);
+   this starting palette (verified, not just assumed) - the accent's ~6.3:1 clears the
+   4.5:1 floor explicitly set for white-on-accent text (buttons, the selected rail item);
    --ui-muted's ~6.3:1 clears the 4.5:1 floor for help/eyebrow/caption text but is never used for a
    label, a rail label, a group title or button text (those need >=7:1 - see shell.mjs's contrast
    walk, which encodes this same accent exception and the help/eyebrow/caption exception).
@@ -895,14 +895,14 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	--ui-accent: #4453c9;
 	--ui-accent-fg: #ffffff;
 	--ui-accent-tint: rgba(68, 83, 201, 0.08);
-	/* S3: --ui-accent itself only reaches ~6.3:1 as TEXT on a light background (white-on-accent-FILL
-	   is the one case SPEC-C explicitly holds to 4.5:1 - buttons, the selected rail item; everything
+	/* --ui-accent itself only reaches ~6.3:1 as TEXT on a light background (white-on-accent-FILL
+	   is the one case explicitly held to 4.5:1 - buttons, the selected rail item; everything
 	   else needs 7:1, including "selected" accent-colored text like a page tab or file-list item on
 	   its light accent tint). --ui-accent-ink is that same hue, darkened until it clears 7:1 on white
-	   (measured ~7.8:1) - verified by shell.mjs's A4 contrast walk. */
+	   (measured ~7.8:1) - verified by shell.mjs's contrast walk. */
 	--ui-accent-ink: #3a46b0;
 	--ui-pass: #0b5c26;
-	/* P4 fix: darkened from #a3251c once the section body's own background moved from --ui-panel
+	/* Darkened from #a3251c once the section body's own background moved from --ui-panel
 	   (white) to --ui-bg (a light tint) - the lighter background left this red just under the 7:1
 	   floor for the Colors group's own pass/fail contrast readout (measured 6.84:1); this shade
 	   (shared with the docked hex-field error message color) clears 7:1 against BOTH backgrounds. */
