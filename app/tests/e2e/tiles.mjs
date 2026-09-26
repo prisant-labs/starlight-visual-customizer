@@ -1,7 +1,7 @@
 // @ts-check
 /**
- * @file Verification for Variation B's tile-grid controls (replaces a `<select>` dropdown with a
- * grid of clickable, illustrated option tiles for every visual `select` control - see SPEC.md).
+ * @file Verification for the tile-grid controls (a grid of clickable, illustrated option tiles that
+ * replaces a `<select>` dropdown for every visual `select` control).
  * Mirrors `tests/e2e/treatments.mjs`'s per-option probe data (same `treatments.js` entries, same
  * viewport/URL overrides for the alignment controls) but drives the UI instead of hand-encoding
  * state: for each tiled control, opens its panel group, clicks each tile's radio in turn, and reads
@@ -9,7 +9,7 @@
  * the *wiring* (tile click -> state -> live CSS), not CSS correctness a second time (treatments.mjs
  * already owns that).
  *
- * Covers, per SPEC.md's verification bullet:
+ * Covers:
  *  1. a radio group exists with one tile per option, for every tiled control;
  *  2. clicking each tile changes the page's probe/computed style exactly as the dropdown did;
  *  3. keyboard arrow keys move selection (checked on a representative sample - it's the platform's
@@ -44,7 +44,7 @@ const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
 
-// `svc-overlay` (F1, SPEC-C phase 3, URL-flag-only edit): a direct top-level visit no longer mounts
+// `svc-overlay`: a direct top-level visit no longer mounts
 // a panel at all (a small "Open in Studio" pill instead) - this suite drives the panel's own shadow
 // root directly, so it needs the escape-hatch flag to keep mounting it.
 const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
