@@ -905,12 +905,14 @@ function initCustomizer(host) {
 		shadow.appendChild(rail);
 
 		// =============================================================================================
-		// SPEC-C phase 3, workstream F (F3) - panel-collapse state, marked block. F3: "Clicking the
-		// already-selected rail item collapses the panel column (the rail stays), giving the preview
-		// the panel's width; clicking any rail item reopens it. Also a collapse button in the panel
-		// column's header and the `\` key." `styles.js` (workstream P's file) is never touched for
-		// this - both the host's own width and the panel column's visibility are set here as plain
-		// inline styles/properties, which win over any external stylesheet rule by specificity alone.
+		// SPEC-C phase 3, workstream F (F3) - panel-collapse state, marked block. Originally: "Clicking
+		// the already-selected rail item collapses the panel column"; the maintainer later removed that
+		// specific affordance (see the rail click handler below) - collapsing now happens ONLY via the
+		// panel column's header collapse button and the `\` key, both still wired through
+		// `setPanelCollapsed`/`togglePanelCollapse` below. `styles.js` (workstream P's file) is never
+		// touched for this - both the host's own width and the panel column's visibility are set here
+		// as plain inline styles/properties, which win over any external stylesheet rule by specificity
+		// alone.
 		// =============================================================================================
 		let panelCollapsed = uiState.panelCollapsed === true;
 		/** @param {boolean} next */
@@ -968,23 +970,16 @@ function initCustomizer(host) {
 			btn.appendChild(dot);
 			btn.addEventListener('click', () => {
 				// =====================================================================================
-				// SPEC-C phase 3, workstream F (F3) - panel-collapse state, marked block. "Clicking the
-				// already-selected rail item collapses the panel column... clicking any rail item
-				// reopens it." A collapsed panel's rail item click still needs to OPEN that group (not
-				// just reopen whatever was already active), so this runs before the early-return.
+				// SPEC-C phase 3, workstream F (F3), reversed by the maintainer: clicking the ALREADY-
+				// selected rail item used to collapse the panel column - that affordance is removed
+				// (a re-click is now a plain no-op-on-collapse: it keeps re-selecting the same group,
+				// same as any other rail click, so it still re-scrolls to the group's target exactly
+				// the way a normal selection already does - no new scroll behavior is added here).
+				// Collapsing is still reachable via the panel-header collapse button and the `\` key
+				// (`setPanelCollapsed`/`togglePanelCollapse`, unchanged). A collapsed panel's rail item
+				// click still needs to OPEN it (kept).
 				// =====================================================================================
-				if (panelCollapsed) {
-					setPanelCollapsed(false);
-					filterInput.value = '';
-					applyPanelFilter('');
-					openGroup(groupName);
-					return;
-				}
-				if (groupName === activeGroupName) {
-					setPanelCollapsed(true);
-					return;
-				}
-				// ===== end F3 marked block (rail click) =====
+				if (panelCollapsed) setPanelCollapsed(false);
 				filterInput.value = '';
 				applyPanelFilter('');
 				openGroup(groupName);
