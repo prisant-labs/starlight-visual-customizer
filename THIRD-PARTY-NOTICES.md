@@ -52,12 +52,15 @@ build`.
 | Package | Version | License | Copyright |
 |---|---|---|---|
 | [expressive-code](https://github.com/expressive-code/expressive-code) (`expressive-code`, `@expressive-code/core`, `astro-expressive-code`, `rehype-expressive-code`) | 0.44.2 | MIT | (c) 2023 Tibor Schiemann |
+| [Shiki](https://github.com/shikijs/shiki) (`shiki`, `@shikijs/*`) | 4.4.3 | MIT | (c) 2021 Pine Wu, (c) 2023 Anthony Fu |
 | [Pagefind](https://github.com/CloudCannon/pagefind) (`pagefind`, `@pagefind/default-ui`) | 1.5.2 | MIT | (c) Pagefind |
 
-Expressive Code renders this site's syntax-highlighted code blocks. Pagefind builds the static
-search index used by the site's search box; its platform packages (for example
-`@pagefind/windows-x64`) bundle `vscode-ripgrep` (Microsoft, MIT) as a build-time indexing tool -
-`vscode-ripgrep` itself does not ship in `dist/`, only the search index Pagefind produces does.
+Expressive Code renders this site's syntax-highlighted code blocks, using Shiki as its underlying
+highlighter (Shiki's output - colored `<span>`s and CSS - is what actually lands in `dist/`; no
+Shiki JS ships to the browser). Pagefind builds the static search index used by the site's search
+box; its platform packages (for example `@pagefind/windows-x64`) bundle `vscode-ripgrep` (Microsoft,
+MIT) as a build-time indexing tool - `vscode-ripgrep` itself does not ship in `dist/`, only the
+search index Pagefind produces does.
 
 ## Code ported from Starlight's official theme designer
 
@@ -122,7 +125,7 @@ than assuming OFL.
 ### MIT License
 
 Applies to: astro, @astrojs/starlight (and the Starlight-derived color/presets port and
-houston.webp), culori, fflate, modern-screenshot, vanilla-colorful, expressive-code family,
+houston.webp), culori, fflate, modern-screenshot, vanilla-colorful, expressive-code family, Shiki,
 pagefind family, @img/colour.
 
 ```
