@@ -1,6 +1,6 @@
 /**
  * @file Single entry point `controls.js` uses to decide, per `select`-type control, whether it
- * renders as a clickable tile grid (SPEC.md "B" tiles item 1) and if so which of the two renderers
+ * renders as a clickable tile grid and if so which of the two renderers
  * (`tile-grid.js`'s live-sample vs wireframe modes) to use. Two selects stay plain `<select>`
  * dropdowns because their options aren't visual: `color.contrastFloor` (a numeric ratio choice, AA
  * vs AAA) and `code.theme` (build-time only - the preview already shows a note instead of live
@@ -43,7 +43,7 @@ export const TILE_CONTROL_IDS = new Set([...LIVE_SAMPLE_CONTROL_IDS, ...WIREFRAM
 // reimplementing the rule.
 // ---------------------------------------------------------------------------------------------
 
-/** "aspect ratio above ~2:1" (maintainer's brief), taken literally - every control that needed
+/** "aspect ratio above ~2:1", taken literally - every control that needed
  * `rows` cleared this with room to spare (5.9, 3.5, 3.4) and every `grid` control stayed under 1.9. */
 const ROWS_ASPECT_THRESHOLD = 2;
 
@@ -52,16 +52,16 @@ const ROWS_ASPECT_THRESHOLD = 2;
  * control's actual `.svc-tile-caption` line count on the dev server (Range.getClientRects, which
  * counts wrapped lines directly) at the panel's real ~129px caption width / 0.75rem font. Every
  * control that genuinely wrapped had an average option-label length of 17.5+; every control that
- * genuinely fit on one line had 14.3 or less - 15 is the threshold that separates them exactly. The
- * maintainer's brief offered "~12" as a rough example; at 12, three controls the maintainer
- * explicitly expects as `grid` (toc.currentItemStyle 13.3, type.headingCase 13.0, and
+ * genuinely fit on one line had 14.3 or less - 15 is the threshold that separates them exactly. A
+ * rougher "~12" example threshold was tried first; at 12, three controls expected to render as
+ * `grid` (toc.currentItemStyle 13.3, type.headingCase 13.0, and
  * layout.contentAlign's aspect-driven case aside) would have tipped into `rows` despite never
- * actually wrapping. See the build report for the full measurement.
+ * actually wrapping.
  */
 const ROWS_LABEL_AVG_THRESHOLD = 15;
 
 /**
- * SPEC-C P5 (point 9, maintainer review of v2): "at the current panel width (about 300 to 360px),
+ * At the current panel width (about 300 to 360px),
  * every tile control lays out in ONE column (rows); two columns only if the panel is 480px or wider
  * and the samples are narrow". `computeTileLayout`'s `panelWidthPx` parameter defaults to the
  * panel column's real, fixed CSS width (`styles.js`'s `.svc-panel-col`) - there is currently no way
@@ -87,26 +87,26 @@ function intendedAspect(controlId) {
 
 /**
  * Explicit, documented escape hatch for a control where the mechanical rule's output should be
- * second-guessed (SPEC.md item 5: "allow an explicit override map only where you document why").
- * Empty: every tiled control's computed layout was kept as-is, including the one genuine
- * disagreement with the maintainer's own expectation (`content.linkStyle` computes `rows` because
- * 3 of its 4 labels really do wrap at avg 28.8 chars - see the build report) - overriding it back to
+ * second-guessed (an explicit override map only where the reason is documented here).
+ * Empty: every tiled control's computed layout was kept as-is, including one case
+ * that looks surprising at first glance (`content.linkStyle` computes `rows` because
+ * 3 of its 4 labels really do wrap at avg 28.8 chars) - overriding it back to
  * `grid` would silently reintroduce the "wide strip in a square tile" problem this rule exists to
- * catch, so it's reported instead of masked.
+ * catch, so it's left as `rows` instead of masked.
  * @type {Record<string, 'grid'|'rows'>}
  */
 export const TILE_LAYOUT_OVERRIDES = {};
 
 /**
  * @param {import('../../core/manifest.js').Control} control
- * @param {number} [panelWidthPx] SPEC-C P5 - defaults to the panel's real fixed width.
+ * @param {number} [panelWidthPx] Defaults to the panel's real fixed width.
  * @returns {'grid'|'rows'}
  */
 export function computeTileLayout(control, panelWidthPx = DEFAULT_PANEL_WIDTH) {
 	if (Object.prototype.hasOwnProperty.call(TILE_LAYOUT_OVERRIDES, control.id)) {
 		return TILE_LAYOUT_OVERRIDES[control.id];
 	}
-	// P5: below 480px, every tile control is one column, full stop - the old aspect/label rule below
+	// Below 480px, every tile control is one column, full stop - the old aspect/label rule below
 	// only decides grid-vs-rows once there is actually enough width for two columns to make sense.
 	if (panelWidthPx < ROWS_MIN_PANEL_WIDTH) return 'rows';
 	const aspect = intendedAspect(control.id);
