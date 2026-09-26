@@ -11,6 +11,8 @@
  */
 
 import { controls, FONTS, GROUPS } from './manifest.js';
+import { TOKEN_VAR_NAMES, computeGeneratedPalette } from './emit-css.js';
+import { treatments } from './treatments.js';
 import { getValue, defaultState } from './state.js';
 import { presets } from './presets.js';
 import { iaToConfigSource, iaToFrontmatterTable, titleCase } from './ia.js';
@@ -131,6 +133,17 @@ function summarizeTheme(state, base) {
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) notable.push(`a custom site title ("${siteTitle}")`);
 
+	// A state can carry `preset: 'starlight-default'` (the base every custom theme starts from) yet
+	// still have real, non-default control values -- a hand-tuned theme built by adjusting
+	// individual controls rather than picking a named preset first. Calling that "the 'Starlight
+	// default' theme with ..." is misleading (it reads as if the preset itself carries those
+	// changes); "a custom theme built on Starlight's defaults" says the same thing without implying
+	// a named preset exists for it. Only applies when there ARE changes -- literally no changes at
+	// all is exactly what "Starlight default" means, so that phrasing stays for the truly-untouched
+	// case just below.
+	if (state.preset === 'starlight-default' && notable.length) {
+		return `This applies a custom theme built on Starlight’s defaults, with ${notable.join(', ')}.`;
+	}
 	let summary = `This applies the "${presetLabel}" theme`;
 	summary += notable.length ? ` with ${notable.join(', ')}.` : ' with no changes from Starlight’s own defaults.';
 	return summary;
@@ -147,7 +160,7 @@ function buildCssStep(cssFileName) {
 		`   - Copy the \`${cssFileName}\` file (exported alongside this document) to \`${cssPath}\` in the target repo, creating \`src/styles/\` if it does not exist.`,
 		'   - Open `astro.config.mjs` (or `astro.config.ts`) and find the `starlight({ ... })` options object.',
 		`   - If \`customCss\` does not exist yet, add \`customCss: ['./${cssPath}']\`.`,
-		`   - If \`customCss\` already exists, add \`'./${cssPath}'\` to the array **only if it is not already present** (idempotent: do not add a duplicate entry on a re-run).`,
+		`   - If \`customCss\` already exists, **keep every entry already there** and add \`'./${cssPath}'\` **as the LAST item in the array** -- only if it is not already present (idempotent: do not add a duplicate entry on a re-run). This theme's CSS is intentionally unlayered, so for any selector another stylesheet also styles, array order decides the tie; adding it last is what makes it win.`,
 	].join('\n');
 }
 
@@ -170,6 +183,7 @@ function renderFontStep(stepNumber, { pkgs }) {
 		...imports.map((l) => `     ${l}`),
 		'     ```',
 		'   - Nothing else to edit for fonts; re-running `npm i` on an already-installed package is a no-op.',
+		'   - **If a package fails to install** (no network access, or it was renamed/removed on the registry), `npx astro build` will FAIL, not silently degrade: Vite resolves every `@import` at build time, so a missing package produces an error like `[vite] Unable to resolve @import "@fontsource-variable/<pkg>" from .../src/styles` (often followed by a `[postcss] ENOENT`). To recover, remove that package’s `@import` line from `src/styles/theme.css` (the one you just copied in) and rebuild -- every font-family declaration this theme emits already ends in a fallback stack (e.g. a system serif, sans, or monospace font), so the site still works once that line is gone, just with that fallback instead of the chosen web font. Confirm the exact package name first with `npm view <pkg> version` before retrying the install.',
 	].join('\n');
 }
 
@@ -310,20 +324,171 @@ function buildIaStep(state, stepNumber) {
 // verification
 // ---------------------------------------------------------------------------
 
+/** ids handled by `buildAccentLine`/`buildGrayLine` instead of the generic per-control loop below. */
+const PALETTE_LINE_IDS = new Set(['color.accent.hue', 'color.accent.chroma', 'color.gray.hue', 'color.gray.chroma']);
+
+/**
+ * A probe's `property` is the PHYSICAL longhand a real browser resolves from computed style
+ * (`tests/e2e/treatments.mjs` reads it that way), but the CSS text itself often writes the LOGICAL
+ * shorthand instead (`border-inline-start: 2px solid ...`, this codebase's own RTL-aware
+ * convention) - so a literal text search for the physical property name finds nothing even though
+ * the value is right there. This lets `extractDeclaredValue` also try each property's logical
+ * shorthand equivalent(s), in the `width style color` order this codebase always writes them in.
+ * @type {Record<string, string[]>}
+ */
+const LOGICAL_SHORTHAND_FALLBACK = {
+	// Order matters: a more specific side/logical property is tried before the all-sides `border`
+	// shorthand, since a LATER `border: ...` declaration in the same rule can legitimately override
+	// an earlier single-side one (real CSS cascade within one rule - see components.tabsIndicatorStyle
+	// "segmented", whose `border-bottom: none` is overwritten by a later `border: 1px solid ...`).
+	'border-left-width': ['border-inline-start-width', 'border-inline-start', 'border-left', 'border'],
+	'border-right-width': ['border-inline-end-width', 'border-inline-end', 'border-right', 'border'],
+	'border-top-width': ['border-block-start-width', 'border-block-start', 'border-top', 'border'],
+	'border-bottom-width': ['border-block-end-width', 'border-block-end', 'border-bottom', 'border'],
+	'margin-left': ['margin-inline-start'],
+	'margin-right': ['margin-inline-end'],
+	'padding-left': ['padding-inline-start'],
+	'padding-right': ['padding-inline-end'],
+	// `font-variant` is font-variant-caps's shorthand; `text-decoration` is text-decoration-line's -
+	// both only used here with a single caps/line keyword as their whole value, so the shorthand's
+	// declared value IS the sub-property's value (no splitting needed - same "else" branch as
+	// margin-left/padding-left below).
+	'font-variant-caps': ['font-variant'],
+	'text-decoration-line': ['text-decoration'],
+};
+
+/** @param {string} css @param {string} property @returns {{prop: string, decl: string}|null} */
+function findDeclaration(css, property) {
+	const escaped = property.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	const m = css.match(new RegExp(`(?:^|[{;\\s])${escaped}\\s*:\\s*([^;]+);`, 'i'));
+	return m ? { prop: property, decl: m[1].trim() } : null;
+}
+
+/**
+ * Best-effort: the exact value a treatment's own CSS declares for its probe's property, so
+ * APPLY-THEME.md's Verification can point at something real instead of guessing. Returns `null`
+ * when the property genuinely can't be found as written (e.g. it comes from an ambient/shorthand
+ * rule this function doesn't model) - the caller falls back to a plain visible description rather
+ * than inventing a number.
+ * @param {string} css @param {string} property
+ * @returns {{value: string, source: string}|null} `value` is what the probe's property should
+ *   compute to; `source` is the literal declaration in `css` it came from (may be a shorthand -
+ *   e.g. `border-inline-start: 2px solid var(--sl-color-text-accent)` - so a reader also sees the
+ *   color/style that `value` alone (just the width) wouldn't show).
+ */
+function extractDeclaredValue(css, property) {
+	const direct = findDeclaration(css, property);
+	if (direct) return { value: direct.decl, source: `${direct.prop}: ${direct.decl}` };
+	for (const shorthand of LOGICAL_SHORTHAND_FALLBACK[property] || []) {
+		const found = findDeclaration(css, shorthand);
+		if (!found) continue;
+		const source = `${found.prop}: ${found.decl}`;
+		if (property.endsWith('-width')) {
+			// Shorthand order is `width style color` in every rule this codebase writes - the first
+			// token is the width; the full declaration (kept in `source`) still shows style/color.
+			// `border(-side): none` sets border-style to `none`, which per the CSS spec computes the
+			// corresponding `border-*-width` to `0px` regardless of any width also written (there
+			// isn't one here) - special-cased since "none" itself is never a valid width token.
+			const width = found.decl.split(/\s+/)[0];
+			if (/^none$/i.test(width)) return { value: '0px', source };
+			if (/^(?:0|[\d.]+(?:px|rem|em))$/.test(width)) return { value: width, source };
+		} else {
+			return { value: found.decl, source }; // margin-left/padding-left: logical prop IS the value.
+		}
+	}
+	return null;
+}
+
+/**
+ * A changed treatment/select control described in terms of the real site, not this tool's own
+ * option labels: what's now visible, plus one concrete selector+property (from the SAME CSS
+ * `theme.css` emits, via `treatments.js`'s own `probe`) to check it with. Falls back to a plain,
+ * non-bare-label description when the declared value can't be extracted as text (still names the
+ * selector so there's something to look at).
+ * @param {import('./manifest.js').Control} control @param {any} value @param {string} label
+ * @returns {string}
+ */
+function describeTreatmentControl(control, value, label) {
+	const entry = treatments[control.id] && treatments[control.id][value];
+	if (!entry || !entry.probe) {
+		return `   - **${control.group} → ${control.label}**: now showing its "${label}" style on \`${control.target}\` -- see \`theme.css\`'s rule for that selector for the exact change.`;
+	}
+	const { selector, property } = entry.probe;
+	const found = extractDeclaredValue(entry.css, property);
+	const valueClause = found
+		? `should compute to \`${found.value}\` (\`theme.css\` declares \`${found.source}\` for this selector)`
+		: `should differ from Starlight's own default -- see \`theme.css\`'s rule for this selector for the exact declaration`;
+	return `   - **${control.group} → ${control.label}** (now "${label}"): on \`${selector}\`, the computed \`${property}\` ${valueClause}.`;
+}
+
+/** @param {{dark: Record<string,string>, light: Record<string,string>}} palette */
+function buildAccentLine(palette) {
+	const pairs = ['accent-low', 'accent', 'accent-high'].map(
+		(key) => `\`--sl-color-${key}\` = \`${palette.dark[key]}\` in dark mode / \`${palette.light[key]}\` in light mode`
+	);
+	return `   - **Colors → Accent color** (custom properties on \`:root\`, from the generated palette): ${pairs.join('; ')}.`;
+}
+
+/** @param {{dark: Record<string,string>, light: Record<string,string>}} palette */
+function buildGrayLine(palette) {
+	const pairs = ['gray-1', 'gray-2', 'gray-3', 'gray-4', 'gray-5', 'gray-6'].map(
+		(key) => `\`--sl-color-${key}\` = \`${palette.dark[key]}\` dark / \`${palette.light[key]}\` light`
+	);
+	return `   - **Colors → Gray tone** (custom properties on \`:root\`, from the generated palette): ${pairs.join('; ')} (light mode also sets \`--sl-color-gray-7\` = \`${palette.light['gray-7']}\`, with no dark-mode counterpart).`;
+}
+
 function buildVerification(state, base) {
-	const lines = ['## Verification', '', '1. Run `npx astro build`. It must succeed (including the Pagefind index step).', '2. Visual checks:'];
+	const lines = [
+		'## Verification',
+		'',
+		'1. Run `npx astro build`. It must succeed (including the Pagefind index step). If `astro preview` is already running against this repo, just refresh the browser tab afterward -- no restart needed. `astro dev` picks up the change on its own; no rebuild required at all.',
+		'2. Visual checks. These describe the target site itself, not this tool -- open any page that contains the listed element (most exist on nearly every content page; a few, such as the table of contents, pagination links, or the splash-page hero, only appear on pages that have one). For each line, find an element matching the given CSS selector and confirm it now matches the target value. The exact CSS property/value is whatever the exported `theme.css` sets for that same selector -- read it there, or in a browser console run `getComputedStyle(document.querySelector(SELECTOR))` to check a specific property without eyeballing it.',
+	];
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) {
-		lines.push(`   - **Header → Site title text:** the header now reads "${siteTitle}".`);
+		lines.push(`   - **Header → Site title text** (\`.site-title\`): the header now reads "${siteTitle}".`);
 	}
-	const changedControls = controls.filter((c) => !FIXED_BUILD_IDS.has(c.id) && changed(state, base, c.id));
-	if (changedControls.length === 0 && !siteTitle) {
+	// Accent/gray hue+chroma are jointly-generated (the palette algorithm needs both together, not
+	// token-by-token - see emit-css.js's PALETTE_IDS gate), and neither number alone is checkable on
+	// a real site ("hue 200" isn't a computed style). Round 2 fix: instead of a generic per-control
+	// "target value" line for each, check the exact hex custom properties `theme.css` sets FROM THE
+	// SAME generated palette (`computeGeneratedPalette`, shared with emit-css.js so the two can never
+	// disagree) - one line for accent (always, if accent changed), one for gray (only if gray
+	// changed, per its own check), each covering both dark and light mode.
+	const accentChanged = changed(state, base, 'color.accent.hue') || changed(state, base, 'color.accent.chroma');
+	const grayChanged = changed(state, base, 'color.gray.hue') || changed(state, base, 'color.gray.chroma');
+	const palette = accentChanged || grayChanged ? computeGeneratedPalette(state) : null;
+
+	const changedControls = controls.filter(
+		(c) => !FIXED_BUILD_IDS.has(c.id) && !PALETTE_LINE_IDS.has(c.id) && changed(state, base, c.id)
+	);
+	if (changedControls.length === 0 && !siteTitle && !accentChanged && !grayChanged) {
 		lines.push('   - No visual controls were changed from Starlight’s defaults; the site should look unchanged aside from the (empty) theme CSS being loaded without errors.');
 	} else {
 		for (const group of GROUPS) {
+			if (group === 'Colors' && palette) {
+				if (accentChanged) lines.push(buildAccentLine(palette));
+				if (grayChanged) lines.push(buildGrayLine(palette));
+			}
 			const inGroup = changedControls.filter((c) => c.group === group);
 			for (const c of inGroup) {
-				lines.push(`   - **${c.group} → ${c.label}:** should now read as "${formatControlValue(c, getValue(state, c.id))}".`);
+				const rawValue = getValue(state, c.id);
+				const value = formatControlValue(c, rawValue);
+				// Round 2 fix: a treatment/select control (e.g. "Active item style: Left bar") is
+				// described in terms of the real site - what's visible plus a concrete selector+property
+				// derived from the SAME CSS theme.css emits - never as a bare option label.
+				if (c.type === 'select' && treatments[c.id] && treatments[c.id][rawValue]) {
+					lines.push(describeTreatmentControl(c, rawValue, value));
+					continue;
+				}
+				const tokenVar = TOKEN_VAR_NAMES[c.id];
+				// A token-backed control (a single named custom property) can be checked exactly with
+				// `getComputedStyle` on the root element, with no need to guess which declaration in
+				// `theme.css` corresponds to it - more precise than the general selector-based note above.
+				const where = tokenVar
+					? `custom property \`${tokenVar}\` on \`:root\``
+					: `\`${c.target}\``;
+				lines.push(`   - **${c.group} → ${c.label}** (${where}): target value "${value}".`);
 			}
 		}
 	}

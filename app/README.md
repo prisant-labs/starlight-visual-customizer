@@ -115,8 +115,9 @@ Get-NetTCPConnection -LocalPort 4420 -State Listen | ForEach-Object { Stop-Proce
 
 | Command | What it covers | Needs a running server |
 |---|---|---|
-| `npm test` | 159 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state), color, sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
+| `npm test` | 180 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state), color, sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
 | `npm run test:e2e` | 9 browser suites, real mouse/keyboard throughout (see below) | Yes, the **production preview on 4420** by default |
+| `npm run test:roundtrip` | Applies an exported `theme.css` + `APPLY-THEME.md` to a real, freshly-scaffolded Starlight site and compares it against the live preview - proves the export/preview promise holds outside the studio, not just inside it (see `tests/roundtrip/README.md`) | Yes, the app's own production preview (`BASE_URL`, default 4420); it starts/stops its own fresh-site preview on 4431 |
 
 The 9 e2e suites, run one at a time in this order (`smoke && ui-round2 && treatments && targets && tiles && studio && shell && inspect && editors`):
 
