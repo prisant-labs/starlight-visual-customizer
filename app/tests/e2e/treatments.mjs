@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * @file Per-option verification: "each treatment option changes the computed style of its
- * target" (SPEC.md Definition of done, item 3). Drives the real built + previewed site with
+ * target". Drives the real built + previewed site with
  * playwright-core against the machine's already-installed chromium-1228 (same approach as
  * tests/e2e/smoke.mjs - no browser download).
  *
@@ -18,7 +18,7 @@
  * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server;
  * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer); SVC_CHROME_PATH.
  *
- * SPEC.md Round 2's six alignment controls are select-treatments like any other and so are picked
+ * The six alignment controls are select-treatments like any other and so are picked
  * up automatically by the loop below (no per-control code needed) - except three things a generic
  * loop can't infer: (1) `content.heroAlign` only has a target on the home page, not kitchen-sink;
  * (2) several alignment controls are deliberately gated behind Starlight's own 50rem/72rem
@@ -43,11 +43,11 @@ const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
 
-// F1 (SPEC-C phase 3): a direct top-level visit no longer mounts any panel at all (a small "Open in
+// A direct top-level visit no longer mounts any panel at all (a small "Open in
 // Studio" pill instead) - `?svc-overlay` is the escape hatch this suite (an engine test of the
-// panel's own CSS application, not F1's visitor-mode page) needs to keep exercising it.
+// panel's own CSS application, not the visitor-mode page) needs to keep exercising it.
 const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
-// F1 (SPEC-C phase 3): the plain URL, no overlay flag - used only for SCREENSHOTS after a state has
+// The plain URL, no overlay flag - used only for SCREENSHOTS after a state has
 // already been applied and persisted through the flagged page above. panel.js mirrors the live CSS
 // into localStorage['svc-css'] on every apply (persistPreviewCss) and the no-flash preload path
 // replays it here with zero JS - so this shows the exact same styling with no panel UI in the frame,
@@ -66,7 +66,7 @@ const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const COLOR_PROPS = new Set(['background-color', 'border-color', 'color']);
 
 /**
- * Workstream K (SPEC-C section 4): "every selector verified ... in dark and light" applies
+ * "Every selector verified ... in dark and light" applies
  * regardless of whether the probed property happens to be a color - these four selects' probed
  * properties (border-radius, background-color, font-style) aren't all in COLOR_PROPS, so they're
  * forced dual-theme explicitly rather than relying on the property-based heuristic above.
@@ -79,7 +79,7 @@ const FORCE_DUAL_THEME_IDS = new Set([
 ]);
 
 /**
- * Per-id overrides for the alignment controls added in SPEC.md Round 2: a wide-enough viewport to
+ * Per-id overrides for the alignment controls: a wide-enough viewport to
  * actually cross the header-grid (50rem)/TOC-and-content (72rem) breakpoints those options are
  * gated behind, plus a mobile-guard re-check proving mobile is untouched.
  */
