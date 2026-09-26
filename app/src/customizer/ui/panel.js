@@ -58,6 +58,7 @@ import { stampTocLevels, applySiteTitle } from './preview-approx.js';
 import { createExportDialog } from './export.js';
 import { createTargetHighlighter } from './target-highlight.js';
 import { setFrameEls, getPageDoc, getPageWin, getFrameEl, isStudio } from './page-doc.js';
+import { withBase, stripBase } from '../core/base-path.js';
 
 useMode(modeRgb); // registers the rgb color model with culori/fn's shared registry (idempotent)
 
@@ -261,7 +262,10 @@ function mountOpenInStudioPill(host) {
 	}
 	const pill = document.createElement('a');
 	pill.id = 'svc-open-in-studio-pill';
-	pill.href = `/studio/?page=${encodeURIComponent(location.pathname)}`;
+	// D3a: `?page=` stays base-free (studio.js's own convention - see its file header) even though
+	// `location.pathname` here is the browser's real, base-included path; `/studio/` itself needs
+	// `withBase()` since it's what the anchor actually navigates to.
+	pill.href = `${withBase('/studio/')}?page=${encodeURIComponent(stripBase(location.pathname))}`;
 	pill.setAttribute('aria-label', 'Open this page in Studio');
 	pill.innerHTML =
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.2 6.3L20.5 11.5l-6.3 2.2L12 20l-2.2-6.3L3.5 11.5l6.3-2.2z"/></svg><span>Open in Studio</span>';
@@ -744,7 +748,8 @@ function initCustomizer(host) {
 		dockToggleBtn.textContent = 'Dock';
 		dockToggleBtn.title = 'Open the docked studio layout with this page';
 		dockToggleBtn.addEventListener('click', () => {
-			location.href = `/studio/?page=${location.pathname}`;
+			// D3a: same base handling as the "Open in Studio" pill above - `?page=` stays base-free.
+			location.href = `${withBase('/studio/')}?page=${stripBase(location.pathname)}`;
 		});
 		headerActions.appendChild(dockToggleBtn);
 		var themeToggleBtn = document.createElement('button');
@@ -1262,9 +1267,9 @@ function initCustomizer(host) {
 			};
 			frameEl.addEventListener('load', onLoad);
 			try {
-				frameEl.contentWindow.location.href = '/specimen/';
+				frameEl.contentWindow.location.href = withBase('/specimen/');
 			} catch {
-				frameEl.src = '/specimen/';
+				frameEl.src = withBase('/specimen/');
 			}
 		}
 

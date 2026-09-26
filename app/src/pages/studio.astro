@@ -37,6 +37,11 @@
 // nothing to resolve against in THIS document - the panel lives here, not in the iframe.
 // @ts-ignore - Vite's `?raw` suffix has no ambient .d.ts in this project; the import IS valid.
 import starlightPropsCss from '../../node_modules/@astrojs/starlight/dist/style/props.css?raw';
+// D3a: the same base-path helper `ui/studio.js`/`ui/panel.js` use at runtime - this frontmatter runs
+// through the same Vite module graph (build AND dev), so `import.meta.env.BASE_URL` resolves here
+// exactly as it does client-side. Used below for the favicon link and both lanes' initial iframe
+// `src` (both hand-written literals, unlike Starlight's own Head/asset pipeline).
+import { withBase } from '../customizer/core/base-path.js';
 
 // The studio's own layout CSS is ALSO written as a plain string and inlined via `set:html` (below)
 // rather than a native Astro `<style>` block - this dev server's Astro/Vite pairing emits a second,
@@ -390,7 +395,7 @@ iframe[data-svc-preview] {
 		<!-- Unlike Starlight pages (which get this from Head.astro), this plain page has no favicon
 		     link by default - without one, the browser's automatic /favicon.ico probe 404s on every
 		     load (harmless, but noisy in the console). Same icon Starlight pages use. -->
-		<link rel="icon" href="/favicon.svg" />
+		<link rel="icon" href={withBase('/favicon.svg')} />
 		<!--
 			Mirrors node_modules/@astrojs/starlight/dist/components/ThemeProvider.astro's own
 			theme-detection exactly (stored value, else prefers-color-scheme) - see that file for the
@@ -432,7 +437,7 @@ iframe[data-svc-preview] {
 						<div class="svc-lane-head"><span>Light</span><span class="svc-lane-scale"></span></div>
 						<div class="svc-lane-wrap">
 							<div class="svc-lane-shell">
-								<iframe data-svc-preview data-svc-lane="light" src="/specimen/" title="Theme preview"></iframe>
+								<iframe data-svc-preview data-svc-lane="light" src={withBase('/specimen/')} title="Theme preview"></iframe>
 							</div>
 						</div>
 					</div>
@@ -440,7 +445,7 @@ iframe[data-svc-preview] {
 						<div class="svc-lane-head"><span>Dark</span><span class="svc-lane-scale"></span></div>
 						<div class="svc-lane-wrap">
 							<div class="svc-lane-shell">
-								<iframe data-svc-preview data-svc-lane="dark" src="/specimen/" title="Theme preview (dark lane)"></iframe>
+								<iframe data-svc-preview data-svc-lane="dark" src={withBase('/specimen/')} title="Theme preview (dark lane)"></iframe>
 							</div>
 						</div>
 					</div>

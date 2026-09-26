@@ -4,10 +4,16 @@ description: One instance of every themeable Starlight surface, compact enough t
 banner:
   content: Compact style guide page — everything themeable, nothing to scroll past.
 prev:
-  link: /guides/kitchen-sink/
+  # D3a: relative, not root-absolute - Starlight's own frontmatter `prev`/`next` override bypasses
+  # its usual base-path prefixing (confirmed by reading `applyPrevNextLinkConfig` in
+  # node_modules/@astrojs/starlight/dist/utils/navigation.js: a `config.link` override is used
+  # VERBATIM as `href`, never routed through `formatPath`/`pathWithBase` the way a plain
+  # sidebar-derived prev/next link is). A relative link resolves correctly from this page's own URL
+  # at any base, with no help needed.
+  link: ../guides/kitchen-sink/
   label: Kitchen Sink
 next:
-  link: /guides/getting-started/
+  link: ../guides/getting-started/
   label: Getting Started
 tableOfContents:
   minHeadingLevel: 2
@@ -20,7 +26,7 @@ import houston from '../../assets/houston.webp';
 
 ## Type
 
-This is **bold**, this is _italic_, this is a [link](/guides/kitchen-sink/), this is `inline code`, and this is <kbd>Ctrl</kbd> + <kbd>K</kbd>.
+This is **bold**, this is _italic_, this is a [link](../guides/kitchen-sink/), this is `inline code`, and this is <kbd>Ctrl</kbd> + <kbd>K</kbd>.
 
 - Colors
   - Accent hue, chroma
@@ -114,8 +120,8 @@ It stays, loaded via `customCss`.
 	<Card title="Themeable" icon="puzzle">Every surface.</Card>
 </CardGrid>
 
-<LinkCard title="Kitchen Sink" description="The exhaustive version of this page." href="/guides/kitchen-sink/" />
+<LinkCard title="Kitchen Sink" description="The exhaustive version of this page." href="../guides/kitchen-sink/" />
 
-<LinkButton href="/guides/getting-started/" variant="primary" icon="right-arrow">Start</LinkButton> <LinkButton href="/resources/faq/" variant="secondary">FAQ</LinkButton> <LinkButton href="https://github.com/prisant-labs/astro-starlight-visual-customizer" variant="minimal" icon="github">GitHub</LinkButton>
+<LinkButton href="../guides/getting-started/" variant="primary" icon="right-arrow">Start</LinkButton> <LinkButton href="../resources/faq/" variant="secondary">FAQ</LinkButton> <LinkButton href="https://github.com/prisant-labs/astro-starlight-visual-customizer" variant="minimal" icon="github">GitHub</LinkButton>
 
 <Badge text="Default" variant="default" size="small" /> <Badge text="Note" variant="note" size="small" /> <Badge text="Tip" variant="tip" size="small" /> <Badge text="Caution" variant="caution" size="small" /> <Badge text="Danger" variant="danger" size="small" /> <Badge text="Success" variant="success" size="small" /> <Icon name="star" /> <Image src={houston} alt="Houston, the Starlight mascot" width={60} loading="eager" />

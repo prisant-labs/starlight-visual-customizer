@@ -6,11 +6,13 @@ banner:
     Starlight Customizer is in active development. Control ids listed in the reference section may still shift before v1.
 lastUpdated: 2026-09-01
 prev:
+  # D3a: relative, not root-absolute - see specimen.mdx's comment (Starlight's frontmatter prev/next
+  # override bypasses its usual base-path prefixing).
   label: Back to the Kitchen Sink
-  link: /guides/kitchen-sink/
+  link: ../../guides/kitchen-sink/
 next:
   label: Emitter Reference
-  link: /reference/emit-css/
+  link: ../../reference/emit-css/
 ---
 
 ## 0.3.0 — Sidebar IA editor

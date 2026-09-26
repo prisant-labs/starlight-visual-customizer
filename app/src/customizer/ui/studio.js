@@ -14,8 +14,14 @@
  */
 
 import { STARLIGHT_VERSION } from '../core/version.js';
+import { withBase, stripBase } from '../core/base-path.js';
 
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
+// D3a: every path this file tracks internally (DEFAULT_PAGE_PATH, STUDIO_PAGES[].path, `currentPath`,
+// the `?page=` query value, `sessionStorage['svc-ui'].studioPage`) stays BASE-FREE, on purpose - see
+// `core/base-path.js`'s file header. `withBase()`/`stripBase()` convert at exactly two boundaries
+// below: setting a frame's `src`/`location.href` (needs the base), and reading a frame's real
+// `location.pathname` back (needs the base stripped off before it's compared/stored).
 const DEFAULT_PAGE_PATH = '/specimen/';
 
 /** SPEC-C S6, consolidated (phase 3 follow-up): four tabs, not B's original seven - Style guide,
@@ -448,15 +454,16 @@ export function initStudioShell() {
 	}
 
 	// ---- page navigation (both lanes together, S9) ----
+	/** @param {string} path Base-free (this module's own convention). */
 	function navigateAll(path) {
 		currentPath = path;
 		for (const laneKey of ['light', 'dark']) {
 			const frame = frameEls[laneKey];
 			if (laneKey === 'dark' && mode !== 'split') continue;
 			try {
-				if (normalizePath(frame.contentWindow.location.pathname) !== normalizePath(path)) frame.contentWindow.location.href = path;
+				if (normalizePath(stripBase(frame.contentWindow.location.pathname)) !== normalizePath(path)) frame.contentWindow.location.href = withBase(path);
 			} catch {
-				frame.src = path;
+				frame.src = withBase(path);
 			}
 		}
 		markCurrentPage(path);
@@ -464,6 +471,7 @@ export function initStudioShell() {
 		saveUiState({ studioPage: path });
 	}
 
+	/** @param {string} path Base-free - callers below always strip the base before calling this. */
 	function onLaneNavigated(laneKey, path) {
 		if (laneKey === 'light') {
 			currentPath = path;
@@ -476,8 +484,8 @@ export function initStudioShell() {
 			const otherKey = laneKey === 'light' ? 'dark' : 'light';
 			const otherFrame = frameEls[otherKey];
 			try {
-				if (normalizePath(otherFrame.contentWindow.location.pathname) !== normalizePath(path)) {
-					otherFrame.contentWindow.location.href = path;
+				if (normalizePath(stripBase(otherFrame.contentWindow.location.pathname)) !== normalizePath(path)) {
+					otherFrame.contentWindow.location.href = withBase(path);
 				}
 			} catch {
 				/* cross-origin/inaccessible momentarily - next explicit navigateAll() call recovers */
@@ -491,7 +499,9 @@ export function initStudioShell() {
 		frameEls[laneKey].addEventListener('load', () => {
 			let path = null;
 			try {
-				path = frameEls[laneKey].contentWindow.location.pathname;
+				// D3a: strip the base immediately on read, so every downstream consumer of `path`
+				// (onLaneNavigated, currentPath, sessionStorage, the `?page=` URL) stays base-free.
+				path = stripBase(frameEls[laneKey].contentWindow.location.pathname);
 			} catch {
 				/* cross-origin or mid-navigation */
 			}
@@ -604,7 +614,7 @@ export function initStudioShell() {
 		}
 		otherLabel.hidden = !!matched;
 		if (!matched) otherLabel.textContent = `Other: ${path}`;
-		newTabLink.href = `${path}?view`;
+		newTabLink.href = `${withBase(path)}?view`;
 	}
 
 	// ===============================================================================================
@@ -674,8 +684,11 @@ export function initStudioShell() {
 	markCurrentPage(currentPath);
 	updateUrl(currentPath);
 	updateBreadcrumb();
-	if (normalizePath(frameEls.light.getAttribute('src') || '') !== normalizePath(currentPath)) {
-		frameEls.light.src = currentPath;
+	// D3a: studio.astro's own initial `src="..."` markup is already base-included (it renders through
+	// this same `withBase()` at Astro build/render time) - strip it back off before comparing against
+	// `currentPath` (base-free), and re-add it if a different page needs loading.
+	if (normalizePath(stripBase(frameEls.light.getAttribute('src') || '')) !== normalizePath(currentPath)) {
+		frameEls.light.src = withBase(currentPath);
 	}
 	applyMode();
 	refreshStatusBar();
