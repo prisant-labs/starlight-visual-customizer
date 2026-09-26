@@ -564,7 +564,7 @@ export function initStudioShell() {
 
 	const deviceSeg = h('div', { class: 'svc-seg', role: 'group', 'aria-label': 'Device width' });
 	const deviceButtons = new Map();
-	// F2 (SPEC-C phase 3, point 6): Wide/Ultra-wide get their own distinct silhouettes; Laptop 1280
+	// Wide/Ultra-wide get their own distinct silhouettes; Laptop 1280
 	// and Desktop 1440 share `desktop` (the title tooltip's own width already tells them apart).
 	const deviceIcons = { fit: 'fit', '1280': 'desktop', '1440': 'desktop', '1920': 'wide', '2560': 'ultrawide', tablet: 'tablet', mobile: 'mobile' };
 	for (const device of STUDIO_DEVICES) {
@@ -578,7 +578,7 @@ export function initStudioShell() {
 	}
 	toolbarRight.appendChild(deviceSeg);
 
-	// ---- F2: zoom control (SPEC-C phase 3, point 6) - minus, current percentage, plus, Fit. ----
+	// ---- Zoom control - minus, current percentage, plus, Fit. ----
 	const zoomSeg = h('div', { class: 'svc-seg svc-zoom-seg', role: 'group', 'aria-label': 'Zoom' });
 	const zoomMinusBtn = h('button', { type: 'button', class: 'svc-seg-btn', 'aria-label': 'Zoom out' }, '−');
 	const zoomValueEl = h('span', { class: 'svc-zoom-value' });
@@ -593,9 +593,9 @@ export function initStudioShell() {
 	zoomSeg.appendChild(zoomFitBtn);
 	toolbarRight.appendChild(zoomSeg);
 
-	// F1 (SPEC-C phase 3, point 1): the overlay panel is retired from the studio's own UI - "the two
-	// top-right icons open a different UX" was exactly the maintainer's complaint, and "Open in new
-	// tab" alone now covers "see this page outside the studio" (F1's visitor-mode page, complete with
+	// The overlay panel is retired from the studio's own UI - the two
+	// top-right icons used to open a different UX, and "Open in new
+	// tab" alone now covers "see this page outside the studio" (the visitor-mode page, complete with
 	// its own "Open in Studio" pill to come back). The overlay stays reachable only behind the
 	// `?svc-overlay` URL flag (panel.js's overlay-mount gate), used solely by the engine test suites.
 	const newTabLink = h('a', { class: 'svc-icon-link', target: '_blank', rel: 'noopener', title: 'Open in new tab', 'aria-label': 'Open in new tab' }, icon('newtab', 16));
