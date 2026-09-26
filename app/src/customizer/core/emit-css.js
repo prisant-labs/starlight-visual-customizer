@@ -69,13 +69,32 @@ function isExplicit(state, id) {
 // from these same arrays, not hand-duplicated.
 // ---------------------------------------------------------------------------------------------
 
-const PALETTE_IDS = [
+export const PALETTE_IDS = [
 	'color.accent.hue',
 	'color.accent.chroma',
 	'color.gray.hue',
 	'color.gray.chroma',
 	'color.contrastFloor',
 ];
+
+/**
+ * The exact palette `buildRootTokens`/`buildLightTokens` emit into `theme.css`, or `null` when
+ * none of `PALETTE_IDS` differs from its manifest default (nothing to generate - Starlight's own
+ * HSL defaults apply). Exported as the SINGLE source of truth for this computation - `emit-apply.js`
+ * calls this too (round 2 fix: APPLY-THEME.md's Verification checks against these same hex values,
+ * computed the same way, so they can never silently disagree with what `theme.css` actually sets).
+ * @param {import('./state.js').ThemeState} state
+ * @returns {{dark: Record<string,string>, light: Record<string,string>} | null}
+ */
+export function computeGeneratedPalette(state) {
+	if (!PALETTE_IDS.some((id) => !isDefault(state, id))) return null;
+	const contrastFloor = getValue(state, 'color.contrastFloor');
+	return getPalettes({
+		accent: { hue: getValue(state, 'color.accent.hue'), chroma: getValue(state, 'color.accent.chroma') },
+		gray: { hue: getValue(state, 'color.gray.hue'), chroma: getValue(state, 'color.gray.chroma') },
+		minimumContrast: contrastFloor === 'aaa' ? 7 : 4.5,
+	});
+}
 const HUE_IDS = ['color.hue.orange', 'color.hue.green', 'color.hue.blue', 'color.hue.purple', 'color.hue.red'];
 const HUE_VAR_NAMES = {
 	'color.hue.orange': '--sl-hue-orange',
@@ -302,16 +321,8 @@ function fontFamilyValue(fontId) {
 function buildRootTokens(state) {
 	/** @type {string[]} */
 	const lines = [];
-	let palette = null;
-
-	const paletteChanged = PALETTE_IDS.some((id) => !isDefault(state, id));
-	if (paletteChanged) {
-		const contrastFloor = getValue(state, 'color.contrastFloor');
-		palette = getPalettes({
-			accent: { hue: getValue(state, 'color.accent.hue'), chroma: getValue(state, 'color.accent.chroma') },
-			gray: { hue: getValue(state, 'color.gray.hue'), chroma: getValue(state, 'color.gray.chroma') },
-			minimumContrast: contrastFloor === 'aaa' ? 7 : 4.5,
-		});
+	const palette = computeGeneratedPalette(state);
+	if (palette) {
 		const d = palette.dark;
 		lines.push(
 			`--sl-color-white: ${d.white};`,

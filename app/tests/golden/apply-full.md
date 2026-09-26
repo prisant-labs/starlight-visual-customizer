@@ -31,7 +31,7 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
      @import '@fontsource-variable/fira-code';
      ```
    - Nothing else to edit for fonts; re-running `npm i` on an already-installed package is a no-op.
-   - **If a package fails to install** (no network access, or it was renamed/removed on the registry), the site still works: an `@import` that fails to resolve is simply dropped by the browser, and every font-family declaration this theme emits already ends in a fallback stack (e.g. a system serif, sans, or monospace font). The page keeps rendering with that fallback instead of the chosen web font -- less distinctive, not broken. To retry, confirm the exact package name first with `npm view <pkg> version`.
+   - **If a package fails to install** (no network access, or it was renamed/removed on the registry), `npx astro build` will FAIL, not silently degrade: Vite resolves every `@import` at build time, so a missing package produces an error like `[vite] Unable to resolve @import "@fontsource-variable/<pkg>" from .../src/styles` (often followed by a `[postcss] ENOENT`). To recover, remove that package’s `@import` line from `src/styles/theme.css` (the one you just copied in) and rebuild -- every font-family declaration this theme emits already ends in a fallback stack (e.g. a system serif, sans, or monospace font), so the site still works once that line is gone, just with that fallback instead of the chosen web font. Confirm the exact package name first with `npm view <pkg> version` before retrying the install.
 
 3. **Update Starlight config options.** In the same `starlight({ ... })` options object, set (each of these differs from Starlight’s default, so only the ones listed are added -- an already-correct key is left as-is, making this idempotent):
    - `tableOfContents: { minHeadingLevel: 1, maxHeadingLevel: 3 }`
@@ -84,9 +84,8 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
 
 1. Run `npx astro build`. It must succeed (including the Pagefind index step). If `astro preview` is already running against this repo, just refresh the browser tab afterward -- no restart needed. `astro dev` picks up the change on its own; no rebuild required at all.
 2. Visual checks. These describe the target site itself, not this tool -- open any page that contains the listed element (most exist on nearly every content page; a few, such as the table of contents, pagination links, or the splash-page hero, only appear on pages that have one). For each line, find an element matching the given CSS selector and confirm it now matches the target value. The exact CSS property/value is whatever the exported `theme.css` sets for that same selector -- read it there, or in a browser console run `getComputedStyle(document.querySelector(SELECTOR))` to check a specific property without eyeballing it.
-   - **Colors → Accent hue** (`.sidebar-content a[aria-current='page'], .sl-markdown-content a`): target value "200".
-   - **Colors → Accent chroma** (`.sidebar-content a[aria-current='page'], .sl-markdown-content a`): target value "0.2".
-   - **Sidebar → Active item style** (`.sidebar-content a[aria-current='page']`): target value "Left bar".
+   - **Colors → Accent color** (custom properties on `:root`, from the generated palette): `--sl-color-accent-low` = `#002a2c` in dark mode / `#b1e1e4` in light mode; `--sl-color-accent` = `#00797e` in dark mode / `#007479` in light mode; `--sl-color-accent-high` = `#94d6da` in dark mode / `#003a3d` in light mode.
+   - **Sidebar → Active item style** (now "Left bar"): on `.sidebar-content a[aria-current='page']`, the computed `border-left-width` should compute to `2px` (`theme.css` declares `border-inline-start: 2px solid var(--sl-color-text-accent)` for this selector).
    - The sidebar navigation matches the new structure (labels, order, groups, badges).
 
 ## Rollback
