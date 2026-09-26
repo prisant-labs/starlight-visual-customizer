@@ -621,9 +621,10 @@ async function main() {
 
 	// =============================================================================================
 	// 10. F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the already-selected
-	//     rail item used to collapse the panel column - that's now a no-op (Builder A, fix/structure-
-	//     undo-rail). Collapsing happens only via the panel column's own header button or '\'; any
-	//     rail item click, the button again, or '\' again reopens/toggles it; state persists.
+	//     rail item used to collapse the panel column - it now just re-selects the group like any
+	//     other rail click instead (Builder A, fix/structure-undo-rail), so the panel column stays
+	//     open. Collapsing happens only via the panel column's own header button or '\'; any rail
+	//     item click, the button again, or '\' again reopens/toggles it; state persists.
 	// =============================================================================================
 	{
 		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Presets"]'));
