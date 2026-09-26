@@ -484,7 +484,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4): a real click on a card's header collapses it (summary shows,
+	// A real click on a card's header collapses it (summary shows,
 	// body hides), Enter/Space (keyboard) does the same, and Expand all / Collapse all act on the
 	// ACTIVE group's own cards/sections with Collapse all's two-stage behavior (cards first, sections
 	// on a second press).
@@ -590,9 +590,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P2): every range input's thumb is vertically centered on its
-	// track (point 3) - a pixel check, not a CSS-property assertion, since the maintainer's own
-	// complaint was about the RENDERED result. `layout.contentWidth` is a plain (non-color-assist)
+	// Every range input's thumb is vertically centered on its
+	// track - a pixel check, not a CSS-property assertion, since what matters is the RENDERED
+	// result. `layout.contentWidth` is a plain (non-color-assist)
 	// slider, so its track uses the fixed --ui-line fallback, not a live gradient.
 	// =============================================================================================
 	{
@@ -650,12 +650,12 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// S3/A4: contrast walk over every visible text node in the host chrome + panel shadow root,
+	// Contrast walk over every visible text node in the host chrome + panel shadow root,
 	// excluding tile sample previews and the frames. Default floor 7:1 ("labels, group titles, rail
 	// labels, button text and values"); an element resolving to a MUTED text color (the tokens this
 	// build deliberately reserves for help/eyebrow/caption text, per styles.js's design) or an
-	// ACCENT background (white text on the accent fill - buttons and the selected rail item, SPEC-C's
-	// explicit exception) is held to 4.5:1 instead. Coordinator review (P2): run this with the export
+	// ACCENT background (white text on the accent fill - buttons and the selected rail item, an
+	// explicit exception) is held to 4.5:1 instead. Run this with the export
 	// dialog open and again with the contrast dialog open, not just the plain panel - a dialog's
 	// content is otherwise never walked at all.
 	// =============================================================================================
@@ -754,16 +754,16 @@ async function main() {
 
 	{
 		const baseline = await runContrastWalk();
-		console.log(`A4 contrast walk (panel): ${baseline.total} text nodes checked; minimum ratio ${baseline.minRatio.toFixed(2)}:1 (${JSON.stringify(baseline.minRow)})`);
+		console.log(`contrast walk (panel): ${baseline.total} text nodes checked; minimum ratio ${baseline.minRatio.toFixed(2)}:1 (${JSON.stringify(baseline.minRow)})`);
 		check('every chrome text node meets its contrast floor (panel view)', baseline.failCount === 0, JSON.stringify(baseline.rows));
 
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openExport());
 		await page.waitForTimeout(200);
 		const exportWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (export dialog open): ${exportWalk.total} text nodes checked; minimum ratio ${exportWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(exportWalk.minRow)})`);
+		console.log(`contrast walk (export dialog open): ${exportWalk.total} text nodes checked; minimum ratio ${exportWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(exportWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (export dialog open)', exportWalk.failCount === 0, JSON.stringify(exportWalk.rows));
 
-		// Items 2/3 (coordinator review): the export dialog's own buttons - including the new "Download
+		// The export dialog's own buttons - including "Download
 		// all (.zip)" and "Screenshot (PNG)" (Visible area/Full page) - never got a hit-test pass before
 		// (the panel-wide audit above runs with the dialog closed). Scoped to the dialog itself, same
 		// shape as the color-popover pass below.
@@ -806,7 +806,7 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openContrastDialog());
 		await page.waitForTimeout(200);
 		const contrastWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (contrast dialog open): ${contrastWalk.total} text nodes checked; minimum ratio ${contrastWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(contrastWalk.minRow)})`);
+		console.log(`contrast walk (contrast dialog open): ${contrastWalk.total} text nodes checked; minimum ratio ${contrastWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(contrastWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (contrast dialog open)', contrastWalk.failCount === 0, JSON.stringify(contrastWalk.rows));
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
@@ -817,12 +817,12 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors', { scroll: false }));
 		await page.waitForTimeout(200);
 		const colorsWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (Colors group, hex fields): ${colorsWalk.total} text nodes checked; minimum ratio ${colorsWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(colorsWalk.minRow)})`);
+		console.log(`contrast walk (Colors group, hex fields): ${colorsWalk.total} text nodes checked; minimum ratio ${colorsWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(colorsWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (Colors group)', colorsWalk.failCount === 0, JSON.stringify(colorsWalk.rows));
 
 		// =========================================================================================
 		// SPEC-C phase 3, workstream P (P3): the color popover, open - both the hit-test audit and the
-		// A4 contrast walk, extended to cover it. The popover legitimately sits on top of (occludes)
+		// contrast walk, extended to cover it. The popover legitimately sits on top of (occludes)
 		// whatever card is beneath it, so the hit-test pass here is SCOPED to the popover's own
 		// subtree, not the whole panel (the panel-wide `hitTestAuditSnapshot` would wrongly flag an
 		// occluded card behind it as a failure).
@@ -858,7 +858,7 @@ async function main() {
 		check('every interactive element inside the open color popover hit-tests to itself', popoverHitTest.total > 0 && popoverHitTest.failed === 0, JSON.stringify(popoverHitTest));
 
 		const popoverWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (color popover open): ${popoverWalk.total} text nodes checked; minimum ratio ${popoverWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(popoverWalk.minRow)})`);
+		console.log(`contrast walk (color popover open): ${popoverWalk.total} text nodes checked; minimum ratio ${popoverWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(popoverWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (color popover open)', popoverWalk.failCount === 0, JSON.stringify(popoverWalk.rows));
 
 		await page.keyboard.press('Escape');
@@ -869,7 +869,7 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
 		await page.waitForTimeout(200);
 		const structureWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (Structure group, tree + form): ${structureWalk.total} text nodes checked; minimum ratio ${structureWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(structureWalk.minRow)})`);
+		console.log(`contrast walk (Structure group, tree + form): ${structureWalk.total} text nodes checked; minimum ratio ${structureWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(structureWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (Structure group)', structureWalk.failCount === 0, JSON.stringify(structureWalk.rows));
 
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
@@ -1492,7 +1492,7 @@ async function main() {
 		check('every visible interactive element still hit-tests to itself with Inspect active (chip + Elements list open)', inspectHitTest.failed === 0, JSON.stringify(inspectHitTest.failures.slice(0, 20)));
 
 		const inspectContrast = await runContrastWalk();
-		console.log(`A4 contrast walk (Inspect active): ${inspectContrast.total} text nodes checked; minimum ratio ${inspectContrast.minRatio.toFixed(2)}:1 (${JSON.stringify(inspectContrast.minRow)})`);
+		console.log(`contrast walk (Inspect active): ${inspectContrast.total} text nodes checked; minimum ratio ${inspectContrast.minRatio.toFixed(2)}:1 (${JSON.stringify(inspectContrast.minRow)})`);
 		check('every chrome text node meets its contrast floor (Inspect active)', inspectContrast.failCount === 0, JSON.stringify(inspectContrast.rows));
 
 		await page.keyboard.press('Escape');
