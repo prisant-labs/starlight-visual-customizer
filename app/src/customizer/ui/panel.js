@@ -902,14 +902,12 @@ function initCustomizer(host) {
 		shadow.appendChild(rail);
 
 		// =============================================================================================
-		// SPEC-C phase 3, workstream F (F3) - panel-collapse state, marked block. Originally: "Clicking
-		// the already-selected rail item collapses the panel column"; the maintainer later removed that
-		// specific affordance (see the rail click handler below) - collapsing now happens ONLY via the
-		// panel column's header collapse button and the `\` key, both still wired through
-		// `setPanelCollapsed`/`togglePanelCollapse` below. `styles.js` (workstream P's file) is never
-		// touched for this - both the host's own width and the panel column's visibility are set here
-		// as plain inline styles/properties, which win over any external stylesheet rule by specificity
-		// alone.
+		// Panel-collapse state. An earlier build let clicking the already-selected rail item collapse
+		// the panel column; that affordance was removed (see the rail click handler below) - collapsing
+		// now happens ONLY via the panel column's header collapse button and the `\` key, both still
+		// wired through `setPanelCollapsed`/`togglePanelCollapse` below. `styles.js` is never touched
+		// for this - both the host's own width and the panel column's visibility are set here as plain
+		// inline styles/properties, which win over any external stylesheet rule by specificity alone.
 		// =============================================================================================
 		let panelCollapsed = uiState.panelCollapsed === true;
 		/** @param {boolean} next */
@@ -929,7 +927,7 @@ function initCustomizer(host) {
 				? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
 				: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 		}
-		// A small inline `<style>` (never styles.js - P's file) for the collapse button itself, reusing
+		// A small inline `<style>` (never styles.js) for the collapse button itself, reusing
 		// the panel's own already contrast-verified tokens.
 		const collapseBtnStyle = document.createElement('style');
 		collapseBtnStyle.textContent = `.svc-panel-collapse-btn { border: 1px solid var(--ui-line, #dde1e8); background: var(--ui-panel, #fff); color: var(--ui-text, #343b4a); border-radius: 6px; width: 1.75rem; height: 1.75rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; } .svc-panel-collapse-btn:hover { background: var(--ui-bg, #f5f6f8); } .svc-panel-collapse-btn:focus-visible { outline: 2px solid var(--ui-accent, #4453c9); outline-offset: 1px; }`;
@@ -937,8 +935,8 @@ function initCustomizer(host) {
 		const collapseBtn = document.createElement('button');
 		collapseBtn.type = 'button';
 		collapseBtn.className = 'svc-panel-collapse-btn';
-		// ===== end F3 marked block (declarations - the button is wired into the filter row below,
-		// and setPanelCollapsed(panelCollapsed) is applied once buildBody has run, further down) =====
+		// ===== end panel-collapse declarations - the button is wired into the filter row below,
+		// and setPanelCollapsed(panelCollapsed) is applied once buildBody has run, further down =====
 
 		/** @type {Map<string, HTMLButtonElement>} */
 		const railItems = new Map();
@@ -967,9 +965,9 @@ function initCustomizer(host) {
 			btn.appendChild(dot);
 			btn.addEventListener('click', () => {
 				// =====================================================================================
-				// SPEC-C phase 3, workstream F (F3), reversed by the maintainer: clicking the ALREADY-
-				// selected rail item used to collapse the panel column - that affordance is removed
-				// (a re-click is now a plain no-op-on-collapse: it keeps re-selecting the same group,
+				// Clicking the ALREADY-selected rail item used to collapse the panel column - that
+				// affordance is removed (a re-click is now a plain no-op-on-collapse: it keeps
+				// re-selecting the same group,
 				// same as any other rail click, so it still re-scrolls to the group's target exactly
 				// the way a normal selection already does - no new scroll behavior is added here).
 				// Collapsing is still reachable via the panel-header collapse button and the `\` key
@@ -1024,8 +1022,8 @@ function initCustomizer(host) {
 		filterInput.value = typeof uiState.filterText === 'string' ? uiState.filterText : '';
 		filterInput.addEventListener('input', () => applyPanelFilter(filterInput.value));
 		filterRow.appendChild(filterInput);
-		// ===== F3 marked block: the collapse button sits beside the filter (not in groupHeader, which
-		// workstream P's own P4 work adds Expand/Collapse-all buttons to) - inline layout styles here,
+		// ===== The collapse button sits beside the filter (not in groupHeader, which gets its own
+		// Expand/Collapse-all buttons below) - inline layout styles here,
 		// never styles.js, since .svc-panel-filter-row's own CSS (that file) only ever laid out one
 		// child (the filter input) before this. =====
 		filterRow.style.display = 'flex';
@@ -1035,7 +1033,7 @@ function initCustomizer(host) {
 		filterInput.style.minWidth = '0';
 		collapseBtn.addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
 		filterRow.appendChild(collapseBtn);
-		// ===== end F3 marked block =====
+		// ===== end collapse-button wiring =====
 		panelCol.appendChild(filterRow);
 
 		const groupHeader = document.createElement('div');
@@ -1054,7 +1052,7 @@ function initCustomizer(host) {
 			onResetGroup(activeGroupName);
 			refreshStudioChrome();
 		});
-		// SPEC-C phase 3, workstream P (P4) - marked block: Expand all / Collapse all, beside the
+		// Expand all / Collapse all, beside the
 		// existing reset-group button. Button click handlers are wired further below, once
 		// `groupPanelsByName` exists - see that block for the two-stage Collapse all logic.
 		const groupHeaderActions = document.createElement('div');
@@ -1084,7 +1082,7 @@ function initCustomizer(host) {
 		/** @type {Map<string, {root: HTMLElement}>} */
 		const groupPanelsByName = new Map();
 
-		// SPEC-C phase 3, workstream P (P4) - marked block, continued: Expand all / Collapse all act
+		// Expand all / Collapse all act
 		// on the ACTIVE group's own panel by re-clicking its real section/card toggle buttons (script
 		// `.click()` on our own already-built DOM is ordinary production code, not a test - it fires
 		// through the exact same onSectionToggle/onCardToggle persistence path a user's own click
@@ -1150,9 +1148,9 @@ function initCustomizer(host) {
 			}
 
 			const navPanel = createStudioGroupPanel('Navigation', [], state, controlHandlers, { title: 'Structure (advanced)' });
-			// SPEC-C E3: no separate note here (unlike the overlay branch above) - the restyled Codex-
-			// shaped tree (`iaEditor.root`, studio mode) supplies its own note at the top ("Changes the
-			// sidebar structure...", E3's exact wording), so a second one here would just duplicate it.
+			// No separate note here (unlike the overlay branch above) - the restyled
+			// studio tree (`iaEditor.root`, studio mode) supplies its own note at the top ("Changes the
+			// sidebar structure..."), so a second one here would just duplicate it.
 			navPanel.body.appendChild(iaEditor.root);
 			panelSections.appendChild(navPanel.root);
 			groupPanelsByName.set('Navigation', navPanel);
@@ -1160,9 +1158,9 @@ function initCustomizer(host) {
 			updatePanelVisibility();
 		};
 
-		/** SPEC-C S5: filter empty -> only the active group's panel shows (single eyebrow/title/desc
-		 * above); filter non-empty -> every group searches, matches show under their own group heading
-		 * (S5: "shows matches under group headings"), the single group header above is hidden. */
+		/** Filter empty -> only the active group's panel shows (single eyebrow/title/desc
+		 * above); filter non-empty -> every group searches, matches show under their own group
+		 * heading, the single group header above is hidden. */
 		function updatePanelVisibility() {
 			const filtering = filterInput.value.trim() !== '';
 			panelSections.dataset.filtering = String(filtering);
@@ -1171,7 +1169,7 @@ function initCustomizer(host) {
 				for (const [name, panel] of groupPanelsByName) panel.root.hidden = name !== activeGroupName;
 			} else {
 				// Presets and Navigation have no filterable control rows - applyControlFilter (below)
-				// deliberately skips them (same as B's overlay accordion always did), so without this
+				// deliberately skips them (same as the overlay accordion always did), so without this
 				// they'd keep whatever `hidden` state they had from BEFORE filtering started (e.g. still
 				// visible if they were the active group) instead of dropping out of the search results.
 				groupPanelsByName.get('Presets').root.hidden = true;
@@ -1196,7 +1194,7 @@ function initCustomizer(host) {
 			eyebrow.textContent = (RAIL_CATEGORY_EYEBROW[groupName] ?? groupName).toUpperCase();
 			groupTitleEl.textContent = displayTitle;
 			groupDescEl.textContent = GROUP_DESCRIPTIONS[groupName] ?? '';
-			// P4: Presets has no controls of its own to reset - the button was always disabled there,
+			// Presets has no controls of its own to reset - the button was always disabled there,
 			// but showing a permanently-disabled control is worse than not showing one at all.
 			resetGroupBtn.hidden = groupName === 'Presets';
 			const hasOverride = groupHasOverride(groupName, state);
@@ -1206,7 +1204,7 @@ function initCustomizer(host) {
 			resetGroupBtn.querySelector('span:last-child').textContent = 'Reset';
 			resetGroupBtn.title = `Reset ${displayTitle} to Starlight defaults`;
 			resetGroupBtn.setAttribute('aria-label', `Reset ${displayTitle} to Starlight defaults`);
-			// SPEC-C phase 3, workstream P (P4): Presets and Navigation have neither sections nor cards
+			// Presets and Navigation have neither sections nor cards
 			// of their own (a preset gallery / the Structure tree, respectively) for these to act on.
 			const noSectionsOrCards = groupName === 'Presets' || groupName === 'Navigation';
 			expandAllBtn.hidden = noSectionsOrCards;
