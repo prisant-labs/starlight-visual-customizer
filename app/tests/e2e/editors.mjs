@@ -629,6 +629,332 @@ async function main() {
 	}
 
 	// =============================================================================================
+	// Coordinator bug fix: Structure edits must be their own undo step. Exact repro: apply a preset
+	// (real click on the preset card), reorder in Structure (real pointer drag), Undo once - before
+	// the fix, the reorder was never recorded at all, so Undo silently undid the PRESET instead and
+	// jumped straight to 0 changes. Fixed: Undo once keeps the preset and restores the order; Undo
+	// again reaches 0; Redo twice restores both; a following edit builds on the RESTORED structure.
+	// =============================================================================================
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({})); // clean slate: values, preset AND ia all back to default
+		await page.waitForTimeout(150);
+
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
+		await page.waitForTimeout(150);
+		const editorialCard = await shadowQueryByText(page, '.svc-preset-card', 'Editorial Serif');
+		await realClick(page, editorialCard);
+		await page.waitForTimeout(200);
+		const countAfterPreset = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		check('applying the Editorial Serif preset changes several controls', countAfterPreset > 0, String(countAfterPreset));
+
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		const rowAtIdx = async (i) => (await page.evaluateHandle((idx) => document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')[idx], i)).asElement();
+		const rowLabels = () => page.evaluate(() => Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')).map((r) => r.querySelector('.svc-structure-label').textContent));
+		const labelsBeforeDrag = await rowLabels();
+		const dragSrc = await rowAtIdx(1);
+		const dragDst = await rowAtIdx(0);
+		const finishReproDrag = await realDragTo(page, dragSrc, dragDst, { toFraction: 0.1, pauseMs: 150 });
+		await finishReproDrag();
+		await page.waitForTimeout(250);
+		const labelsAfterDrag = await rowLabels();
+		check('the drag actually reordered the top-level tree', labelsAfterDrag[0] === labelsBeforeDrag[1] && labelsAfterDrag[1] === labelsBeforeDrag[0], JSON.stringify({ labelsBeforeDrag, labelsAfterDrag }));
+		const countAfterDrag = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		check('the reorder itself counts as exactly one more change (ia materialized)', countAfterDrag === countAfterPreset + 1, `${countAfterPreset} -> ${countAfterDrag}`);
+
+		// --- Undo once: the PRESET survives, the ORDER reverts (the exact bug). ---
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(200);
+		const countAfterUndo1 = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		const labelsAfterUndo1 = await rowLabels();
+		check('Undo once keeps the preset (change count == right after the preset, not 0)', countAfterUndo1 === countAfterPreset, `${countAfterPreset} vs ${countAfterUndo1}`);
+		check('Undo once restores the pre-drag order', JSON.stringify(labelsAfterUndo1) === JSON.stringify(labelsBeforeDrag), JSON.stringify({ labelsBeforeDrag, labelsAfterUndo1 }));
+
+		// --- The Structure editor's OWN internal state (tree/selection/form) resynced, not stale. ---
+		const editorResync = await page.evaluate(() => {
+			const host = document.querySelector('sl-customizer');
+			const rows = Array.from(host.shadowRoot.querySelectorAll('.svc-structure-row'));
+			return { rowCount: rows.length, formPresent: !!host.shadowRoot.querySelector('.svc-structure-form-title') };
+		});
+		check('after Undo, the Structure tree still renders with rows and its "Selected item" form', editorResync.rowCount > 0 && editorResync.formPresent, JSON.stringify(editorResync));
+
+		// --- Undo again: back to 0 changes (the preset itself reverts). ---
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(200);
+		const countAfterUndo2 = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		check('Undo again returns to 0 changes from Starlight default', countAfterUndo2 === 0, String(countAfterUndo2));
+
+		// --- Redo twice: both come back. ---
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.redo());
+		await page.waitForTimeout(200);
+		const countAfterRedo1 = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		check('Redo once restores the preset', countAfterRedo1 === countAfterPreset, `${countAfterPreset} vs ${countAfterRedo1}`);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.redo());
+		await page.waitForTimeout(200);
+		const countAfterRedo2 = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		const labelsAfterRedo2 = await rowLabels();
+		check(
+			'Redo again restores the reorder too',
+			countAfterRedo2 === countAfterDrag && JSON.stringify(labelsAfterRedo2) === JSON.stringify(labelsAfterDrag),
+			JSON.stringify({ countAfterDrag, countAfterRedo2, labelsAfterDrag, labelsAfterRedo2 })
+		);
+
+		// --- An edit after Undo builds on the RESTORED structure, not a stale one: undo once more
+		// (back to preset-only/pre-drag order) then perform a NEW toolbar move - it must move the
+		// RESTORED first row, and undoing it must land exactly back on that restored order. ---
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(200);
+		const labelsBeforeNewMove = await rowLabels();
+		const firstRowNow = await rowAtIdx(0);
+		await realClick(page, firstRowNow);
+		await page.waitForTimeout(120);
+		const downBtnHandle = await page.evaluateHandle(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-toolbar button[title="Move down"]'));
+		await realClick(page, downBtnHandle.asElement());
+		await page.waitForTimeout(200);
+		const labelsAfterNewMove = await rowLabels();
+		check(
+			'an edit after Undo builds on the restored structure (moves the RESTORED first row down)',
+			labelsAfterNewMove[1] === labelsBeforeNewMove[0] && labelsAfterNewMove[0] === labelsBeforeNewMove[1],
+			JSON.stringify({ labelsBeforeNewMove, labelsAfterNewMove })
+		);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(150);
+		const labelsAfterMoveUndo = await rowLabels();
+		check('undoing that new toolbar move restores it exactly (its own, separate step)', JSON.stringify(labelsAfterMoveUndo) === JSON.stringify(labelsBeforeNewMove), JSON.stringify({ labelsBeforeNewMove, labelsAfterMoveUndo }));
+
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+	}
+
+	// --- a rename then Undo: the whole typing+blur gesture coalesces into ONE undo step. ---
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		// Baseline BEFORE the rename (not necessarily "nothing to undo" - the previous block's own
+		// `importState({})` cleanup is itself one undo step) - the rename must add exactly one more,
+		// not two, so undoing it once must return to exactly this same canUndo() reading.
+		const canUndoBeforeRename = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		const firstRow = await shadowQuery(page, '.svc-structure-row');
+		await realClick(page, firstRow);
+		await page.waitForTimeout(120);
+		const labelInput = await shadowQuery(page, '.svc-structure-form .svc-ia-label-input');
+		const originalLabel = await page.evaluate((el) => el.value, labelInput);
+		await realClick(page, labelInput);
+		await page.keyboard.press('Control+A');
+		await page.keyboard.type('Renamed Item', { delay: 15 });
+		await page.waitForTimeout(100);
+		const liveLabel = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-row.svc-structure-row-selected .svc-structure-label')?.textContent);
+		check('typing into the "Selected item" label field updates the tree row live', liveLabel === 'Renamed Item', liveLabel);
+		await page.keyboard.press('Tab'); // blur -> the `change` handler's own commit
+		await page.waitForTimeout(150);
+		const labelAfterBlur = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-form .svc-ia-label-input')?.value);
+		check('blurring the field keeps the typed rename', labelAfterBlur === 'Renamed Item', labelAfterBlur);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(150);
+		const labelAfterUndo = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-form .svc-ia-label-input')?.value);
+		const canUndoAfterOneUndo = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check('ONE Undo fully reverts a typed rename (typing + blur coalesced into one step)', labelAfterUndo === originalLabel, `${originalLabel} vs ${labelAfterUndo}`);
+		check(
+			'the rename added exactly ONE undo step (typing + blur did not split into two)',
+			canUndoAfterOneUndo === canUndoBeforeRename,
+			`before: ${canUndoBeforeRename}, after one undo: ${canUndoAfterOneUndo}`
+		);
+	}
+
+	// --- a toolbar action (Indent) then Undo. ---
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+		// Baseline right after the reset - `importState({})` is itself one undo step, so "nothing
+		// left to undo" is never the right expectation here; the indent must add exactly one MORE.
+		const canUndoAfterReset = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		const productRow = await shadowQueryByText(page, '.svc-structure-row', 'Product');
+		await realClick(page, productRow);
+		await page.waitForTimeout(120);
+		const indentBtnHandle = await page.evaluateHandle(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-toolbar button[title="Indent into previous group"]'));
+		const indentDisabled = await page.evaluate((btn) => btn.disabled, indentBtnHandle);
+		check('the Indent button is enabled for "Product" (its previous top-level sibling is a group)', indentDisabled === false, String(indentDisabled));
+		await realClick(page, indentBtnHandle.asElement());
+		await page.waitForTimeout(200);
+		const topLevelAfterIndent = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().ia.map((i) => i.label));
+		check('Indent moves "Product" INTO the previous group (no longer top-level)', !topLevelAfterIndent.includes('Product'), JSON.stringify(topLevelAfterIndent));
+		const canUndoAfterIndent = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check('the indent recorded its own undo step', canUndoAfterIndent);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(150);
+		const iaAfterUndo = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().ia);
+		const stillTopLevel = Array.isArray(iaAfterUndo) ? iaAfterUndo.some((i) => i.label === 'Product') : true; // null ia (untouched) also means "still top-level" via the pristine fixture
+		check('Undo restores "Product" to the top level', stillTopLevel, JSON.stringify(iaAfterUndo));
+		const canUndoAfterIndentUndo = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check(
+			'the indent added exactly ONE undo step (undoing it returns to the post-reset baseline)',
+			canUndoAfterIndentUndo === canUndoAfterReset,
+			`after reset: ${canUndoAfterReset}, after indent+undo: ${canUndoAfterIndentUndo}`
+		);
+	}
+
+	// --- a toolbar action (Delete) then Undo. ---
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+		const canUndoAfterReset = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		const gettingStartedRow = await shadowQueryByText(page, '.svc-structure-row', 'Getting Started');
+		await realClick(page, gettingStartedRow);
+		await page.waitForTimeout(120);
+		const deleteBtnHandle = await page.evaluateHandle(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-toolbar button[title="Delete selected item"]'));
+		await realClick(page, deleteBtnHandle.asElement());
+		await page.waitForTimeout(200);
+		const labelsAfterDelete = await page.evaluate(() => Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')).map((r) => r.querySelector('.svc-structure-label').textContent));
+		check('Delete removes the selected row', !labelsAfterDelete.includes('Getting Started'), JSON.stringify(labelsAfterDelete));
+		const canUndoAfterDelete = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check('the delete recorded its own undo step', canUndoAfterDelete);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(150);
+		const labelsAfterDeleteUndo = await page.evaluate(() => Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')).map((r) => r.querySelector('.svc-structure-label').textContent));
+		check('Undo restores the deleted row', labelsAfterDeleteUndo.includes('Getting Started'), JSON.stringify(labelsAfterDeleteUndo));
+		const canUndoAfterDeleteUndo = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check(
+			'the delete added exactly ONE undo step (undoing it returns to the post-reset baseline)',
+			canUndoAfterDeleteUndo === canUndoAfterReset,
+			`after reset: ${canUndoAfterReset}, after delete+undo: ${canUndoAfterDeleteUndo}`
+		);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+	}
+
+	// =============================================================================================
+	// Sa: Structure drag feedback - a clear insertion marker mid-drag (before/after/into-group), and
+	// Escape mid-drag cancels with no structure change and no history step.
+	// =============================================================================================
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
+		await page.waitForTimeout(200);
+		const rowAtIdx = async (i) => (await page.evaluateHandle((idx) => document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')[idx], i)).asElement();
+		const rowLabels = () => page.evaluate(() => Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row')).map((r) => r.querySelector('.svc-structure-label').textContent));
+
+		// A fresh, deterministic group (top-level, right after the first row) for the "into a group" check.
+		const firstRow = await rowAtIdx(0);
+		await realClick(page, firstRow);
+		await page.waitForTimeout(100);
+		const addGroupBtn = await shadowQueryByText(page, '.svc-structure-add-row .svc-btn', '+ Group');
+		await realClick(page, addGroupBtn);
+		await page.waitForTimeout(150);
+		const newGroupRow = await rowAtIdx(1);
+		const newGroupLabel = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, newGroupRow);
+		check('a fresh group was added for the drop-into-group check', newGroupLabel === 'New group', newGroupLabel);
+
+		// --- (a) marker mid-drag: drag the first row onto the new group's MIDDLE ("inside"). ---
+		const draggedRow = await rowAtIdx(0);
+		const draggedLabelBefore = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, draggedRow);
+		let finishDrag = await realDragTo(page, draggedRow, newGroupRow, { toFraction: 0.5, pauseMs: 150 });
+		const midDragInside = await page.evaluate(() => {
+			const rows = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row'));
+			const dragging = rows.find((r) => r.classList.contains('svc-structure-row-dragging'));
+			const dropRow = rows.find((r) => r.dataset.drop);
+			const cs = dropRow ? getComputedStyle(dropRow) : null;
+			return { draggingVisible: !!dragging, dropPos: dropRow?.dataset.drop ?? null, outlineWidth: cs?.outlineWidth ?? null, bg: cs?.backgroundColor ?? null };
+		});
+		check('mid-drag, the dragged row dims (existing behavior)', midDragInside.draggingVisible);
+		check('dragging over a group\'s middle shows an "inside" marker (outline + highlight)', midDragInside.dropPos === 'inside', JSON.stringify(midDragInside));
+		check('the "inside" marker paints a visible outline', midDragInside.outlineWidth != null && parseFloat(midDragInside.outlineWidth) > 0, JSON.stringify(midDragInside));
+		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c2-structure-drag-marker-inside.png') });
+		await finishDrag();
+		await page.waitForTimeout(250);
+		const groupChildrenAfter = await page.evaluate((groupLabel) => {
+			const ia = document.querySelector('sl-customizer').__svc.getState().ia;
+			function find(items) {
+				for (const it of items) {
+					if (it.label === groupLabel) return it;
+					if (it.type === 'group') {
+						const f = find(it.items);
+						if (f) return f;
+					}
+				}
+				return null;
+			}
+			const grp = find(ia || []);
+			return grp ? grp.items.map((i) => i.label) : null;
+		}, 'New group');
+		check('the drop landed INSIDE the group, exactly where the marker was shown', Array.isArray(groupChildrenAfter) && groupChildrenAfter.includes(draggedLabelBefore), JSON.stringify(groupChildrenAfter));
+
+		// --- (b) marker mid-drag: drag a row toward another row's TOP edge ("before"), then complete it. ---
+		const rowB2 = await rowAtIdx(1); // the item that landed inside the group, now flattened right after it
+		const rowB1 = await rowAtIdx(0); // the (now empty) group itself
+		const labelB1 = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, rowB1);
+		const labelB2 = await page.evaluate((r) => r.querySelector('.svc-structure-label').textContent, rowB2);
+		finishDrag = await realDragTo(page, rowB2, rowB1, { toFraction: 0.1, pauseMs: 150 });
+		const midDragBefore = await page.evaluate(() => {
+			const rows = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row'));
+			const dropRow = rows.find((r) => r.dataset.drop);
+			const line = document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-drop-line');
+			const lineCs = line ? getComputedStyle(line) : null;
+			return {
+				dropPos: dropRow?.dataset.drop ?? null,
+				lineVisible: !!line && lineCs.display !== 'none',
+				lineBg: lineCs?.backgroundColor ?? null,
+				lineHeight: lineCs?.height ?? null,
+			};
+		});
+		check('dragging toward a row\'s top edge shows a "before" insertion marker', midDragBefore.dropPos === 'before', JSON.stringify(midDragBefore));
+		check(
+			'the "before" marker is a visible line (non-zero height, opaque color)',
+			midDragBefore.lineVisible && midDragBefore.lineHeight && parseFloat(midDragBefore.lineHeight) > 0 && midDragBefore.lineBg && !midDragBefore.lineBg.includes('0, 0, 0, 0'),
+			JSON.stringify(midDragBefore)
+		);
+		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c2-structure-drag-marker-before.png') });
+		await finishDrag();
+		await page.waitForTimeout(250);
+		const labelsAfterBefore = await rowLabels();
+		check(
+			'the drop landed where the "before" marker was shown (the dragged row now precedes the group)',
+			labelsAfterBefore[0] === labelB2 && labelsAfterBefore[1] === labelB1,
+			JSON.stringify({ labelB1, labelB2, labelsAfterBefore })
+		);
+
+		// --- (c) Escape mid-drag cancels: no reorder, no history step, marker removed. ---
+		const labelsBeforeEscape = await rowLabels();
+		const changeCountBeforeEscape = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		const canUndoBeforeEscape = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		const escSrc = await rowAtIdx(0);
+		const escTarget = await rowAtIdx(1);
+		const escFrom = await centerOf(escSrc);
+		const escToBox = await escTarget.boundingBox();
+		const escToX = escToBox.x + escToBox.width / 2;
+		const escToY = escToBox.y + escToBox.height * 0.15;
+		await page.mouse.move(escFrom.x, escFrom.y);
+		await page.mouse.down();
+		await page.mouse.move((escFrom.x + escToX) / 2, (escFrom.y + escToY) / 2, { steps: 6 });
+		await page.mouse.move(escToX, escToY, { steps: 6 });
+		await page.waitForTimeout(120);
+		const markerPresentBeforeEscape = await page.evaluate(() => !!document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-row[data-drop]'));
+		check('a marker is present right before pressing Escape', markerPresentBeforeEscape);
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(120);
+		const stateAfterEscape = await page.evaluate(() => {
+			const rows = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-structure-row'));
+			const line = document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-structure-drop-line');
+			return { markerPresent: rows.some((r) => r.dataset.drop), lineVisible: !!line && getComputedStyle(line).display !== 'none', anyDragging: rows.some((r) => r.classList.contains('svc-structure-row-dragging')) };
+		});
+		check('Escape mid-drag removes the insertion marker (data-drop and the line)', stateAfterEscape.markerPresent === false && stateAfterEscape.lineVisible === false, JSON.stringify(stateAfterEscape));
+		check('Escape mid-drag removes the dragged row\'s dim', stateAfterEscape.anyDragging === false, JSON.stringify(stateAfterEscape));
+		await page.mouse.up(); // release - must be a no-op now that Escape already cancelled the drag
+		await page.waitForTimeout(150);
+		const labelsAfterEscape = await rowLabels();
+		const changeCountAfterEscape = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getChangeCount());
+		const canUndoAfterEscape = await page.evaluate(() => document.querySelector('sl-customizer').__svc.canUndo());
+		check('Escape mid-drag leaves the row order unchanged', JSON.stringify(labelsAfterEscape) === JSON.stringify(labelsBeforeEscape), JSON.stringify({ labelsBeforeEscape, labelsAfterEscape }));
+		check('Escape mid-drag leaves the change count unchanged', changeCountAfterEscape === changeCountBeforeEscape, `${changeCountBeforeEscape} -> ${changeCountAfterEscape}`);
+		check('Escape mid-drag records no history step (canUndo unchanged)', canUndoAfterEscape === canUndoBeforeEscape, `${canUndoBeforeEscape} -> ${canUndoAfterEscape}`);
+
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.importState({}));
+		await page.waitForTimeout(150);
+	}
+
+	// =============================================================================================
 	// E4: site title - live in the frame, survives navigation
 	// =============================================================================================
 	{

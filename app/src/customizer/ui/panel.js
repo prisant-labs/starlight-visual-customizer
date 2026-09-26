@@ -625,7 +625,19 @@ function initCustomizer(host) {
 	// ---- IA editor ("Navigation structure (advanced)"/"Structure (advanced)"), built once so it
 	// keeps its own internal state, shared by whichever chrome wraps it. ----------------------------
 	const iaEditor = createIaEditor(state, {
-		onIaChange(ia) {
+		// Coordinator bug fix: a Structure (advanced) edit never called `history.record` at all, so
+		// Undo silently skipped it and undid whatever OTHER step preceded it instead (repro: apply a
+		// preset, drag a row, Undo once - the preset was undone, not the drag). `coalesceKey` (from
+		// ia-editor.js's per-item rename key) lets a whole typing+blur gesture coalesce into one step,
+		// same "many events, one key, one step" contract `history.js` already gives a slider drag; every
+		// other structural edit (move/indent/delete/drag-drop/badge/checkbox/import/...) omits it and
+		// always lands as its own distinct step, matching how `onApplyPreset`/`onResetGroup` behave
+		// below. The no-op guard (unchanged `ia`) stops a rename's final blur/Enter `change` call from
+		// recording a SECOND, redundant step when `input` already committed the identical value -
+		// the same class of bug as the hex field's own "no-op unless the text actually changed" guard.
+		onIaChange(ia, coalesceKey) {
+			if (JSON.stringify(ia) === JSON.stringify(state.ia)) return;
+			history.record(state, coalesceKey ? `ia:${coalesceKey}` : distinctHistoryKey('ia'), Date.now());
 			state = { ...state, ia };
 			lastSaveOk = persistState(state);
 			lastSaveAt = Date.now();

@@ -731,7 +731,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
    ia-editor.js). Overlay mode's tree above (.svc-ia-*) is untouched. ---- */
 .svc-structure-note { font-size: 0.75rem; line-height: 1.5; color: #8a90a0; margin: 0 0 0.5rem; }
 .svc-structure-add-row { display: flex; gap: 0.4rem; margin-bottom: 0.5rem; }
-.svc-structure-tree { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.5rem; }
+.svc-structure-tree { display: flex; flex-direction: column; gap: 0.15rem; margin-bottom: 0.5rem; position: relative; }
 .svc-structure-children { margin-inline-start: 1.1rem; border-inline-start: 1px dashed #33363f; padding-inline-start: 0.5rem; display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.15rem; }
 .svc-structure-row {
 	display: flex;
@@ -747,8 +747,13 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-structure-row:focus-visible { outline: 2px solid #6d8dfa; outline-offset: 1px; }
 .svc-structure-row-selected { border-color: #6d8dfa; background: #171a29; }
 .svc-structure-row-dragging { opacity: 0.5; }
-.svc-structure-row[data-drop='before'] { box-shadow: inset 0 2px 0 #6d8dfa; }
-.svc-structure-row[data-drop='after'] { box-shadow: inset 0 -2px 0 #6d8dfa; }
+/* Sa (drag feedback): a clear insertion marker. 'before'/'after' get a real line BETWEEN rows
+   (.svc-structure-drop-line, positioned by ia-editor.js's showDropLine at the target row's own
+   top/bottom edge, spanning its width) rather than a mark on the row's own inner edge (too easy to
+   miss against its 1px border + the ~2px gap already there); 'inside' keeps its outline+tint
+   highlight, just called out explicitly here as the group-drop case. Feedback only - the drop LOGIC
+   (which position data-drop gets, what a drop is allowed to do) is unchanged. */
+.svc-structure-drop-line { position: absolute; height: 3px; border-radius: 2px; background: #6d8dfa; pointer-events: none; z-index: 1; }
 .svc-structure-row[data-drop='inside'] { outline: 2px solid #6d8dfa; outline-offset: -2px; background: #1c2140; }
 .svc-structure-grip { flex-shrink: 0; color: #565c6b; cursor: grab; }
 .svc-structure-icon { flex-shrink: 0; color: #8a90a0; }
@@ -1172,8 +1177,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-structure-row { background: var(--ui-panel); border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-structure-row:hover { border-color: var(--ui-accent); }
 :host([data-docked='true']) .svc-structure-row-selected { border-color: var(--ui-accent); background: var(--ui-accent-tint); }
-:host([data-docked='true']) .svc-structure-row[data-drop='before'] { box-shadow: inset 0 2px 0 var(--ui-accent); }
-:host([data-docked='true']) .svc-structure-row[data-drop='after'] { box-shadow: inset 0 -2px 0 var(--ui-accent); }
+:host([data-docked='true']) .svc-structure-drop-line { background: var(--ui-accent); }
 :host([data-docked='true']) .svc-structure-row[data-drop='inside'] { outline-color: var(--ui-accent); background: var(--ui-accent-tint); }
 :host([data-docked='true']) .svc-structure-grip,
 :host([data-docked='true']) .svc-structure-icon { color: var(--ui-muted); }
