@@ -1,5 +1,5 @@
 /**
- * @file D3a - `src/customizer/core/base-path.js`'s `withBase`/`stripBase`, the one helper every
+ * @file Tests `src/customizer/core/base-path.js`'s `withBase`/`stripBase`, the one helper every
  * runtime page-URL builder routes through so the app works unchanged at `/` and also under a
  * sub-path (`SVC_SITE_BASE`, e.g. a GitHub Pages project site). Exercises both trailing-slash shapes
  * `import.meta.env.BASE_URL` can take (see that file's header) via the optional explicit `base`

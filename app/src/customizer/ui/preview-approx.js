@@ -30,7 +30,7 @@ export function stampTocLevels(pageDoc = document) {
 }
 
 /**
- * SPEC-C E4: `site.title` is build-time (no CSS token exists for it - `SiteTitle.astro` prints
+ * `site.title` is build-time (no CSS token exists for it - `SiteTitle.astro` prints
  * `Astro.locals.starlightRoute.siteTitle` straight from config), so the live preview instead sets
  * `.site-title`'s text span directly. Idempotent and safe to call on every apply tick and on every
  * frame attach/navigation: the project's OWN title is captured into `dataset.svcOriginalTitle` the

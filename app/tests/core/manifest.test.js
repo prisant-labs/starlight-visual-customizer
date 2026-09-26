@@ -15,7 +15,7 @@ describe('controls', () => {
 		for (const c of controls) assert.ok(GROUPS.includes(c.group), `unknown group "${c.group}" on ${c.id}`);
 	});
 
-	test('every control has a non-empty section and target (SPEC.md Round 2)', () => {
+	test('every control has a non-empty section and target', () => {
 		// This module runs under plain `node --test` (no DOM), so it can only check the target
 		// string's shape (non-empty, balanced brackets/parens/quotes - the usual way a hand-edited
 		// selector goes wrong). Actually matching >=1 *visible* element on a live page is
@@ -86,7 +86,7 @@ describe('controls', () => {
 		}
 	});
 
-	test('the fixed ids from SPEC.md exist with the exact documented defaults', () => {
+	test('the fixed ids exist with the exact documented defaults', () => {
 		const byId = new Map(controls.map((c) => [c.id, c]));
 		const expected = {
 			'page.toc.minLevel': 2,

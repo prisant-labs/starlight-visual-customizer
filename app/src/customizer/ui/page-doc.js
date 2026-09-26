@@ -25,7 +25,7 @@
  */
 
 /** @type {HTMLIFrameElement | null} The PRIMARY lane - `getPageDoc()`/`getPageWin()` always resolve
- * against this one, single-lane or Split (SPEC-C S9: "getPageDoc() stays the primary lane"). */
+ * against this one, single-lane or Split: getPageDoc() always stays the primary lane. */
 let frameEl = null;
 /** @type {HTMLIFrameElement[]} Every lane currently mounted (length 1 outside Split). Always
  * includes `frameEl` at index 0 when non-empty. */
@@ -37,7 +37,7 @@ export function setFrameEl(el) {
 }
 
 /**
- * SPEC-C S9: Split shows two lanes of the same page (left forced light, right forced dark) - every
+ * Split shows two lanes of the same page (left forced light, right forced dark) - every
  * PAGE-facing operation that must reach both (theming, the page switcher) uses `getPageDocs()`;
  * everything else (swatches/contrast resolution, tile samples, target highlighting) keeps using
  * `getPageDoc()`/`getPageWin()`/`getFrameEl()`, which stay pinned to `frames[0]`, the primary lane.

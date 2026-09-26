@@ -1,8 +1,8 @@
 // @ts-check
 /**
  * Headless smoke test for the customizer UI, driven with `playwright-core` against the machine's
- * already-installed chromium-1228 build (no new browser download - see SPEC.md's build
- * instructions). Run against the shared Round 2 dev server:
+ * already-installed chromium-1228 build (no new browser download needed). Run against a running
+ * dev or preview server:
  *
  *   node tests/e2e/smoke.mjs
  *
@@ -28,9 +28,9 @@ const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
-// F1 (SPEC-C phase 3): a direct top-level page visit no longer mounts the panel at all (it shows a
+// A direct top-level page visit no longer mounts the panel at all (it shows a
 // small "Open in Studio" pill instead) - `?svc-overlay` is the escape hatch this suite (an ENGINE
-// test of the overlay panel itself, not of F1's visitor-mode page) needs to keep exercising the
+// test of the overlay panel itself, not of the visitor-mode page) needs to keep exercising the
 // panel exactly as before. URL-flag-only edit; everything else in this file is unchanged.
 const OVERLAY = '?svc-overlay';
 
@@ -131,7 +131,7 @@ async function main() {
 	});
 	check('sidebar link text changed to "Start Here"', afterLink?.text === 'Start Here');
 	// This Astro build's scoped-style marker is a class (`astro-XXXXXXXX`), not a
-	// `data-astro-cid-*` attribute (see report: SPEC.md's example predates this Astro version's
+	// `data-astro-cid-*` attribute (older Astro versions used the attribute form under the
 	// default `scopedStyleStrategy`). "Clone, don't construct" preserves whichever mechanism is
 	// live, so this checks for the one this build actually emits.
 	check(

@@ -1,8 +1,8 @@
 /**
  * @file Clones the real page's stylesheets so a tile grid's nested shadow root can render live
- * Starlight markup with Starlight's own CSS applied (SPEC.md: "clones the page's stylesheets
+ * Starlight markup with Starlight's own CSS applied: clones the page's stylesheets
  * (`document.head` `<link rel=stylesheet>` and `<style>` elements - in dev Vite injects `<style>`
- * tags, in build they are `<link>`s; handle both)"). Cloned in document order so `@layer`
+ * tags, in build they are `<link>`s; handles both). Cloned in document order so `@layer`
  * declaration order (see `dist/style/layers.css`) is preserved.
  *
  * PAGE-facing (studio.astro's design doc, item C): reads from `getPageDoc()` (the previewed

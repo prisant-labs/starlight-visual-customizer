@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file SPEC-C phase 2, workstream I acceptance suite: Inspect (C3) - click an element on the
+ * @file Inspect acceptance suite: click an element on the
  * previewed page to reach exactly the controls that style it. Complements `shell.mjs` (which keeps
  * its own hit-test audit and A4 contrast walk green with Inspect active) rather than duplicating it.
  *
@@ -402,8 +402,8 @@ async function main() {
 		);
 		check('pressing Enter on a focused list item selects it (a keyboard path to the same selection)', selectedAfterEnter === true, String(selectedAfterEnter));
 
-		// F0 fix (SPEC-C phase 3, point 13): the Elements list's own selection scrolls the frame
-		// (`{scroll: true}`, unlike a plain I4 click) - `inspect.js` routes that through
+		// The Elements list's own selection scrolls the frame
+		// (`{scroll: true}`, unlike a plain click) - `inspect.js` routes that through
 		// `scrollElementIntoView` (target-highlight.js), never `Element.scrollIntoView`, so no host
 		// ancestor of the lane iframe should ever pick up a nonzero scroll position from it.
 		await page.waitForTimeout(400); // let any smooth scroll settle

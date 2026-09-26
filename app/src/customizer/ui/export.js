@@ -6,9 +6,10 @@
  * button (bundles the same three files via `fflate`) and a "Screenshot (PNG)" section (captures the
  * primary preview lane via `modern-screenshot`, dynamically imported only when clicked).
  *
- * SPEC-C S14: in studio mode this renders in Codex's two-pane shape - a file list (with sizes) on
- * the left, the selected file's content (with Copy/Download) on the right - instead of B's top tab
- * strip. Both navigation UIs are built (small, and they drive the exact same `selectTab`/textareas),
+ * In studio mode this renders as a two-pane shape - a file list (with sizes) on
+ * the left, the selected file's content (with Copy/Download) on the right - instead of the overlay
+ * panel's top tab strip. Both navigation UIs are built (small, and they drive the exact same
+ * `selectTab`/textareas),
  * `dialog.dataset.shape` picks which one is visible via `styles.js`'s docked-scoped
  * `.svc-dialog[data-shape='files']` rules; overlay mode (S16) always gets `data-shape='tabs'`, the
  * same DOM/behavior as before.
@@ -20,7 +21,7 @@ import { encodeState, getName } from '../core/state.js';
 import { isStudio, getPageDoc, getPageWin } from './page-doc.js';
 import { stripBase } from '../core/base-path.js';
 
-/** @param {number} bytes @returns {string} e.g. "1.2 KB" - matches Codex's file-list sizing display. */
+/** @param {number} bytes @returns {string} e.g. "1.2 KB" - the studio's file-list sizing display. */
 function formatSize(bytes) {
 	if (bytes < 1024) return `${bytes} B`;
 	return `${(bytes / 1024).toFixed(1)} KB`;
@@ -372,7 +373,7 @@ export function createExportDialog(handlers) {
 	tabsBar.className = 'svc-tabs';
 	tabsBar.setAttribute('role', 'tablist');
 
-	// ---- Studio (Codex) shape: a row of [file list | file pane] below the shared header. ----
+	// ---- Studio shape: a row of [file list | file pane] below the shared header. ----
 	const filesRow = document.createElement('div');
 	filesRow.className = 'svc-files-row';
 	const fileList = document.createElement('div');

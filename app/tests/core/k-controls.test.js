@@ -1,6 +1,7 @@
 /**
- * @file Workstream K (SPEC-C section 4): unit coverage for the controls ported from the Codex
- * prototype onto real Starlight 0.42.4 selectors (unchanged from 0.42.3 - see `treatments.js`'s
+ * @file Unit coverage for a set of controls with literal selector overrides, each independent of
+ * `treatments.js`'s generic per-control CSS, on real Starlight 0.42.4 selectors (unchanged from
+ * 0.42.3 - see `treatments.js`'s
  * file header for what the upgrade actually touched). `tests/core/emit-css.test.js`'s generic
  * "coverage" and "treatments.js completeness" suites already prove every id here is handled and
  * that every select option emits *some* CSS; this file checks the *specific* selector/property
@@ -45,7 +46,7 @@ const NEW_RANGE_OR_TOGGLE_PROBES = [
 		value: 1.5,
 		expect: /starlight-toc a \{\n\tpadding-inline-start: calc\(1\.5rem \* var\(--depth, 0\) \+ 0\.5rem\);/,
 	},
-	// F4 fix (SPEC-C phase 3, point 11): the old rule (`li li a { border-inline-start; padding-
+	// The old rule (`li li a { border-inline-start; padding-
 	// inline-start: 0.25rem }`) clobbered Starlight's own per-depth padding (every depth landed at the
 	// same indent) and used a hairline color indistinguishable from the TOC's own background - see
 	// emit-css.js's own comment on this block. Now one guide line per nested list (`li > ul`), an

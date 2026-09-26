@@ -1,5 +1,5 @@
 /**
- * @file SPEC-C S11: a pure, DOM-free undo/redo stack over `ThemeState` snapshots. Works in Node
+ * @file A pure, DOM-free undo/redo stack over `ThemeState` snapshots. Works in Node
  * and the browser (`structuredClone` is a global in both, Node 22+).
  *
  * Contract: the caller records the state as it was BEFORE a change, tagged with a `key` that

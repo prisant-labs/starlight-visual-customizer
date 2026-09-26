@@ -1,8 +1,8 @@
 /**
- * @file SPEC-C phase 3, workstream P (P3): a hex-first color popover, replacing the native
- * `<input type=color>` swatch button everywhere in C - Chrome's own picker dialog cannot be told to
- * open in hex mode, which is exactly the maintainer's point 4 ("color selector should default to
- * hex"). Wraps vanilla-colorful's framework-free `<hex-color-picker>` custom element (a
+ * @file A hex-first color popover, replacing the native
+ * `<input type=color>` swatch button - Chrome's own picker dialog cannot be told to
+ * open in hex mode, and hex is the primary way colors are entered here. Wraps vanilla-colorful's
+ * framework-free `<hex-color-picker>` custom element (a
  * saturation/brightness area plus a hue bar, MIT, npm `vanilla-colorful` 0.7.2 - see the package's
  * README/Context7 docs read before this file was written) with our OWN hex text field as the
  * popover's default entry (same validation contract as the row's primary hex field - the caller

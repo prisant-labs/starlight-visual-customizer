@@ -1,5 +1,5 @@
 /**
- * @file Client-side sidebar re-renderer. "Clone, don't construct" (SPEC.md): every element this
+ * @file Client-side sidebar re-renderer. "Clone, don't construct": every element this
  * module ever inserts is a `cloneNode(true)` of a real element harvested from the page's own
  * server-rendered `.sidebar-content` before any mutation, so Astro's per-component scoped style
  * class (e.g. `astro-rmhv4bp6`) rides along automatically - a hand-built `<li>`/`<a>` would lose

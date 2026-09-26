@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * Round 2 UI verification (SPEC.md "Round 2" section, owner: UI). Covers:
+ * UI verification suite. Covers:
  *   1. Nav editor expand/collapse actually toggles visibility, and typing a multi-word label into
  *      the IA editor keeps focus (no full-tree re-render mid-keystroke).
  *   2. UI-state contract: an open group + panel scroll offset survive a full-page navigation via
@@ -27,9 +27,9 @@ const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
-// F1 (SPEC-C phase 3): every check in this suite drives the overlay panel directly against
+// Every check in this suite drives the overlay panel directly against
 // `sl-customizer`'s shadow root, which no longer mounts on a plain top-level visit - `?svc-overlay`
-// is the escape hatch that keeps it mounting for this suite. URL-flag-only edit.
+// is the escape hatch that keeps it mounting for this suite.
 const OVERLAY = '?svc-overlay';
 
 let failures = 0;
