@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * @file Per-option verification: "each treatment option changes the computed style of its
- * target" (SPEC.md Definition of done, item 3). Drives the real built + previewed site with
+ * target". Drives the real built + previewed site with
  * playwright-core against the machine's already-installed chromium-1228 (same approach as
  * tests/e2e/smoke.mjs - no browser download).
  *
@@ -18,7 +18,7 @@
  * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server;
  * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer); SVC_CHROME_PATH.
  *
- * SPEC.md Round 2's six alignment controls are select-treatments like any other and so are picked
+ * The six alignment controls are select-treatments like any other and so are picked
  * up automatically by the loop below (no per-control code needed) - except three things a generic
  * loop can't infer: (1) `content.heroAlign` only has a target on the home page, not kitchen-sink;
  * (2) several alignment controls are deliberately gated behind Starlight's own 50rem/72rem
@@ -43,11 +43,11 @@ const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
 
-// F1 (SPEC-C phase 3): a direct top-level visit no longer mounts any panel at all (a small "Open in
+// A direct top-level visit no longer mounts any panel at all (a small "Open in
 // Studio" pill instead) - `?svc-overlay` is the escape hatch this suite (an engine test of the
-// panel's own CSS application, not F1's visitor-mode page) needs to keep exercising it.
+// panel's own CSS application, not the visitor-mode page) needs to keep exercising it.
 const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
-// F1 (SPEC-C phase 3): the plain URL, no overlay flag - used only for SCREENSHOTS after a state has
+// The plain URL, no overlay flag - used only for SCREENSHOTS after a state has
 // already been applied and persisted through the flagged page above. panel.js mirrors the live CSS
 // into localStorage['svc-css'] on every apply (persistPreviewCss) and the no-flash preload path
 // replays it here with zero JS - so this shows the exact same styling with no panel UI in the frame,
@@ -66,7 +66,7 @@ const MOBILE_VIEWPORT = { width: 390, height: 844 };
 const COLOR_PROPS = new Set(['background-color', 'border-color', 'color']);
 
 /**
- * Workstream K (SPEC-C section 4): "every selector verified ... in dark and light" applies
+ * "Every selector verified ... in dark and light" applies
  * regardless of whether the probed property happens to be a color - these four selects' probed
  * properties (border-radius, background-color, font-style) aren't all in COLOR_PROPS, so they're
  * forced dual-theme explicitly rather than relying on the property-based heuristic above.
@@ -79,7 +79,7 @@ const FORCE_DUAL_THEME_IDS = new Set([
 ]);
 
 /**
- * Per-id overrides for the alignment controls added in SPEC.md Round 2: a wide-enough viewport to
+ * Per-id overrides for the alignment controls: a wide-enough viewport to
  * actually cross the header-grid (50rem)/TOC-and-content (72rem) breakpoints those options are
  * gated behind, plus a mobile-guard re-check proving mobile is untouched.
  */
@@ -142,8 +142,8 @@ tasks.push({
 });
 
 // ---------------------------------------------------------------------------------------------
-// Workstream K (SPEC-C section 4): the new range/toggle controls, each a literal selector
-// override rather than a select-treatment, so they have no `treatments.js` entry to generate a
+// This set of range/toggle controls, each a literal selector
+// override rather than a select-treatment, has no `treatments.js` entry to generate a
 // task from automatically - same shape as layout.radius/code.frameRadius above. All forced
 // dual-theme per the acceptance bullet ("proven by a browser probe in both dark and light"),
 // regardless of whether the probed property happens to be color-based.
@@ -166,7 +166,7 @@ const K_TASKS = [
 	// `calc(indent * var(--depth,0) + 0.5rem)` is 0.5rem regardless of `indent` when depth is 0, so
 	// that selector could never show a diff for this control no matter what value it's set to).
 	{ id: 'toc.indent', option: 1.5, selector: 'starlight-toc li li a', property: 'padding-left' },
-	// F4 fix (SPEC-C phase 3, point 11): the guide moved from a border on the leaf `<a>` to an
+	// The guide moved from a border on the leaf `<a>` to an
 	// absolutely positioned `::after` on each nested `<ul>` (emit-css.js) - `position` on that `<ul>`
 	// (static -> relative, needed to anchor the pseudo-element) is the one plain, non-pseudo-element
 	// computed style this generic runner can still see; `runTocDepthGuidesTask` below probes the
@@ -226,7 +226,7 @@ const buildTimeTasks = [
 		url: KITCHEN_SINK,
 		expectNot: 'none',
 	},
-	// code.wrap (workstream K, build tier): approximated live via forPreview CSS (emit-css.js),
+	// code.wrap (build tier): approximated live via forPreview CSS (emit-css.js),
 	// same mechanism as the four tasks above.
 	{
 		id: 'code.wrap',
@@ -316,8 +316,8 @@ async function runTreatmentTask(page, task, theme) {
 }
 
 /**
- * The testable form of "wrap in the matching media query so mobile is unaffected" (SPEC.md Round
- * 2): re-runs the same probe at a 390px viewport and asserts the property is UNCHANGED from
+ * The testable form of "wrap in the matching media query so mobile is unaffected":
+ * re-runs the same probe at a 390px viewport and asserts the property is UNCHANGED from
  * default there - i.e. the option's media query genuinely doesn't fire below its breakpoint.
  * @param {import('playwright-core').Page} page @param {{id:string, option:any, selector:string, property:string, url:string}} task
  */
@@ -350,7 +350,7 @@ async function runBuildTimeTask(page, task) {
 }
 
 /**
- * `sidebar.hoverTint` (workstream K) only takes effect on `:hover`, which `readComputed` alone
+ * `sidebar.hoverTint` only takes effect on `:hover`, which `readComputed` alone
  * can never observe - `page.hover()` moves a real synthetic pointer over the element first.
  * @param {import('playwright-core').Page} page @param {'dark'|'light'} theme
  */
@@ -372,10 +372,10 @@ async function runSidebarHoverTintTask(page, theme) {
 }
 
 /**
- * F4 fix (SPEC-C phase 3, point 11): the guide is an absolutely positioned `::after` on each nested
+ * The guide is an absolutely positioned `::after` on each nested
  * `<ul>` (emit-css.js), not a plain computed style on a real element - `readComputed` can't see a
- * pseudo-element, so this probes `getComputedStyle(el, '::after')` directly. Verifies both bugs the
- * maintainer's screenshot showed are actually fixed: the line is now VISIBLE (a real, non-transparent
+ * pseudo-element, so this probes `getComputedStyle(el, '::after')` directly. Verifies the guide
+ * line is VISIBLE (a real, non-transparent
  * background-color) and each depth's line sits at ITS OWN inset (not the old flattened single value),
  * with and without `toc.indent` customized, in both themes - Long doc (kitchen-sink) has real h3/h4
  * headings to test against.
@@ -422,11 +422,11 @@ async function runTocDepthGuidesTask(page, theme, indentValue) {
 }
 
 /**
- * F5 fix (SPEC-C phase 3, point 12): the generic per-option loop below already diffs
+ * The generic per-option loop below already diffs
  * `.right-sidebar-container`'s `order` property for `window-right` (it doesn't touch `order` at all,
  * so that diff is somewhat vacuous for this option) - this checks the actual geometry claim
  * ("the TOC's right edge sits at the window's right edge minus its padding") directly, at both 1440
- * and 1920, the two widths F5's acceptance bullet names explicitly.
+ * and 1920.
  * @param {import('playwright-core').Page} page @param {number} width
  */
 async function runTocWindowRightGeometryTask(page, width) {

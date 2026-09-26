@@ -4,19 +4,19 @@
  * `document.adoptedStyleSheets`, font injection, persistence, and wiring between
  * `controls.js` / `ia-editor.js` / `sidebar-render.js` / `preview-approx.js` / `export.js`.
  *
- * Mounted once per page by `src/components/CustomizerFooter.astro` (owner: FIXTURE):
+ * Mounted once per page by `src/components/CustomizerFooter.astro`:
  * `<sl-customizer></sl-customizer>` + `<script>import '../customizer/ui/panel.js';</script>`.
  *
- * SPEC-C: two DOM shapes come out of `initCustomizer`, chosen once by `isStudio()` (page-doc.js) at
- * connect time (a page never switches shape mid-session):
- *  - **Overlay** (a direct page visit carrying the `?svc-overlay` escape hatch, S16): byte-identical
- *    to B - the floating drawer/FAB, the accordion group list, the sun/moon toggle. Untouched by C.
- *  - **Studio** (`/studio/`, S1-S15): a rail (tablist, S4) + panel column (tabpanel, S5) replace the
- *    drawer. `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage,
- *    status bar) in the studio's own light DOM and talks to this module through a small controller
- *    this file sets on the host element, `host.__svc` (see its assignment below for the full
- *    surface). Putting the rail INSIDE this shadow root (rather than in studio.js's light DOM) keeps
- *    S4's `aria-controls` reference intra-document and gives the rail direct access to live
+ * Two DOM shapes come out of `initCustomizer`, chosen once by `isStudio()` (page-doc.js) at connect
+ * time (a page never switches shape mid-session):
+ *  - **Overlay** (a direct page visit carrying the `?svc-overlay` escape hatch): the floating
+ *    drawer/FAB, the accordion group list, the sun/moon toggle.
+ *  - **Studio** (`/studio/`): a rail (tablist) + panel column (tabpanel) replace the drawer.
+ *    `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage, status bar)
+ *    in the studio's own light DOM and talks to this module through a small controller this file
+ *    sets on the host element, `host.__svc` (see its assignment below for the full surface).
+ *    Putting the rail INSIDE this shadow root (rather than in studio.js's light DOM) keeps the
+ *    rail's `aria-controls` reference intra-document and gives the rail direct access to live
  *    state/history with no extra indirection.
  *
  * Both shapes are built as nested closures inside ONE `initCustomizer` call so every piece of
@@ -24,11 +24,11 @@
  * per-lane stylesheets, history) is a plain local variable both branches close over directly - no
  * cross-module "deps object" plumbing.
  *
- * SPEC-C phase 3, workstream F (F1): a THIRD outcome exists above both of these - a direct page
- * visit with NEITHER `?svc-overlay` nor a studio preview iframe mounts no panel at all.
- * `connectedCallback`'s own marked block returns before `initCustomizer` ever runs; the page shows
- * exactly as a real visitor sees it (the existing no-flash preload path already applies the saved
- * theme, no JS required) plus a small "Open in Studio" pill that same block builds directly.
+ * A THIRD outcome exists above both of these - a direct page visit with NEITHER `?svc-overlay` nor
+ * a studio preview iframe mounts no panel at all. `connectedCallback`'s own marked block returns
+ * before `initCustomizer` ever runs; the page shows exactly as a real visitor sees it (the existing
+ * no-flash preload path already applies the saved theme, no JS required) plus a small "Open in
+ * Studio" pill that same block builds directly.
  */
 import { useMode, modeRgb, formatHex } from 'culori/fn';
 
@@ -62,7 +62,7 @@ import { withBase, stripBase } from '../core/base-path.js';
 
 useMode(modeRgb); // registers the rgb color model with culori/fn's shared registry (idempotent)
 
-/** Sun/moon icon-button glyphs (overlay header only - studio mode drops this button, S2: the
+/** Sun/moon icon-button glyphs (overlay header only - studio mode drops this button: the
  * toolbar's Light/Dark/Split replaces it). */
 const SUN_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`;
 const MOON_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"></path></svg>`;
@@ -73,7 +73,7 @@ const LOCALSTORAGE_CSS_KEY = 'svc-css';
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 const PRELOAD_STYLE_ID = 'svc-preload';
 /** Groups open by default the very first time a visitor arrives (no `svc-ui` yet), overlay mode
- * only. Navigation is intentionally absent - demoted, collapsed by default (SPEC.md Round 2 item 1). */
+ * only. Navigation is intentionally absent - demoted, collapsed by default. */
 const DEFAULT_OPEN_GROUPS = ['Presets', 'Colors'];
 const FONT_CONTROL_IDS = ['type.font.body', 'type.font.heading', 'type.font.mono'];
 /** Every control id `getResolvedColor` can resolve to a live hex, by DOM-probing the custom
@@ -93,7 +93,7 @@ const RESOLVABLE_COLOR_TOKEN_BY_ID = {
 	'color.hue.red': '--sl-color-red',
 };
 
-/** SPEC-C S4 rail order + separators: GROUPS is already in the exact order S4 specifies
+/** Rail order + separators: GROUPS is already in the display order the rail wants
  * ('Presets, Colors, Typography, Layout | Header, Sidebar, TOC | Content, Components, Code,
  * Footer, Page options | Structure (advanced)') - 'Navigation' (the manifest key behind the
  * retitled "Structure (advanced)" item) is appended last. A separator renders AFTER each of these
@@ -102,9 +102,9 @@ const RAIL_GROUPS = [...GROUPS, 'Navigation'];
 const RAIL_SEPARATOR_AFTER = new Set(['Presets', 'Layout', 'TOC', 'Page options']);
 const RAIL_TITLES = { Navigation: 'Structure (advanced)' };
 
-/** Coordinator review (phase 1 polish, P3): the group-header eyebrow used to just repeat the group
- * name ("COLORS / Colors"). These are the same clusters the rail's own separators already group
- * groups into (RAIL_SEPARATOR_AFTER), given a category name instead. */
+/** The group-header eyebrow used to just repeat the group name ("COLORS / Colors"). These are the
+ * same clusters the rail's own separators already group groups into (RAIL_SEPARATOR_AFTER), given
+ * a category name instead. */
 const RAIL_CATEGORY_EYEBROW = {
 	Presets: 'Foundations',
 	Colors: 'Foundations',
@@ -121,10 +121,10 @@ const RAIL_CATEGORY_EYEBROW = {
 	Navigation: 'Advanced',
 };
 
-/** S10: "No scroll for Presets, Colors, Typography, Page options, Structure." */
+/** No scroll-to-target for Presets, Colors, Typography, Page options, Structure. */
 const SCROLL_EXCLUDED_GROUPS = new Set(['Presets', 'Colors', 'Typography', 'Page options', 'Navigation']);
 
-/** SPEC-C S12 status bar contrast: token PAIRS, resolved via the same DOM-probe `resolveCssColor`
+/** Status bar contrast: token PAIRS, resolved via the same DOM-probe `resolveCssColor`
  * already used for the Colors group's live readout (below) rather than re-deriving Starlight's
  * cascade by hand - every token here is a plain custom-property reference (verified against
  * `node_modules/@astrojs/starlight/dist/style/{props,asides}.css` and `SiteTitle.astro`,
@@ -147,7 +147,7 @@ const STATUS_CONTRAST_PAIRS = [
 /** @type {Map<string, import('../core/manifest.js').Control>} */
 const controlsById = new Map(controls.map((c) => [c.id, c]));
 
-/** Coordinator bug fix: a `color`-type role-override control's hex field must show the freshly
+/** A `color`-type role-override control's hex field must show the freshly
  * resolved color after ANY change that can move it (undo/redo/preset/group-reset/reset-all/import
  * for an 'auto' role, and the light/dark toggle for one too) - `getResolvedColor` DOM-probes a
  * computed style that is only accurate AFTER `applyCssEverywhere` has actually run, so a role
@@ -159,7 +159,7 @@ class SlCustomizer extends HTMLElement {
 	connectedCallback() {
 		if (this._svcInitialized) return;
 		this._svcInitialized = true;
-		// Studio design doc, item D: this same `<sl-customizer>` + panel.js pairing is mounted by
+		// This same `<sl-customizer>` + panel.js pairing is mounted by
 		// EVERY Starlight page via CustomizerFooter.astro, including every page the studio's own
 		// preview iframe(s) load - `data-svc-preview` marks those iframes, so a copy of this element
 		// running INSIDE one must not build a second, redundant panel (the studio's own top-level
@@ -184,14 +184,13 @@ class SlCustomizer extends HTMLElement {
 		const inStudioShell = this.ownerDocument.querySelector('iframe[data-svc-preview]') != null;
 
 		// =========================================================================================
-		// SPEC-C phase 3, workstream F (F1) - overlay-mount gate. Point 1: "the two top-right icons
-		// open a different UX" - the maintainer wants a top-level page visit to show exactly what a
-		// real visitor sees (the saved theme, applied purely by the no-flash preload path already in
-		// place - no JS needed for that part) instead of always dropping them into the overlay
-		// drawer. The overlay stays reachable, but only behind an explicit URL flag now used solely by
-		// this project's own engine test suites (smoke/ui-round2/treatments/targets/tiles.mjs all pass
-		// it explicitly) - a real visitor never has a reason to type it. `?svc-overlay` is checked with
-		// `.has()` (bare `?svc-overlay` or `?svc-overlay=1`, either works; no value comparison needed).
+		// Overlay-mount gate: a top-level page visit should show exactly what a real visitor sees (the
+		// saved theme, applied purely by the no-flash preload path already in place - no JS needed for
+		// that part) instead of always dropping them into the overlay drawer. The overlay stays
+		// reachable, but only behind an explicit URL flag now used solely by this project's own engine
+		// test suites (smoke/ui-round2/treatments/targets/tiles.mjs all pass it explicitly) - a real
+		// visitor never has a reason to type it. `?svc-overlay` is checked with `.has()` (bare
+		// `?svc-overlay` or `?svc-overlay=1`, either works; no value comparison needed).
 		// =========================================================================================
 		if (!inStudioShell) {
 			let hasOverlayFlag = false;
@@ -202,11 +201,11 @@ class SlCustomizer extends HTMLElement {
 			}
 			if (!hasOverlayFlag) {
 				mountOpenInStudioPill(this);
-				return; // F1: no panel mounts - the page is exactly what a real visitor sees
+				return; // no panel mounts - the page is exactly what a real visitor sees
 			}
 		}
 		// =========================================================================================
-		// End F1 overlay-mount gate.
+		// End overlay-mount gate.
 		// =========================================================================================
 
 		if (!inStudioShell && this.parentElement !== document.body) document.body.appendChild(this);
@@ -215,14 +214,13 @@ class SlCustomizer extends HTMLElement {
 }
 
 // ==================================================================================================
-// SPEC-C phase 3, workstream F (F1) - the "Open in Studio" pill mounted by the overlay-mount gate
-// above for a plain top-level page visit. Deliberately outside `initCustomizer`/the shadow root: no
-// panel state exists on this path at all, so this needs nothing `initCustomizer` builds. Its CSS is
-// injected here (a plain `<style>` in the light document), never added to `styles.js` (workstream
-// P's file, and that file's rules only ever apply inside `<sl-customizer>`'s own shadow root anyway -
-// this pill deliberately lives in the page's light DOM so `--sl-color-*` custom properties resolve
-// against whatever theme is ALREADY applied to the page, making it light/dark aware for free without
-// this file needing to track the page's mode itself).
+// The "Open in Studio" pill mounted by the overlay-mount gate above for a plain top-level page
+// visit. Deliberately outside `initCustomizer`/the shadow root: no panel state exists on this path
+// at all, so this needs nothing `initCustomizer` builds. Its CSS is injected here (a plain `<style>`
+// in the light document), never added to `styles.js` (whose rules only ever apply inside
+// `<sl-customizer>`'s own shadow root anyway - this pill deliberately lives in the page's light DOM
+// so `--sl-color-*` custom properties resolve against whatever theme is ALREADY applied to the page,
+// making it light/dark aware for free without this file needing to track the page's mode itself).
 // ==================================================================================================
 const OPEN_IN_STUDIO_PILL_STYLE_ID = 'svc-open-in-studio-style';
 const OPEN_IN_STUDIO_PILL_CSS = `
@@ -283,7 +281,7 @@ function initCustomizer(host) {
 	// page-facing operation at the frame(s) instead of `document` (see attachToPageDoc below, and
 	// page-doc.js). Absent in plain overlay mode, where every getPageDoc()/getPageWin() call below
 	// resolves to `document`/`window` and behavior is byte-identical to before the studio existed.
-	// SPEC-C S9 (Split): there can be TWO frames (light + dark lanes); `setFrameEls` records all of
+	// Split mode: there can be TWO frames (light + dark lanes); `setFrameEls` records all of
 	// them, `getPageDoc()`/`getFrameEl()` stay pinned to the first (the primary lane).
 	const frameEls = Array.from(host.ownerDocument.querySelectorAll('iframe[data-svc-preview]'));
 	if (frameEls.length) {
@@ -297,9 +295,9 @@ function initCustomizer(host) {
 	let lastSaveOk = persistState(state);
 	let lastSaveAt = Date.now();
 
-	// ---- UI-state contract (SPEC.md Round 2 item 2): open groups, panel scroll offset, filter
+	// ---- UI-state contract: open groups, panel scroll offset, filter
 	// text, and drawer-collapsed persist in sessionStorage (per-tab, not per-theme) and are restored
-	// synchronously before this function returns. Extended by SPEC-C S4's `activeGroup`. -------------
+	// synchronously before this function returns. Also carries `activeGroup` (below). -------------
 	let uiState = loadUiState();
 	function persistUi(partial) {
 		// Re-reads sessionStorage fresh on every write - studio.js owns its OWN fields
@@ -312,14 +310,14 @@ function initCustomizer(host) {
 	let openGroupsSet = new Set(Array.isArray(uiState.openGroups) ? uiState.openGroups : DEFAULT_OPEN_GROUPS);
 	let pendingScrollTop = typeof uiState.scrollTop === 'number' ? uiState.scrollTop : 0;
 	let followOnPage = uiState.followOnPage !== false; // default on
-	/** SPEC-C S4: "Active group persists in sessionStorage['svc-ui']." */
+	/** Active group persists in sessionStorage['svc-ui']. */
 	let activeGroupName = RAIL_GROUPS.includes(uiState.activeGroup) ? uiState.activeGroup : 'Presets';
 
-	// ---- item 3: per-section open/closed state. Keyed by `group::section` so an absent key means
-	// "use the default", not "closed". SPEC-C P4 (settled with the maintainer 2026-09-24): the
-	// default is now "every section starts open" (superseding B's original "only the first section
-	// starts open" - `isFirstInGroup` is still threaded through for callers/bookkeeping that need to
-	// know which section is first, but no longer gates the default). -------------------------------
+	// ---- Per-section open/closed state. Keyed by `group::section` so an absent key means
+	// "use the default", not "closed". The default is "every section starts open" (an earlier
+	// build only opened the first section by default - `isFirstInGroup` is still threaded through
+	// for callers/bookkeeping that need to know which section is first, but no longer gates the
+	// default). -------------------------------
 	let sectionOpenOverrides =
 		uiState.openSections && typeof uiState.openSections === 'object' && !Array.isArray(uiState.openSections)
 			? { ...uiState.openSections }
@@ -341,9 +339,7 @@ function initCustomizer(host) {
 	let sectionDotRefreshers = [];
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4) - marked block per SPEC-C section 5b's ownership rule ("In
-	// ui/panel.js: only section/card open-state and the expand/collapse controls"). Per-CARD
-	// open/closed state, one level below the section state just above - same "every card starts
+	// Per-CARD open/closed state, one level below the section state just above - same "every card starts
 	// open unless a restored choice says otherwise" contract, keyed by the globally-unique control id
 	// (a control's id is scoped to exactly one group/section by construction, so this is equivalent
 	// to "per group" without needing a compound key).
@@ -361,7 +357,7 @@ function initCustomizer(host) {
 	// End marked block (continues below at the group-header Expand all / Collapse all buttons).
 	// =============================================================================================
 
-	// ---- SPEC-C S11: undo/redo. `historyStepCounter` gives every discrete action (preset/reset-
+	// ---- Undo/redo. `historyStepCounter` gives every discrete action (preset/reset-
 	// group/reset-all/import) its own never-coalescing key; ordinary control edits key off the
 	// control id itself so a slider drag - many `input` events, one id - coalesces into one step. ----
 	const history = createHistory({ limit: 100, coalesceMs: 650 });
@@ -424,7 +420,7 @@ function initCustomizer(host) {
 
 		doc.getElementById(PRELOAD_STYLE_ID)?.remove();
 		stampTocLevels(doc);
-		applySiteTitle(doc, getValue(state, 'site.title')); // SPEC-C phase 2, workstream E (E4): reapply on every lane/navigation - see the marked block below.
+		applySiteTitle(doc, getValue(state, 'site.title')); // Reapply on every lane/navigation.
 		harvestSidebarTemplates(doc);
 
 		const win = doc.defaultView || window;
@@ -437,8 +433,8 @@ function initCustomizer(host) {
 		renderSidebar(doc, state.ia);
 
 		const isPrimary = doc === getPageDoc();
-		// Host mirrors the PRIMARY lane's theme (S2). A secondary Split lane's theme is FORCED by
-		// studio.js instead (S9) and must never drive the host/chrome mode.
+		// Host mirrors the PRIMARY lane's theme. A secondary Split lane's theme is FORCED by
+		// studio.js instead and must never drive the host/chrome mode.
 		if (isPrimary && doc.documentElement.dataset.theme) {
 			document.documentElement.dataset.theme = doc.documentElement.dataset.theme;
 			syncThemeButton();
@@ -469,7 +465,7 @@ function initCustomizer(host) {
 			rafHandle = null;
 			applyCssEverywhere(emitCss(state, { forPreview: true }));
 			for (const doc of laneSheets.keys()) ensureFontsInjectedIn(doc, state);
-			for (const doc of laneSheets.keys()) applySiteTitle(doc, getValue(state, 'site.title')); // SPEC-C phase 2, workstream E (E4): live as you type - see the marked block below.
+			for (const doc of laneSheets.keys()) applySiteTitle(doc, getValue(state, 'site.title')); // Live as you type.
 			lastSaveOk = persistState(state);
 			lastSaveAt = Date.now();
 			persistPreviewCss();
@@ -491,8 +487,8 @@ function initCustomizer(host) {
 	styleEl.textContent = panelStyles;
 	shadow.appendChild(styleEl);
 
-	// ---- "what does this control change?" (SPEC.md Round 2 item 4; S10 reuses `notify` for
-	// rail-driven scroll-to-surface) ----------------------------------------------------------------
+	// ---- "what does this control change?" (the rail's own scroll-to-surface reuses this same
+	// `notify`) ----------------------------------------------------------------
 	const targetHighlighter = createTargetHighlighter(shadow, { getPageDoc, getFrameEl });
 	targetHighlighter.setEnabled(followOnPage);
 
@@ -512,23 +508,19 @@ function initCustomizer(host) {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 2, workstream E - one small, additive hook (contract section 5: "in panel.js add
-	// only small additive hooks... in ONE clearly marked block"; the two `applySiteTitle` call sites
-	// above, in `attachToPageDoc` and `scheduleApply`, are the other half of E4 and are marked the
-	// same way). `onChangeMany` lets E1's hex color field commit hue AND (for accent/gray) chroma -
+	// `onChangeMany` lets the hex color field commit hue AND (for accent/gray) chroma -
 	// two different control ids - as ONE undo step: routing both through `onControlChange` would
-	// record two separate history snapshots (different coalescing keys), failing E1's "one undo
-	// step" acceptance. Same one-history-step shape `onApplyPreset`/`onResetGroup` already use below.
+	// record two separate history snapshots (different coalescing keys), breaking the "one undo
+	// step" contract for a single hex-field commit. Same one-history-step shape `onApplyPreset`/
+	// `onResetGroup` already use below.
 	//
-	// SPEC-C phase 3, workstream P (P3) - one additional, minimal parameter, `coalesceKey` (reported
-	// in the build report as a deliberate exception to "only section/card open-state" - it's a one-
-	// line, backward-compatible addition needed for the color popover's own drag coalescing, not
-	// section/card state, but touching `panel.js` anywhere else to get the same effect would have
-	// meant a much larger change). Every EXISTING caller (the hex field's Enter/blur commit) omits it
-	// and keeps recording a distinct step per call, exactly as before. The popover's `color-changed`
-	// event fires continuously during a drag - without a STABLE key repeated across those calls, each
-	// one would record its own undo step (unlike a plain slider's `input` events, which already
-	// coalesce by the single control id they share) - see controls.js's `buildColorAssistRow`.
+	// The optional `coalesceKey` parameter is a one-line, backward-compatible addition needed for
+	// the color popover's own drag coalescing. Every EXISTING caller (the hex field's Enter/blur
+	// commit) omits it and keeps recording a distinct step per call, exactly as before. The
+	// popover's `color-changed` event fires continuously during a drag - without a STABLE key
+	// repeated across those calls, each one would record its own undo step (unlike a plain slider's
+	// `input` events, which already coalesce by the single control id they share) - see
+	// controls.js's `buildColorAssistRow`.
 	// =============================================================================================
 	function onControlChangeMany(entries, coalesceKey) {
 		history.record(state, coalesceKey ? `multi:${coalesceKey}` : distinctHistoryKey('multi'), Date.now());
@@ -562,7 +554,7 @@ function initCustomizer(host) {
 		fullRerenderControls();
 	}
 
-	/** SPEC-C S5: the panel column's reset-group button - one undo step. */
+	/** The panel column's reset-group button - one undo step. */
 	function onResetGroup(groupName) {
 		if (groupName === 'Navigation') {
 			if (state.ia === null) return;
@@ -629,7 +621,7 @@ function initCustomizer(host) {
 	// ---- IA editor ("Navigation structure (advanced)"/"Structure (advanced)"), built once so it
 	// keeps its own internal state, shared by whichever chrome wraps it. ----------------------------
 	const iaEditor = createIaEditor(state, {
-		// Coordinator bug fix: a Structure (advanced) edit never called `history.record` at all, so
+		// A Structure (advanced) edit never called `history.record` at all, so
 		// Undo silently skipped it and undid whatever OTHER step preceded it instead (repro: apply a
 		// preset, drag a row, Undo once - the preset was undone, not the drag). `coalesceKey` (from
 		// ia-editor.js's per-item rename key) lets a whole typing+blur gesture coalesce into one step,
@@ -649,7 +641,7 @@ function initCustomizer(host) {
 			notifySubscribers();
 			if (studio) refreshStudioChrome();
 		},
-	}, { studio }); // SPEC-C E3: studio gets the restyled Codex-shaped tree; overlay stays exactly as before.
+	}, { studio }); // Studio gets the restyled tree; overlay stays exactly as before.
 
 	// ---- export dialog -------------------------------------------------------------------------
 	const exportDialog = createExportDialog({
@@ -657,7 +649,7 @@ function initCustomizer(host) {
 		onImportState: importStateFromJson,
 	});
 	shadow.appendChild(exportDialog.root);
-	// SPEC-C S12: the status bar's contrast-warnings dialog lives here (not in studio.js's light
+	// The status bar's contrast-warnings dialog lives here (not in studio.js's light
 	// DOM) so it can reuse this shadow root's `.svc-dialog*` CSS - a dialog built in light DOM would
 	// have no styling at all (styles.js's stylesheet only applies inside this shadow root).
 	const contrastDialog = createContrastDialog();
@@ -910,14 +902,12 @@ function initCustomizer(host) {
 		shadow.appendChild(rail);
 
 		// =============================================================================================
-		// SPEC-C phase 3, workstream F (F3) - panel-collapse state, marked block. Originally: "Clicking
-		// the already-selected rail item collapses the panel column"; the maintainer later removed that
-		// specific affordance (see the rail click handler below) - collapsing now happens ONLY via the
-		// panel column's header collapse button and the `\` key, both still wired through
-		// `setPanelCollapsed`/`togglePanelCollapse` below. `styles.js` (workstream P's file) is never
-		// touched for this - both the host's own width and the panel column's visibility are set here
-		// as plain inline styles/properties, which win over any external stylesheet rule by specificity
-		// alone.
+		// Panel-collapse state. An earlier build let clicking the already-selected rail item collapse
+		// the panel column; that affordance was removed (see the rail click handler below) - collapsing
+		// now happens ONLY via the panel column's header collapse button and the `\` key, both still
+		// wired through `setPanelCollapsed`/`togglePanelCollapse` below. `styles.js` is never touched
+		// for this - both the host's own width and the panel column's visibility are set here as plain
+		// inline styles/properties, which win over any external stylesheet rule by specificity alone.
 		// =============================================================================================
 		let panelCollapsed = uiState.panelCollapsed === true;
 		/** @param {boolean} next */
@@ -937,7 +927,7 @@ function initCustomizer(host) {
 				? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>'
 				: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 		}
-		// A small inline `<style>` (never styles.js - P's file) for the collapse button itself, reusing
+		// A small inline `<style>` (never styles.js) for the collapse button itself, reusing
 		// the panel's own already contrast-verified tokens.
 		const collapseBtnStyle = document.createElement('style');
 		collapseBtnStyle.textContent = `.svc-panel-collapse-btn { border: 1px solid var(--ui-line, #dde1e8); background: var(--ui-panel, #fff); color: var(--ui-text, #343b4a); border-radius: 6px; width: 1.75rem; height: 1.75rem; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; } .svc-panel-collapse-btn:hover { background: var(--ui-bg, #f5f6f8); } .svc-panel-collapse-btn:focus-visible { outline: 2px solid var(--ui-accent, #4453c9); outline-offset: 1px; }`;
@@ -945,8 +935,8 @@ function initCustomizer(host) {
 		const collapseBtn = document.createElement('button');
 		collapseBtn.type = 'button';
 		collapseBtn.className = 'svc-panel-collapse-btn';
-		// ===== end F3 marked block (declarations - the button is wired into the filter row below,
-		// and setPanelCollapsed(panelCollapsed) is applied once buildBody has run, further down) =====
+		// ===== end panel-collapse declarations - the button is wired into the filter row below,
+		// and setPanelCollapsed(panelCollapsed) is applied once buildBody has run, further down =====
 
 		/** @type {Map<string, HTMLButtonElement>} */
 		const railItems = new Map();
@@ -975,9 +965,9 @@ function initCustomizer(host) {
 			btn.appendChild(dot);
 			btn.addEventListener('click', () => {
 				// =====================================================================================
-				// SPEC-C phase 3, workstream F (F3), reversed by the maintainer: clicking the ALREADY-
-				// selected rail item used to collapse the panel column - that affordance is removed
-				// (a re-click is now a plain no-op-on-collapse: it keeps re-selecting the same group,
+				// Clicking the ALREADY-selected rail item used to collapse the panel column - that
+				// affordance is removed (a re-click is now a plain no-op-on-collapse: it keeps
+				// re-selecting the same group,
 				// same as any other rail click, so it still re-scrolls to the group's target exactly
 				// the way a normal selection already does - no new scroll behavior is added here).
 				// Collapsing is still reachable via the panel-header collapse button and the `\` key
@@ -1032,8 +1022,8 @@ function initCustomizer(host) {
 		filterInput.value = typeof uiState.filterText === 'string' ? uiState.filterText : '';
 		filterInput.addEventListener('input', () => applyPanelFilter(filterInput.value));
 		filterRow.appendChild(filterInput);
-		// ===== F3 marked block: the collapse button sits beside the filter (not in groupHeader, which
-		// workstream P's own P4 work adds Expand/Collapse-all buttons to) - inline layout styles here,
+		// ===== The collapse button sits beside the filter (not in groupHeader, which gets its own
+		// Expand/Collapse-all buttons below) - inline layout styles here,
 		// never styles.js, since .svc-panel-filter-row's own CSS (that file) only ever laid out one
 		// child (the filter input) before this. =====
 		filterRow.style.display = 'flex';
@@ -1043,7 +1033,7 @@ function initCustomizer(host) {
 		filterInput.style.minWidth = '0';
 		collapseBtn.addEventListener('click', () => setPanelCollapsed(!panelCollapsed));
 		filterRow.appendChild(collapseBtn);
-		// ===== end F3 marked block =====
+		// ===== end collapse-button wiring =====
 		panelCol.appendChild(filterRow);
 
 		const groupHeader = document.createElement('div');
@@ -1062,7 +1052,7 @@ function initCustomizer(host) {
 			onResetGroup(activeGroupName);
 			refreshStudioChrome();
 		});
-		// SPEC-C phase 3, workstream P (P4) - marked block: Expand all / Collapse all, beside the
+		// Expand all / Collapse all, beside the
 		// existing reset-group button. Button click handlers are wired further below, once
 		// `groupPanelsByName` exists - see that block for the two-stage Collapse all logic.
 		const groupHeaderActions = document.createElement('div');
@@ -1092,7 +1082,7 @@ function initCustomizer(host) {
 		/** @type {Map<string, {root: HTMLElement}>} */
 		const groupPanelsByName = new Map();
 
-		// SPEC-C phase 3, workstream P (P4) - marked block, continued: Expand all / Collapse all act
+		// Expand all / Collapse all act
 		// on the ACTIVE group's own panel by re-clicking its real section/card toggle buttons (script
 		// `.click()` on our own already-built DOM is ordinary production code, not a test - it fires
 		// through the exact same onSectionToggle/onCardToggle persistence path a user's own click
@@ -1158,9 +1148,9 @@ function initCustomizer(host) {
 			}
 
 			const navPanel = createStudioGroupPanel('Navigation', [], state, controlHandlers, { title: 'Structure (advanced)' });
-			// SPEC-C E3: no separate note here (unlike the overlay branch above) - the restyled Codex-
-			// shaped tree (`iaEditor.root`, studio mode) supplies its own note at the top ("Changes the
-			// sidebar structure...", E3's exact wording), so a second one here would just duplicate it.
+			// No separate note here (unlike the overlay branch above) - the restyled
+			// studio tree (`iaEditor.root`, studio mode) supplies its own note at the top ("Changes the
+			// sidebar structure..."), so a second one here would just duplicate it.
 			navPanel.body.appendChild(iaEditor.root);
 			panelSections.appendChild(navPanel.root);
 			groupPanelsByName.set('Navigation', navPanel);
@@ -1168,9 +1158,9 @@ function initCustomizer(host) {
 			updatePanelVisibility();
 		};
 
-		/** SPEC-C S5: filter empty -> only the active group's panel shows (single eyebrow/title/desc
-		 * above); filter non-empty -> every group searches, matches show under their own group heading
-		 * (S5: "shows matches under group headings"), the single group header above is hidden. */
+		/** Filter empty -> only the active group's panel shows (single eyebrow/title/desc
+		 * above); filter non-empty -> every group searches, matches show under their own group
+		 * heading, the single group header above is hidden. */
 		function updatePanelVisibility() {
 			const filtering = filterInput.value.trim() !== '';
 			panelSections.dataset.filtering = String(filtering);
@@ -1179,7 +1169,7 @@ function initCustomizer(host) {
 				for (const [name, panel] of groupPanelsByName) panel.root.hidden = name !== activeGroupName;
 			} else {
 				// Presets and Navigation have no filterable control rows - applyControlFilter (below)
-				// deliberately skips them (same as B's overlay accordion always did), so without this
+				// deliberately skips them (same as the overlay accordion always did), so without this
 				// they'd keep whatever `hidden` state they had from BEFORE filtering started (e.g. still
 				// visible if they were the active group) instead of dropping out of the search results.
 				groupPanelsByName.get('Presets').root.hidden = true;
@@ -1204,7 +1194,7 @@ function initCustomizer(host) {
 			eyebrow.textContent = (RAIL_CATEGORY_EYEBROW[groupName] ?? groupName).toUpperCase();
 			groupTitleEl.textContent = displayTitle;
 			groupDescEl.textContent = GROUP_DESCRIPTIONS[groupName] ?? '';
-			// P4: Presets has no controls of its own to reset - the button was always disabled there,
+			// Presets has no controls of its own to reset - the button was always disabled there,
 			// but showing a permanently-disabled control is worse than not showing one at all.
 			resetGroupBtn.hidden = groupName === 'Presets';
 			const hasOverride = groupHasOverride(groupName, state);
@@ -1214,7 +1204,7 @@ function initCustomizer(host) {
 			resetGroupBtn.querySelector('span:last-child').textContent = 'Reset';
 			resetGroupBtn.title = `Reset ${displayTitle} to Starlight defaults`;
 			resetGroupBtn.setAttribute('aria-label', `Reset ${displayTitle} to Starlight defaults`);
-			// SPEC-C phase 3, workstream P (P4): Presets and Navigation have neither sections nor cards
+			// Presets and Navigation have neither sections nor cards
 			// of their own (a preset gallery / the Structure tree, respectively) for these to act on.
 			const noSectionsOrCards = groupName === 'Presets' || groupName === 'Navigation';
 			expandAllBtn.hidden = noSectionsOrCards;
@@ -1273,7 +1263,7 @@ function initCustomizer(host) {
 			}
 		}
 
-		/** SPEC-C S10. Exposed as `host.__svc.openGroup` for phase-2 Inspect. */
+		/** Exposed as `host.__svc.openGroup` for Inspect. */
 		function openGroup(name, opts = {}) {
 			const { scroll = true, focusControlId } = opts;
 			if (!RAIL_GROUPS.includes(name)) return;
@@ -1294,8 +1284,8 @@ function initCustomizer(host) {
 		}
 
 		// =========================================================================================
-		// SPEC-C phase 2, workstream I (Inspect) - additive controller functions ONLY. inspect.js
-		// (workstream I, `ui/inspect.js`) drives everything else itself via direct `host.shadowRoot`
+		// Inspect support - additive controller functions ONLY. `ui/inspect.js`
+		// drives everything else itself via direct `host.shadowRoot`
 		// queries (row elements, sections) - these three exist only for state this closure already
 		// owns and inspect.js has no other way to reach: `controlRows` (row DOM per control id) and
 		// `targetHighlighter`'s enable flag (see `openGroupForInspect` below).
@@ -1314,7 +1304,7 @@ function initCustomizer(host) {
 		}
 		/**
 		 * Opens `groupName` and focuses `focusControlId`'s own input, for an Inspect click/selection
-		 * (I4: "the page does not scroll on an Inspect click"). `openGroup`'s own `focusControlId`
+		 * (the page must not scroll on an Inspect click). `openGroup`'s own `focusControlId`
 		 * path calls that control row's `.focus()`, and every control's input already wires `focus ->
 		 * notifyTarget(true) -> targetHighlighter.notify(target, {scroll:true})` (controls.js, for the
 		 * unrelated "focus a control, see what it affects" feature) - left enabled, that would scroll
@@ -1331,11 +1321,10 @@ function initCustomizer(host) {
 			openGroup(groupName, { scroll: false, focusControlId });
 			targetHighlighter.setEnabled(followOnPage);
 		}
-		// `.svc-control-inspected`'s CSS: SPEC-C section 5 asks for inspected-row styling to live
-		// here or be injected from inspect.js, never in styles.js (workstream E owns that file in
-		// phase 2). An inset accent bar + translucent tint (not accent-as-TEXT, which only reaches
+		// `.svc-control-inspected`'s CSS lives here or gets injected from inspect.js, never in
+		// styles.js. An inset accent bar + translucent tint (not accent-as-TEXT, which only reaches
 		// ~6.3:1 - short of the panel's 7:1 label floor) keeps every row's own text on an
-		// effectively-white background, so the A4 contrast walk sees no change.
+		// effectively-white background, so the contrast walk sees no change.
 		const inspectStyle = document.createElement('style');
 		inspectStyle.textContent = `.svc-control-inspected { background: var(--ui-accent-tint, rgba(68, 83, 201, 0.08)); border-radius: 6px; box-shadow: inset 3px 0 0 0 var(--ui-accent, #4453c9); }`;
 		shadow.appendChild(inspectStyle);
@@ -1351,7 +1340,7 @@ function initCustomizer(host) {
 			redo: doRedo,
 			canUndo: () => history.canUndo(),
 			canRedo: () => history.canRedo(),
-			// Coordinator polish round: studio mode has no visible "Reset all" button (only the overlay
+			// Studio mode has no visible "Reset all" button (only the overlay
 			// does), so tests need a way to exercise it - exposes the same `onResetAll` the overlay's own
 			// button already calls, one undo step, unchanged behavior.
 			resetAll: onResetAll,
@@ -1369,7 +1358,7 @@ function initCustomizer(host) {
 			getContrastReport: () => computeStatusContrastReport(state),
 			openContrastDialog: () => contrastDialog.open(computeStatusContrastReport(state)),
 			openGroup,
-			// SPEC-C phase 2, workstream I (Inspect) - see the marked block above `host.__svc`.
+			// Inspect support - see the block above `host.__svc`.
 			highlightControls,
 			clearInspected,
 			openGroupForInspect,
@@ -1386,7 +1375,7 @@ function initCustomizer(host) {
 				for (const id of Object.keys(COLOR_ASSIST)) controlRows.get(id)?.refresh(state);
 				for (const id of ROLE_OVERRIDE_IDS) controlRows.get(id)?.refresh(state);
 			},
-			// SPEC-C phase 3, workstream F (F3) - see the marked block above the rail loop. studio.js's
+			// See the panel-collapse block above the rail loop. studio.js's
 			// own `\` keyboard handler calls togglePanelCollapse(); the rail-click/header-button paths
 			// call setPanelCollapsed directly since they already close over it.
 			togglePanelCollapse: () => setPanelCollapsed(!panelCollapsed),
@@ -1395,7 +1384,7 @@ function initCustomizer(host) {
 
 		buildBody();
 		openGroup(activeGroupName, { scroll: false });
-		setPanelCollapsed(panelCollapsed); // F3: apply the persisted collapse state (host width, button icon/aria)
+		setPanelCollapsed(panelCollapsed); // Apply the persisted collapse state (host width, button icon/aria)
 	}
 
 	// Studio design doc, item D: triggers (2) and (3) for attachToPageDoc, registered before the
@@ -1430,8 +1419,8 @@ function loadInitialState() {
 	return defaultState();
 }
 
-/** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - SPEC-C
- * S13's save status ("Not saved (storage blocked)" when this is false). */
+/** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - drives
+ * the top bar's save status ("Not saved (storage blocked)" when this is false). */
 function persistState(state) {
 	try {
 		localStorage.setItem(LOCALSTORAGE_STATE_KEY, encodeState(state));
@@ -1443,8 +1432,8 @@ function persistState(state) {
 
 /**
  * @returns {{openGroups?: string[], scrollTop?: number, filterText?: string, collapsed?: boolean,
- *   followOnPage?: boolean, activeGroup?: string}} Panel UI state (SPEC.md Round 2 item 2, extended
- *   by SPEC-C S4's `activeGroup`). `sessionStorage`, not `localStorage`.
+ *   followOnPage?: boolean, activeGroup?: string}} Panel UI state, including the rail's
+ *   `activeGroup`. `sessionStorage`, not `localStorage`.
  */
 function loadUiState() {
 	try {
@@ -1508,7 +1497,7 @@ function fontFaceCss(state) {
 // studio.astro's own document is kept cascade-identical to the previewed page for exactly those
 // tokens (same base props.css, same emitted theme CSS via `hostSheet`, `data-theme` kept in sync
 // with the primary lane's). Reading `document` here is correct in both modes and avoids a
-// cross-document computed-style read entirely. SPEC-C's S12 status-bar contrast report also uses
+// cross-document computed-style read entirely. The status-bar contrast report also uses
 // this (with an explicit themeOverride for BOTH modes) rather than re-deriving Starlight's cascade
 // by hand - see STATUS_CONTRAST_PAIRS's comment.
 function resolveCssColor(cssProperty, cssValue, themeOverride) {
@@ -1545,7 +1534,7 @@ function computeContrastRows() {
 	];
 }
 
-/** SPEC-C S12, status bar left: "N changes from Starlight default" - `state.values` already holds
+/** Status bar left: "N changes from Starlight default" - `state.values` already holds
  * exactly the controls that differ from their manifest default (setValue's own canonicalization
  * drops a value equal to the default instead of storing it), so its key count IS that number
  * directly, with each `color.role.*` override counted individually. Structure edits
@@ -1555,7 +1544,7 @@ function computeChangeCount(state) {
 }
 
 /**
- * SPEC-C S12, status bar middle: contrast for BOTH light and dark, from the palette actually in
+ * Status bar middle: contrast for BOTH light and dark, from the palette actually in
  * effect.
  * @param {import('../core/state.js').ThemeState} state
  * @returns {{rows: {label:string, mode:'dark'|'light', ratio:number, target:number, pass:boolean, textColor:string, bgColor:string}[], allPass: boolean, minRatio: number, target: number}}

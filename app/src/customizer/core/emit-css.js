@@ -2,7 +2,7 @@
  * @file Pure CSS emitter. Given a `ThemeState` (see `state.js`), produces the exact `theme.css`
  * text a real `@astrojs/starlight@0.42.4` site would load via `customCss`. DOM-free, deterministic
  * (same state -> byte-identical output), unlayered (never wrapped in `@layer`, so it always wins
- * over Starlight's own `@layer starlight.*` rules whenever a selector matches - see SPEC.md),
+ * over Starlight's own `@layer starlight.*` rules whenever a selector matches),
  * and emits `!important` nowhere.
  *
  * General rule: every control is emitted only when its effective value differs from the
@@ -157,7 +157,7 @@ const TREATMENT_IDS = [
 ];
 
 // ---------------------------------------------------------------------------------------------
-// Workstream K (SPEC-C section 4): controls ported from the Codex prototype onto real Starlight
+// A set of controls with literal selector overrides, on real Starlight
 // 0.42.4 selectors (unchanged from 0.42.3 - dist/style/*.css is byte-identical between the two).
 // Each is a literal selector-based override (not a custom property Starlight
 // itself declares on :root), so - unlike PALETTE_IDS/HUE_IDS/ROLE_IDS above - there is nothing to
@@ -521,7 +521,7 @@ function indent(block) {
 }
 
 /**
- * Workstream K's range/toggle controls: literal selector overrides, each independent of the
+ * This set's range/toggle controls: literal selector overrides, each independent of the
  * others (no shared custom property to gate as a group - contrast PALETTE_IDS above). Emitted
  * BEFORE `buildTreatmentRules` so two real interactions resolve correctly regardless of which
  * control the caller touched: `content.asidePadding`'s `padding` shorthand must precede
@@ -579,8 +579,8 @@ function buildKDetailRules(state) {
 		);
 	}
 	if (!isDefault(state, 'toc.depthGuides') && getValue(state, 'toc.depthGuides') === true) {
-		// F4 fix (SPEC-C phase 3, point 11 - maintainer's Long doc screenshot showed no lines and
-		// "irregular" indentation). Two separate bugs in the old rule:
+		// Fixes two separate bugs in the old rule (its output showed no lines and
+		// "irregular" indentation on a long document):
 		//  1. It unconditionally set `padding-inline-start: 0.25rem` on every nested `<a>`, clobbering
 		//     Starlight's own per-depth formula (`calc(1rem * var(--depth) + 0.5rem)`,
 		//     TableOfContentsList.astro) AND toc.indent's own override below - depth-1 and depth-2

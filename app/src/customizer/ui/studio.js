@@ -1,6 +1,6 @@
 /**
- * @file SPEC-C studio light-DOM shell: top bar (S1, S13, S14), toolbar (S6), context line (S7),
- * the preview stage - one or two lanes, scaling (S8), Split (S9) - and the status bar (S12).
+ * @file Studio light-DOM shell: top bar, toolbar, context line,
+ * the preview stage - one or two lanes, scaling, Split - and the status bar.
  * Everything here lives in the studio's OWN document (never a shadow root) and talks to panel.js
  * through the controller it sets on `<sl-customizer>`, `host.__svc` (see panel.js's file header for
  * the full surface: getState/subscribe/undo/redo/canUndo/canRedo/setName/getName/getSaveStatus/
@@ -24,7 +24,7 @@ const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 // `location.pathname` back (needs the base stripped off before it's compared/stored).
 const DEFAULT_PAGE_PATH = '/specimen/';
 
-/** SPEC-C S6, consolidated (phase 3 follow-up): four tabs, not B's original seven - Style guide,
+/** Four tabs - Style guide,
  * Document (was "Long doc"; tab label only - the file is still `guides/kitchen-sink.mdx`), Landing,
  * 404. The three dropped pages (Article, Short doc, Reference) all share Document's `template: doc`
  * layout, so they added length/frontmatter variety but no new template; they stay in the demo site,
@@ -38,8 +38,8 @@ const STUDIO_PAGES = [
 ];
 export { STUDIO_PAGES };
 
-/** SPEC-C S8/F2: Fit (fills the lane, always scale 1, no transform) plus fixed natural widths.
- * F2 (SPEC-C phase 3, point 6) adds Laptop 1280, Wide 1920 and Ultra-wide 2560 alongside the
+/** Fit (fills the lane, always scale 1, no transform) plus fixed natural widths.
+ * Laptop 1280, Wide 1920 and Ultra-wide 2560 sit alongside the
  * original Desktop 1440/Tablet 820/Mobile 390 - "seeing the desktop layout on large screens". */
 const STUDIO_DEVICES = [
 	{ id: 'fit', label: 'Fit', width: null },
@@ -74,7 +74,7 @@ const ICONS = {
 	fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
 	tablet: '<rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M11.5 18h1"/>',
 	mobile: '<rect x="8" y="3" width="8" height="18" rx="1.2"/><path d="M11.5 18h1"/>',
-	// F2 (SPEC-C phase 3, point 6): distinct silhouettes for Wide/Ultra-wide - flatter/wider than
+	// Distinct silhouettes for Wide/Ultra-wide - flatter/wider than
 	// `desktop`, and progressively more so, so the three read as a size progression at a glance.
 	wide: '<rect x="2" y="6" width="20" height="9" rx="1"/><path d="M9 19h6M12 15v4"/>',
 	ultrawide: '<rect x="1" y="7.5" width="22" height="6" rx="1"/><path d="M10 19h4M12 13.5v5.5"/>',
@@ -234,7 +234,7 @@ export function initStudioShell() {
 		}
 	});
 
-	// F3 (SPEC-C phase 3, point 6): '\' toggles the panel column collapsed/expanded, ignored while
+	// '\' toggles the panel column collapsed/expanded, ignored while
 	// typing - no modifier key, so it must NOT fire inside any text field (unlike the Ctrl/Cmd
 	// shortcuts above, a bare '\' is a real character a person could otherwise be typing).
 	document.addEventListener('keydown', (event) => {
@@ -323,7 +323,7 @@ export function initStudioShell() {
 		recomputeAllScales();
 	}
 
-	// ---- F2: zoom (SPEC-C phase 3, point 6) ----
+	// ---- Zoom ----
 	/** @param {'fit'|number} next */
 	function setZoom(next) {
 		zoom = next;
@@ -564,7 +564,7 @@ export function initStudioShell() {
 
 	const deviceSeg = h('div', { class: 'svc-seg', role: 'group', 'aria-label': 'Device width' });
 	const deviceButtons = new Map();
-	// F2 (SPEC-C phase 3, point 6): Wide/Ultra-wide get their own distinct silhouettes; Laptop 1280
+	// Wide/Ultra-wide get their own distinct silhouettes; Laptop 1280
 	// and Desktop 1440 share `desktop` (the title tooltip's own width already tells them apart).
 	const deviceIcons = { fit: 'fit', '1280': 'desktop', '1440': 'desktop', '1920': 'wide', '2560': 'ultrawide', tablet: 'tablet', mobile: 'mobile' };
 	for (const device of STUDIO_DEVICES) {
@@ -578,7 +578,7 @@ export function initStudioShell() {
 	}
 	toolbarRight.appendChild(deviceSeg);
 
-	// ---- F2: zoom control (SPEC-C phase 3, point 6) - minus, current percentage, plus, Fit. ----
+	// ---- Zoom control - minus, current percentage, plus, Fit. ----
 	const zoomSeg = h('div', { class: 'svc-seg svc-zoom-seg', role: 'group', 'aria-label': 'Zoom' });
 	const zoomMinusBtn = h('button', { type: 'button', class: 'svc-seg-btn', 'aria-label': 'Zoom out' }, '−');
 	const zoomValueEl = h('span', { class: 'svc-zoom-value' });
@@ -593,9 +593,9 @@ export function initStudioShell() {
 	zoomSeg.appendChild(zoomFitBtn);
 	toolbarRight.appendChild(zoomSeg);
 
-	// F1 (SPEC-C phase 3, point 1): the overlay panel is retired from the studio's own UI - "the two
-	// top-right icons open a different UX" was exactly the maintainer's complaint, and "Open in new
-	// tab" alone now covers "see this page outside the studio" (F1's visitor-mode page, complete with
+	// The overlay panel is retired from the studio's own UI - the two
+	// top-right icons used to open a different UX, and "Open in new
+	// tab" alone now covers "see this page outside the studio" (the visitor-mode page, complete with
 	// its own "Open in Studio" pill to come back). The overlay stays reachable only behind the
 	// `?svc-overlay` URL flag (panel.js's overlay-mount gate), used solely by the engine test suites.
 	const newTabLink = h('a', { class: 'svc-icon-link', target: '_blank', rel: 'noopener', title: 'Open in new tab', 'aria-label': 'Open in new tab' }, icon('newtab', 16));

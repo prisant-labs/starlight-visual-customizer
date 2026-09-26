@@ -1,6 +1,6 @@
 /**
  * @file Shared tile-grid widget: a native `<input type=radio>` group rendered as a 2-column grid
- * of clickable option tiles (SPEC.md "B" tiles item 1) - one rendered example on top, the option
+ * of clickable option tiles - one rendered example on top, the option
  * label below, a clear ring on the selected tile, arrow-key navigation and visible focus for free
  * from the platform's own radio-group behavior (no custom keyboard handling needed). Two preview
  * strategies share this one grid/selection engine:
@@ -12,7 +12,7 @@
  *    `--sl-*` custom properties, which inherit through shadow boundaries regardless (`all: initial`
  *    on `:host` does not reset custom properties - excluded from the `all` shorthand by spec).
  * Both read `control.options` (every option, including the default) so the grid always has exactly
- * one tile per option, per SPEC.md's verification bullet.
+ * one tile per option.
  */
 import { getValue } from '../../core/state.js';
 import { treatments } from '../../core/treatments.js';
@@ -25,7 +25,7 @@ import { renderWireframe, WIREFRAME_SIZE } from './wireframes.js';
 let uidCounter = 0;
 
 // ---------------------------------------------------------------------------------------------
-// Fixed-width "virtual canvas", scaled to fit the tile (coordinator review, round 2: laying a real
+// Fixed-width "virtual canvas", scaled to fit the tile: laying a real
 // Starlight fragment out AT the tile's own ~150-180px width made multi-column layouts (pagination
 // cards, the header's 3-column grid) collapse/wrap/clip long before they'd naturally do so on a
 // real page, and cut off content on the right (search box, site title). Instead each live sample is
@@ -51,10 +51,10 @@ function getSharedResizeObserver() {
 				if (!target) continue;
 				const width = entry.contentRect.width;
 				if (width <= 0) continue;
-				// P6 (coordinator review, phase 3): only ever scale DOWN, never up - now that P5 makes
-				// every tile a full-width "rows" tile, stretching a sample authored for a narrow
+				// Only ever scale DOWN, never up - now that every tile is a full-width "rows" tile,
+				// stretching a sample authored for a narrow
 				// 2-column tile up to fill it would enlarge its whitespace right along with its content,
-				// working against this same round's own point of trimming samples down. Once the tile is
+				// working against the point of trimming samples down. Once the tile is
 				// at least as wide as the sample's own virtual canvas, the canvas simply RE-LAYS-OUT at
 				// the tile's real width (no transform) instead of being stretched.
 				const scale = Math.min(1, width / target.virtualWidth);
@@ -66,7 +66,7 @@ function getSharedResizeObserver() {
 					target.canvas.style.transform = `scale(${scale})`;
 				}
 				if (target.sizeToContent) {
-					// "rows" layout (coordinator review, round 3): no fixed 4:3 box - the preview's own
+					// "rows" layout: no fixed 4:3 box - the preview's own
 					// height tracks the SCALED canvas content height (offsetHeight is the canvas's real,
 					// unscaled layout height; transform:scale never changes that, only the paint), so
 					// there's no empty band below a short sample and no crop above a tall one. `height`
@@ -115,10 +115,10 @@ const DEFAULT_SHADOW_MD = {
  * it's editing), so this does NOT vary with `--sl-*` tokens even though tile *previews* do. Colors
  * are `var(--svc-tile-*, <dark fallback>)`, not literals: this grid mounts its OWN nested shadow
  * root (a separate stylesheet from styles.js's), but CSS custom properties still inherit down
- * through a shadow boundary from whatever ancestor sets them - SPEC-C's studio (docked) chrome sets
+ * through a shadow boundary from whatever ancestor sets them - the studio (docked) chrome sets
  * `--svc-tile-*` to light values on `:host([data-docked='true'])` in styles.js, so tile cards follow
- * the studio's light chrome automatically; a direct page visit (S16, no `--svc-tile-*` set anywhere)
- * falls back to these same dark values, byte-identical to B. */
+ * the studio's light chrome automatically; a direct page visit (no `--svc-tile-*` set anywhere)
+ * falls back to these same dark values. */
 const CHROME_CSS = `
 :host, .svc-tile-grid { all: initial; }
 * { box-sizing: border-box; }
@@ -131,7 +131,7 @@ const CHROME_CSS = `
 	gap: 0.5rem;
 	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
 }
-/* "rows" layout (coordinator review, round 3, SAMPLE_LAYOUT): one tile per row, spanning the full
+/* "rows" layout (SAMPLE_LAYOUT): one tile per row, spanning the full
    panel width - for samples that need to stay wide (a real search box, two pagination cards side by
    side) to read as anything other than a scaled-down sliver at a 2-column tile's ~150-180px width. */
 .svc-tile-grid[data-layout='rows'] { grid-template-columns: minmax(0, 1fr); }
@@ -185,10 +185,10 @@ const CHROME_CSS = `
 	overflow: hidden;
 	background: var(--sl-color-bg, #1b1e25);
 }
-/* "rows"-layout preview (coordinator review, round 3): no fixed 4:3 - height is set in JS
+/* "rows"-layout preview: no fixed 4:3 - height is set in JS
    (observePreviewScale's ResizeObserver callback) to exactly match the scaled canvas content plus
    this small uniform padding, so there's no empty band and nothing gets cropped either. Wireframe
-   grids (item 5) instead set an explicit aspect-ratio inline style from their own SVG viewBox -
+   grids instead set an explicit aspect-ratio inline style from their own SVG viewBox -
    see wireframes.js - and never get this class. */
 .svc-tile-preview--fit { aspect-ratio: auto; padding: 0.5rem; }
 /* Fixed-pixel-width "virtual canvas" (see the file-header comment above): laid out at its own real

@@ -1,7 +1,7 @@
 // @ts-check
 /**
- * @file Verification for Variation B's tile-grid controls (replaces a `<select>` dropdown with a
- * grid of clickable, illustrated option tiles for every visual `select` control - see SPEC.md).
+ * @file Verification for the tile-grid controls (a grid of clickable, illustrated option tiles that
+ * replaces a `<select>` dropdown for every visual `select` control).
  * Mirrors `tests/e2e/treatments.mjs`'s per-option probe data (same `treatments.js` entries, same
  * viewport/URL overrides for the alignment controls) but drives the UI instead of hand-encoding
  * state: for each tiled control, opens its panel group, clicks each tile's radio in turn, and reads
@@ -9,7 +9,7 @@
  * the *wiring* (tile click -> state -> live CSS), not CSS correctness a second time (treatments.mjs
  * already owns that).
  *
- * Covers, per SPEC.md's verification bullet:
+ * Covers:
  *  1. a radio group exists with one tile per option, for every tiled control;
  *  2. clicking each tile changes the page's probe/computed style exactly as the dropdown did;
  *  3. keyboard arrow keys move selection (checked on a representative sample - it's the platform's
@@ -44,7 +44,7 @@ const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
 
-// `svc-overlay` (F1, SPEC-C phase 3, URL-flag-only edit): a direct top-level visit no longer mounts
+// `svc-overlay`: a direct top-level visit no longer mounts
 // a panel at all (a small "Open in Studio" pill instead) - this suite drives the panel's own shadow
 // root directly, so it needs the escape-hatch flag to keep mounting it.
 const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
@@ -378,8 +378,8 @@ async function main() {
 	}
 	await checkFontList('type.font.body');
 
-	// ---- 5: no tile preview overflows horizontally, in both themes (coordinator review, round 2:
-	// pagination text was clipping/wrapping, the header title ran off the edge). Every live-sample
+	// ---- 5: no tile preview overflows horizontally, in both themes (an earlier round found
+	// pagination text clipping/wrapping and the header title running off the edge). Every live-sample
 	// control's `.svc-tile-canvas` is a fixed-pixel-width "virtual canvas" (samples.js) scaled down
 	// as one block - if its OWN content is wider than the canvas declared, that's a real authoring
 	// bug (missing padding, no wrap), not just a scale artifact, so this checks scrollWidth against
@@ -427,8 +427,8 @@ async function main() {
 	await checkNoOverflow('dark');
 	await checkNoOverflow('light');
 
-	// ---- 5b: no tile preview has a dead empty band taller than ~30% of its own height (coordinator
-	// review, round 3: search-trigger/pagination-style rendered their wide canvas scaled into the top
+	// ---- 5b: no tile preview has a dead empty band taller than ~30% of its own height (an earlier
+	// round found search-trigger/pagination-style rendering their wide canvas scaled into the top
 	// ~15% of a fixed 4:3 box, leaving most of the tile blank). Compares the CANVAS's scaled height
 	// (offsetHeight, unaffected by transform, times the live transform's own scale factor) against the
 	// PREVIEW box's real rendered height. -----------------------------------------------------------
@@ -513,7 +513,7 @@ async function main() {
 	await checkNoEmptyBand('dark');
 	await checkNoEmptyBand('light');
 
-	// ---- 5c: SPEC-C P6 (point 10) - no tile preview has more than ~12px of empty space below its
+	// ---- 5c: no tile preview has more than ~12px of empty space below its
 	// last content, measured directly (the canvas's own rendered bottom edge vs the deepest visible
 	// content element's rendered bottom edge, both already in final screen pixels since
 	// `getBoundingClientRect()` reflects the live CSS transform scale) rather than inferred from a
@@ -574,8 +574,8 @@ async function main() {
 	await checkTrimmedEmptySpace('light');
 
 	// ---- 6: every option tile within a control actually LOOKS different from its siblings (a
-	// screenshot-Buffer-inequality regression guard for "all four look the same" - coordinator review,
-	// round 2), in both themes. Wireframes included (cheap: SVG). Font lists excluded (not a tile
+	// screenshot-Buffer-inequality regression guard for "all four look the same"), in both themes.
+	// Wireframes included (cheap: SVG). Font lists excluded (not a tile
 	// grid; already checked structurally above). ---------------------------------------------------
 	async function checkTilesVisuallyDiffer(theme) {
 		await freshLoad(page, KITCHEN_SINK, DEFAULT_VIEWPORT);
@@ -773,9 +773,9 @@ async function main() {
 		check('Tab never focuses anything inside a .svc-tile-preview', !tabEnteredPreview);
 	}
 
-	// ---- 8: item 3 - section collapse/expand, the dirty-dot, persistence across navigation, and
-	// filter auto-open (+ restore-on-clear). SPEC-C P4 (settled with the maintainer 2026-09-24): every
-	// section now starts OPEN (superseding "only the first section starts open") - the scenarios below
+	// ---- 8: section collapse/expand, the dirty-dot, persistence across navigation, and
+	// filter auto-open (+ restore-on-clear). Every
+	// section starts OPEN (an earlier build only opened the first section) - the scenarios below
 	// that need a COLLAPSED starting point now get there with an explicit real toggle click first. ----
 	{
 		await freshLoad(page, KITCHEN_SINK, DEFAULT_VIEWPORT);
@@ -785,7 +785,7 @@ async function main() {
 			return Array.from(group.querySelectorAll('.svc-section')).map((s) => ({ name: s.dataset.section, open: s.dataset.open }));
 		});
 		check(
-			'SPEC-C P4: every section in Colors starts open, not just the first',
+			'every section in Colors starts open, not just the first',
 			initial.length > 1 && initial.every((s) => s.open === 'true'),
 			JSON.stringify(initial)
 		);
@@ -1009,7 +1009,7 @@ async function main() {
 				chroma: host.shadowRoot.querySelector("[data-control-id='color.accent.chroma'] input[type=range]").value,
 			};
 		});
-		// SPEC-C phase 3, workstream P (P3): the native <input type=color> picker is now a hex-first
+		// The native <input type=color> picker is now a hex-first
 		// popover (vanilla-colorful) opened from a swatch BUTTON - real click it, then real click +
 		// type into the POPOVER's own hex field (not the row's primary one), matching this suite's
 		// real-mouse-only rule (this used to script-set the native input's `.value` directly).
@@ -1121,11 +1121,11 @@ async function main() {
 			check(`${id}: data-layout is "${expected}" (item 5's grid-vs-rows rule)`, actual === expected, `DOM says "${actual}"`);
 		}
 
-		// SPEC-C P5 (point 9): "at the current panel width (about 300 to 360px), every tile control
+		// "At the current panel width (about 300 to 360px), every tile control
 		// lays out in ONE column (rows)" - a single summary check over every tiled control, in addition
 		// to the per-control checks just above.
 		const allRows = Array.from(TILE_CONTROL_IDS).every((id) => computeTileLayout(controlsById.get(id)) === 'rows');
-		check('P5: every tiled control computes "rows" (one column) at the panel\'s real width', allRows);
+		check('every tiled control computes "rows" (one column) at the panel\'s real width', allRows);
 
 		await page.screenshot({ path: path.join(__dirname, 'screenshots', 'c3-tiles-one-column.png'), fullPage: false });
 
@@ -1178,7 +1178,7 @@ async function main() {
 	}
 	console.log('\nScreenshots written to tests/e2e/screenshots/b-tiles-<group>-<theme>.png');
 
-	// ---- Maintainer review screenshots: tests/e2e/screenshots/b12-*.png, dark + light -------------
+	// ---- Review screenshots: tests/e2e/screenshots/b12-*.png, dark + light -------------
 	async function screenshotPanel(name, theme, setup) {
 		// Clicks the REAL toggle (rather than setting data-theme directly, as every other theme-switch
 		// in this file does) so the icon itself stays in sync - these screenshots exist specifically
@@ -1206,8 +1206,8 @@ async function main() {
 		await freshLoad(page, KITCHEN_SINK, SCREENSHOT_VIEWPORT);
 		await screenshotPanel('panel-header', theme, async () => {});
 
-		// Colors group: Palette (swatches, gradient tracks, picker) plus, per SPEC-C P4 (every section
-		// starts open now, superseding B's original "only the first section starts open"), the other
+		// Colors group: Palette (swatches, gradient tracks, picker) plus, since every section
+		// starts open now (an earlier build only opened the first section), the other
 		// sections' own headers right below it too - this deliberately does NOT go through
 		// `openGroupOnly` (which also expands every CARD for the functional tests above).
 		await freshLoad(page, KITCHEN_SINK, SCREENSHOT_VIEWPORT);
@@ -1277,7 +1277,7 @@ async function main() {
 	}
 	console.log('Screenshots written to tests/e2e/screenshots/b12-<name>-<theme>.png');
 
-	// ---- Workstream K (SPEC-C section 4) review screenshots -----------------------------------
+	// ---- Review screenshots for the range/toggle controls with literal selector overrides -----
 	// `k1-specimen-defaults-{light,dark}.png`: the bare page (no tile interaction) so a reviewer has
 	// a stock baseline to compare every `k1-<control>-<option>.png` below against.
 	// `k1-<control>-<option>.png`: one screenshot per non-default option of each of the four new

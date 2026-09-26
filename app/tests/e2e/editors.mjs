@@ -1,11 +1,11 @@
 // @ts-check
 /**
- * @file SPEC-C phase 2, workstream E acceptance suite: hex color entry (E1), preset cards (E2),
- * the restyled structure editor (E3), and the site title text control (E4). Also owns two later,
- * unrelated export-dialog additions kept here rather than a new suite (per the maintainer's own
- * instruction): "Download all (.zip)" and "Screenshot (PNG)" (Visible area / Full page). Complements
- * `shell.mjs` (which this suite's contrast/hit-test extensions also live in - see its own SPEC-C
- * comments) rather than duplicating its shell-level checks.
+ * @file Acceptance suite: hex color entry, preset cards,
+ * the restyled structure editor, and the site title text control. Also owns two later,
+ * unrelated export-dialog additions kept here rather than a new suite:
+ * "Download all (.zip)" and "Screenshot (PNG)" (Visible area / Full page). Complements
+ * `shell.mjs` (which this suite's contrast/hit-test extensions also live in)
+ * rather than duplicating its shell-level checks.
  *
  * Needs a running server; start one first: `npm run build` then
  * `npm run preview:bg` (or `npx astro preview --background --port 4420`).
@@ -174,7 +174,7 @@ async function main() {
 	await page.waitForTimeout(300);
 
 	// =============================================================================================
-	// E1: hex entry - accent hex field, one undo step (coordinator bug repro, real clicks throughout).
+	// Hex entry - accent hex field, one undo step (real bug repro, real clicks throughout).
 	// The bug: clicking the top-bar Undo button BLURS the hex field, and blur used to unconditionally
 	// re-commit whatever the field currently displayed (the just-produced color), back-solving a
 	// SECOND, slightly different hue/chroma and recording a second history step - so the first real
@@ -277,8 +277,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// E1: role override - the SAME undo bug repro, with a real click on the top-bar Undo button, plus
-	// the "Auto" tag / clear button coordinator polish (never both shown at once).
+	// Role override - the SAME undo bug repro, with a real click on the top-bar Undo button, plus
+	// the "Auto" tag / clear button (never both shown at once).
 	// =============================================================================================
 	{
 		await ensureSectionOpen(page, 'Role overrides');
@@ -351,7 +351,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P3): the hex-first color popover (vanilla-colorful). A real click
+	// The hex-first color popover (vanilla-colorful). A real click
 	// opens it with the hex field prefilled; typing a hex and pressing Enter commits hue+chroma as
 	// ONE undo step (matching the row's own primary hex field); a real drag on the popover's hue bar
 	// (many mousemove events) coalesces into ONE undo step too (the coalesceKey addition to
@@ -460,7 +460,7 @@ async function main() {
 		const distinctPresetLooks = new Set(previews.map((p) => p.bg)).size > 1 || new Set(previews.map((p) => p.name)).size === previews.length;
 		check('preset cards are distinct from each other (not all identical)', distinctPresetLooks, JSON.stringify(previews));
 
-		// SPEC-C P1 (point 2): one column - every card's left edge lines up (stacked vertically, not
+		// One column - every card's left edge lines up (stacked vertically, not
 		// side by side), and the description text is gone (kept only as the card's `title` tooltip).
 		const layoutInfo = await page.evaluate(() => {
 			const cards = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-preset-card'));
@@ -497,7 +497,7 @@ async function main() {
 		});
 		check('the newly-applied preset card shows the selected treatment (border + check)', selectedNow);
 
-		// Coordinator requirement: after a preset apply, the accent hex field must show the NEW
+		// After a preset apply, the accent hex field must show the NEW
 		// resolved color (Dense Technical sets accent hue 199, a real hue change from the default).
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors', { scroll: false }));
 		await page.waitForTimeout(200);
@@ -520,7 +520,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// Coordinator requirement: hex fields refresh to the current resolved color after group reset,
+	// Hex fields refresh to the current resolved color after group reset,
 	// reset all, and import too (undo/redo/preset apply are covered above).
 	// =============================================================================================
 	{
@@ -629,7 +629,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// Coordinator bug fix: Structure edits must be their own undo step. Exact repro: apply a preset
+	// Structure edits must be their own undo step. Exact repro: apply a preset
 	// (real click on the preset card), reorder in Structure (real pointer drag), Undo once - before
 	// the fix, the reorder was never recorded at all, so Undo silently undid the PRESET instead and
 	// jumped straight to 0 changes. Fixed: Undo once keeps the preset and restores the order; Undo

@@ -1,6 +1,6 @@
 /**
  * @file Font controls render as a vertical list of rows - one per curated Fontsource entry plus
- * 'system' - each row's own name set in that font (SPEC.md "B" tiles item 1, last sentence), not a
+ * 'system' - each row's own name set in that font, not a
  * `<select>` and not a tile grid (fonts don't have a small illustrative "shape", the name IS the
  * preview). No page-stylesheet cloning or nested shadow root is needed here (nothing depends on
  * Starlight's own CSS) - rows render directly in the panel's existing shadow root, styled by

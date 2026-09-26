@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file SPEC-C workstream S acceptance suite: the studio SHELL (rail, panel column, toolbar,
+ * @file Acceptance suite for the studio SHELL (rail, panel column, toolbar,
  * context line, scaling, Split, status bar, history, theme name/save status, contrast floors).
  * Complements `studio.mjs` (frame-targeting/page-switcher/device/follow-on-page regression checks,
  * adapted for the new DOM) rather than duplicating it.
@@ -85,8 +85,8 @@ async function waitForComputed(getValue, predicate, { timeoutMs = 4000, interval
 }
 
 // =================================================================================================
-// Coordinator review (P1): script-dispatched clicks (`el.click()` inside `page.evaluate`) bypass
-// real hit-testing entirely - they found the rail unresponsive to an actual `page.mouse.click()`
+// Script-dispatched clicks (`el.click()` inside `page.evaluate`) bypass
+// real hit-testing entirely - an earlier round found the rail unresponsive to an actual `page.mouse.click()`
 // even though every script-click "worked" (a real OS-level click at a rail button's center hit
 // whatever the browser's compositor puts there, which turned out to be #svc-body-row/body/html
 // underneath, because `:host`'s base `pointer-events: none` - needed in overlay mode, where the
@@ -174,10 +174,10 @@ async function lightQueryByAttr(page, selector, attr, value) {
 }
 
 /**
- * Browser-side hit-test audit snapshot (P1(b)): for every visible interactive element in the host
+ * Browser-side hit-test audit snapshot: for every visible interactive element in the host
  * document and the panel's shadow root, assert the relevant root's `elementFromPoint` at its own
  * center resolves to itself or a descendant - exactly the failure mode a real click would hit.
- * Factored out (SPEC-C phase 2, workstream I) so both the per-rail-group loop below AND the
+ * Factored out so both the per-rail-group loop below AND the
  * Inspect-active pass near the end of `main()` run the identical check, instead of drifting apart.
  * @returns {{total: number, failed: number, failures: any[]}}
  */
@@ -194,7 +194,7 @@ function hitTestAuditSnapshot() {
 		const r = rects[0];
 		return r.width > 1 && r.height > 1;
 	}
-	// Phase 2 workstream E: [role="treeitem"] covers the restyled structure tree's div-based rows.
+	// [role="treeitem"] covers the restyled structure tree's div-based rows.
 	const selector = 'button, input, select, textarea, summary, [role="tab"], [role="treeitem"], label.svc-tile';
 	let total = 0;
 	let failed = 0;
@@ -237,7 +237,7 @@ function hitTestAuditSnapshot() {
 	return { total, failed, failures };
 }
 
-/** P8 (coordinator review): the scaled iframe's bounding rect must lie within its `.svc-lane-wrap`
+/** The scaled iframe's bounding rect must lie within its `.svc-lane-wrap`
  * CONTENT box (excluding padding/border), within 1px - a few px of clipping on the right edge at
  * device 1440 in a 1440px window was traced to the wrap's own padding being counted as available
  * space when computing the scale (studio.js's `scaleLane`). */
@@ -320,7 +320,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the ALREADY-selected rail
+	// Clicking the ALREADY-selected rail
 	// item used to collapse the panel column - that affordance is removed. Collapsing is still
 	// reachable via the panel-header collapse button and the `\` key; any rail item click (even the
 	// one already selected before collapsing) reopens a collapsed panel.
@@ -371,12 +371,12 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// P1(b) (coordinator review): a generic hit-test audit, not just spot-checks. For every rail
+	// A generic hit-test audit, not just spot-checks. For every rail
 	// group, for every visible interactive element in the host document and the panel's shadow root
 	// (button, input, select, textarea, summary, [role=tab], and tile labels, each in their own
 	// nested shadow root since a tile grid mounts one per control), scroll it into view and assert
 	// the relevant root's `elementFromPoint` at its center is the element itself or a descendant -
-	// exactly the failure mode P1's pointer-events bug produced (a real click landing on whatever was
+	// exactly the failure mode the pointer-events bug above produced (a real click landing on whatever was
 	// underneath instead of the intended control).
 	// =============================================================================================
 	{
@@ -401,8 +401,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4): every section AND every control card starts OPEN (settled
-	// with the maintainer 2026-09-24, superseding B's "only the first section starts open"). Checked
+	// Every section AND every control card starts OPEN (superseding an earlier
+	// "only the first section starts open" rule). Checked
 	// on Colors, the first group with sections/cards this fresh page has ever opened - nothing earlier
 	// in this run has clicked a section/card toggle, so sessionStorage has no overrides yet.
 	// =============================================================================================
@@ -424,7 +424,7 @@ async function main() {
 		check('every section in a never-toggled group starts open', openState.sectionCount > 0 && openState.sectionsOpen === openState.sectionCount, JSON.stringify(openState));
 		check('every control card in a never-toggled group starts open', openState.cardCount > 0 && openState.cardsOpen === openState.cardCount, JSON.stringify(openState));
 
-		// P4 "more contrast between levels": a card's border must read against its section's own
+		// "More contrast between levels": a card's border must read against its section's own
 		// (light-tinted) background, at least 1.5:1 - computed from real getComputedStyle colors, not
 		// the token names, so a future palette tweak that quietly erodes the contrast fails this too.
 		const bandColors = await page.evaluate(() => {
@@ -445,13 +445,13 @@ async function main() {
 		check('the section header band is a different fill than the section body (reads as its own band)', bandColors.headerBg !== bandColors.sectionBg, JSON.stringify(bandColors));
 		check('a control card is a different fill than its section body (cards pop as their own layer)', bandColors.cardBg !== bandColors.sectionBg, JSON.stringify(bandColors));
 
-		// Item 4 (maintainer fix): a section's header band must not touch its first card - the gap
+		// A section's header band must not touch its first card - the gap
 		// above the first card should read the same as the gap BETWEEN cards, in every group. Checked
-		// on Colors (here) and Layout (below), per the maintainer's own screenshot request. Colors is
+		// on Colors (here) and Layout (below). Colors is
 		// ALREADY the selected rail item at this point (the two checks just above ran against it), so
-		// the first iteration below is itself a re-click of the selected item - F3 (reversed) makes
+		// the first iteration below is itself a re-click of the selected item - re-clicking makes
 		// that a plain re-selection now (it used to collapse the panel instead of a no-op measuring
-		// against a collapsed, zero-size panel - see the dedicated F3 regression check above).
+		// against a collapsed, zero-size panel - see the dedicated regression check above).
 		for (const groupName of ['Colors', 'Layout']) {
 			await realClick(page, await shadowQuery(page, `.svc-rail-item[data-group="${groupName}"]`));
 			await page.waitForTimeout(200);
@@ -484,7 +484,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4): a real click on a card's header collapses it (summary shows,
+	// A real click on a card's header collapses it (summary shows,
 	// body hides), Enter/Space (keyboard) does the same, and Expand all / Collapse all act on the
 	// ACTIVE group's own cards/sections with Collapse all's two-stage behavior (cards first, sections
 	// on a second press).
@@ -590,9 +590,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P2): every range input's thumb is vertically centered on its
-	// track (point 3) - a pixel check, not a CSS-property assertion, since the maintainer's own
-	// complaint was about the RENDERED result. `layout.contentWidth` is a plain (non-color-assist)
+	// Every range input's thumb is vertically centered on its
+	// track - a pixel check, not a CSS-property assertion, since what matters is the RENDERED
+	// result. `layout.contentWidth` is a plain (non-color-assist)
 	// slider, so its track uses the fixed --ui-line fallback, not a live gradient.
 	// =============================================================================================
 	{
@@ -650,12 +650,12 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// S3/A4: contrast walk over every visible text node in the host chrome + panel shadow root,
+	// Contrast walk over every visible text node in the host chrome + panel shadow root,
 	// excluding tile sample previews and the frames. Default floor 7:1 ("labels, group titles, rail
 	// labels, button text and values"); an element resolving to a MUTED text color (the tokens this
 	// build deliberately reserves for help/eyebrow/caption text, per styles.js's design) or an
-	// ACCENT background (white text on the accent fill - buttons and the selected rail item, SPEC-C's
-	// explicit exception) is held to 4.5:1 instead. Coordinator review (P2): run this with the export
+	// ACCENT background (white text on the accent fill - buttons and the selected rail item, an
+	// explicit exception) is held to 4.5:1 instead. Run this with the export
 	// dialog open and again with the contrast dialog open, not just the plain panel - a dialog's
 	// content is otherwise never walked at all.
 	// =============================================================================================
@@ -754,16 +754,16 @@ async function main() {
 
 	{
 		const baseline = await runContrastWalk();
-		console.log(`A4 contrast walk (panel): ${baseline.total} text nodes checked; minimum ratio ${baseline.minRatio.toFixed(2)}:1 (${JSON.stringify(baseline.minRow)})`);
+		console.log(`contrast walk (panel): ${baseline.total} text nodes checked; minimum ratio ${baseline.minRatio.toFixed(2)}:1 (${JSON.stringify(baseline.minRow)})`);
 		check('every chrome text node meets its contrast floor (panel view)', baseline.failCount === 0, JSON.stringify(baseline.rows));
 
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openExport());
 		await page.waitForTimeout(200);
 		const exportWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (export dialog open): ${exportWalk.total} text nodes checked; minimum ratio ${exportWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(exportWalk.minRow)})`);
+		console.log(`contrast walk (export dialog open): ${exportWalk.total} text nodes checked; minimum ratio ${exportWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(exportWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (export dialog open)', exportWalk.failCount === 0, JSON.stringify(exportWalk.rows));
 
-		// Items 2/3 (coordinator review): the export dialog's own buttons - including the new "Download
+		// The export dialog's own buttons - including "Download
 		// all (.zip)" and "Screenshot (PNG)" (Visible area/Full page) - never got a hit-test pass before
 		// (the panel-wide audit above runs with the dialog closed). Scoped to the dialog itself, same
 		// shape as the color-popover pass below.
@@ -806,23 +806,23 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openContrastDialog());
 		await page.waitForTimeout(200);
 		const contrastWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (contrast dialog open): ${contrastWalk.total} text nodes checked; minimum ratio ${contrastWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(contrastWalk.minRow)})`);
+		console.log(`contrast walk (contrast dialog open): ${contrastWalk.total} text nodes checked; minimum ratio ${contrastWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(contrastWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (contrast dialog open)', contrastWalk.failCount === 0, JSON.stringify(contrastWalk.rows));
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
 
-		// SPEC-C phase 2, workstream E: the baseline walk above ran while Presets was active (the hit-
+		// The baseline walk above ran while Presets was active (the hit-
 		// test audit loop leaves it there) - Colors' hex fields and Structure's tree/form are only in
 		// the DOM while THEIR OWN group is active, so they need their own walk pass each.
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors', { scroll: false }));
 		await page.waitForTimeout(200);
 		const colorsWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (Colors group, hex fields): ${colorsWalk.total} text nodes checked; minimum ratio ${colorsWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(colorsWalk.minRow)})`);
+		console.log(`contrast walk (Colors group, hex fields): ${colorsWalk.total} text nodes checked; minimum ratio ${colorsWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(colorsWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (Colors group)', colorsWalk.failCount === 0, JSON.stringify(colorsWalk.rows));
 
 		// =========================================================================================
-		// SPEC-C phase 3, workstream P (P3): the color popover, open - both the hit-test audit and the
-		// A4 contrast walk, extended to cover it. The popover legitimately sits on top of (occludes)
+		// The color popover, open - both the hit-test audit and the
+		// contrast walk, extended to cover it. The popover legitimately sits on top of (occludes)
 		// whatever card is beneath it, so the hit-test pass here is SCOPED to the popover's own
 		// subtree, not the whole panel (the panel-wide `hitTestAuditSnapshot` would wrongly flag an
 		// occluded card behind it as a failure).
@@ -858,7 +858,7 @@ async function main() {
 		check('every interactive element inside the open color popover hit-tests to itself', popoverHitTest.total > 0 && popoverHitTest.failed === 0, JSON.stringify(popoverHitTest));
 
 		const popoverWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (color popover open): ${popoverWalk.total} text nodes checked; minimum ratio ${popoverWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(popoverWalk.minRow)})`);
+		console.log(`contrast walk (color popover open): ${popoverWalk.total} text nodes checked; minimum ratio ${popoverWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(popoverWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (color popover open)', popoverWalk.failCount === 0, JSON.stringify(popoverWalk.rows));
 
 		await page.keyboard.press('Escape');
@@ -869,7 +869,7 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Navigation', { scroll: false }));
 		await page.waitForTimeout(200);
 		const structureWalk = await runContrastWalk();
-		console.log(`A4 contrast walk (Structure group, tree + form): ${structureWalk.total} text nodes checked; minimum ratio ${structureWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(structureWalk.minRow)})`);
+		console.log(`contrast walk (Structure group, tree + form): ${structureWalk.total} text nodes checked; minimum ratio ${structureWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(structureWalk.minRow)})`);
 		check('every chrome text node meets its contrast floor (Structure group)', structureWalk.failCount === 0, JSON.stringify(structureWalk.rows));
 
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
@@ -904,8 +904,8 @@ async function main() {
 		await page.waitForTimeout(200);
 
 		// "a slider drag is one step": a REAL mouse drag (mousedown -> stepped mousemove -> mouseup)
-		// along the track, not several script-dispatched `input` events, per the coordinator's P1
-		// review - the coalescing logic (core/history.js) only ever sees genuine `input` events either
+		// along the track, not several script-dispatched `input` events - the coalescing logic
+		// (core/history.js) only ever sees genuine `input` events either
 		// way, but a real drag also exercises the browser's own native range-input hit-testing.
 		const baseline = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().values['color.accent.hue']);
 		const accentHueSlider = await shadowQuery(page, "[data-control-id='color.accent.hue'] input[type=range]");
@@ -1003,7 +1003,7 @@ async function main() {
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
 		// refreshStudioChrome() (which updates the reset-group button's disabled state) runs inside
-		// scheduleApply's rAF debounce - poll rather than a fixed sleep (SPEC-C section 6).
+		// scheduleApply's rAF debounce - poll rather than a fixed sleep.
 		const resetBtnState = await waitForComputed(
 			() =>
 				page.evaluate(() => {
@@ -1043,7 +1043,7 @@ async function main() {
 			input.value = '10';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
-		// scheduleApply is rAF-debounced (panel.js) - poll rather than a fixed sleep (SPEC-C section 6).
+		// scheduleApply is rAF-debounced (panel.js) - poll rather than a fixed sleep.
 		const countAfter = await waitForComputed(
 			() => page.evaluate(() => document.getElementById('svc-status-left').textContent),
 			(t) => t.startsWith('1 ')
@@ -1059,7 +1059,7 @@ async function main() {
 			() => page.evaluate(() => !!document.querySelector('sl-customizer').shadowRoot.querySelector("[data-control-id='color.role.link']")),
 			(v) => v === true
 		);
-		// Coordinator polish round: the "auto" checkbox was removed (a role override now has just the
+		// The "auto" checkbox was removed (a role override now has just the
 		// hex field + a clear button, "Follow the palette") - set the override through the hex field
 		// itself, the same path a real user would take, and commit it the way `blur` does.
 		await page.evaluate(() => {
@@ -1195,13 +1195,13 @@ async function main() {
 		const mediaMatches = await frame.evaluate(() => window.matchMedia('(min-width: 72rem)').matches);
 		check("matchMedia('(min-width: 72rem)') is true inside the frame at device=1440", mediaMatches === true);
 
-		// P8: the scaled frame's bounding rect must lie within its wrapper's CONTENT box (excluding
-		// padding/border), within 1px - a coordinator review caught a few px of clipping on the right
+		// The scaled frame's bounding rect must lie within its wrapper's CONTENT box (excluding
+		// padding/border), within 1px - an earlier round found a few px of clipping on the right
 		// edge at device 1440 in a 1440px window (the wrap's own padding was being counted as
 		// available space). Checked here for the single-lane case; the Split case is checked below.
 		await checkFrameWithinWrapContentBox(page, 'light', '1440');
 
-		// F0 fix (SPEC-C phase 3, point 13 - geometry edit): the maintainer's exact repro (a scaled
+		// Exact repro (a scaled
 		// device, focusing a targeted control) - every host ancestor of the lane iframe must stay at
 		// scrollTop 0, and the iframe's top must still equal its wrapper's content-box top within 1px
 		// (checkFrameWithinWrapContentBox above already covers the latter at rest; this re-checks it
@@ -1306,7 +1306,7 @@ async function main() {
 		);
 		check('the pagination links are in view after the Footer rail click (polled through any self-correction)', paginationVisible.visible, JSON.stringify(paginationVisible));
 
-		// F0 fix (SPEC-C phase 3, point 13 - geometry edit): the scroll above is now driven by
+		// The scroll above is now driven by
 		// `scrollElementIntoView` (target-highlight.js), never `Element.scrollIntoView`, so it must
 		// never leave a nonzero scroll position on any host ancestor of the lane iframe.
 		const hostAncestorTops = await page.evaluate(() => {
@@ -1331,9 +1331,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// I0 (the coordinator's exact repro shape): Footer, from a FRESH navigation, on a page with NO
+	// Footer, from a FRESH navigation, on a page with NO
 	// pagination of its own (Landing) - forces the "navigate to /specimen/ first, then scroll" path
-	// (S10) on a document that is, by construction, brand new - exactly the "just-loaded page still
+	// on a document that is, by construction, brand new - exactly the "just-loaded page still
 	// settling" scenario the Footer-on-Style-guide check above (already-loaded, no navigation) cannot
 	// exercise at all.
 	// =============================================================================================
@@ -1463,8 +1463,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 2, workstream I: with Inspect active (the toolbar button, a selection chip in the
-	// panel column, and the "Elements" popover all on screen), the hit-test audit and the A4 contrast
+	// With Inspect active (the toolbar button, a selection chip in the
+	// panel column, and the "Elements" popover all on screen), the hit-test audit and the contrast
 	// walk both still pass - full coverage of Inspect's own interaction/acceptance lives in
 	// `inspect.mjs`; this is only the "doesn't break the existing shell suites" half.
 	// =============================================================================================
@@ -1492,7 +1492,7 @@ async function main() {
 		check('every visible interactive element still hit-tests to itself with Inspect active (chip + Elements list open)', inspectHitTest.failed === 0, JSON.stringify(inspectHitTest.failures.slice(0, 20)));
 
 		const inspectContrast = await runContrastWalk();
-		console.log(`A4 contrast walk (Inspect active): ${inspectContrast.total} text nodes checked; minimum ratio ${inspectContrast.minRatio.toFixed(2)}:1 (${JSON.stringify(inspectContrast.minRow)})`);
+		console.log(`contrast walk (Inspect active): ${inspectContrast.total} text nodes checked; minimum ratio ${inspectContrast.minRatio.toFixed(2)}:1 (${JSON.stringify(inspectContrast.minRow)})`);
 		check('every chrome text node meets its contrast floor (Inspect active)', inspectContrast.failCount === 0, JSON.stringify(inspectContrast.rows));
 
 		await page.keyboard.press('Escape');

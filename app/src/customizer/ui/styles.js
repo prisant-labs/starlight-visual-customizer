@@ -99,7 +99,7 @@ button, input, select, textarea {
 	inset-block-start: auto;
 	inset-inline-end: auto;
 	height: 100%;
-	/* SPEC-C: the host now contains BOTH the 72px rail and the 340px panel column (S1, S4, S5) -
+	/* The host contains BOTH the 72px rail and the 340px panel column -
 	   there is no separate "collapsed to 0" state for the rail itself; only the panel column becomes
 	   a drawer below 900px (data-drawer-open, see the studio-only block near the end of this file). */
 	width: 412px;
@@ -234,9 +234,9 @@ button, input, select, textarea {
 .svc-preset-swatches { display: flex; gap: 3px; flex-wrap: wrap; }
 .svc-preset-swatch { width: 0.85rem; height: 0.85rem; flex-shrink: 0; border-radius: 3px; border: 1px solid #3a3f4b; }
 
-/* SPEC-C E2: the preset card's self-drawn mini page preview - see \`buildPresetMiniDoc\` in
+/* The preset card's self-drawn mini page preview - see buildPresetMiniDoc in
    controls.js for why every line but the "Aa" sample is a plain colored bar, never real text.
-   P1: a fixed-size (not full-width) thumbnail now that the card lays out horizontally. */
+   A fixed-size (not full-width) thumbnail now that the card lays out horizontally. */
 .svc-preset-mini-doc { display: flex; flex-direction: column; width: 4.6rem; height: 3.4rem; flex-shrink: 0; border-radius: 5px; overflow: hidden; }
 .svc-preset-mini-header { height: 0.4rem; flex-shrink: 0; }
 .svc-preset-mini-body { display: grid; grid-template-columns: 26% 1fr; flex: 1 1 auto; min-height: 0; }
@@ -363,7 +363,7 @@ button, input, select, textarea {
 	padding: 0 0.55rem 0.55rem;
 }
 
-/* ---- Controls (SPEC-C P4: every card is individually collapsible) ----
+/* ---- Controls (every card is individually collapsible) ----
    Each control is its own card-like, collapsible disclosure so controls don't visually run
    together. .svc-control-head holds the toggle BUTTON (label, build-tag, collapsed-state summary,
    caret) plus the reset button as a SEPARATE sibling - never nested inside the toggle button, since
@@ -450,7 +450,7 @@ button, input, select, textarea {
 .svc-control-row > .svc-tiles { display: block; width: 100%; }
 .svc-control-row > .svc-tiles > * { display: block; }
 
-/* ---- Font list (SPEC.md "B" tiles item 1: a vertical list, each name rendered in that font) ---- */
+/* ---- Font list (a vertical list, each name rendered in that font) ---- */
 .svc-font-list { display: flex; flex-direction: column; gap: 0.3rem; width: 100%; }
 .svc-font-row {
 	display: flex;
@@ -576,7 +576,7 @@ input[type='range']::-moz-range-thumb {
 }
 input[type='range']:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--svc-thumb-bg, #6d8dfa); outline-offset: 2px; }
 input[type='range']:focus-visible::-moz-range-thumb { outline: 2px solid var(--svc-thumb-bg, #6d8dfa); outline-offset: 2px; }
-/* Coordinator polish round: one consistent layout for every color-assist control (accent, gray, the
+/* One consistent layout for every color-assist control (accent, gray, the
    five semantic hues) - the slider row (above, in the caller), THEN this block stacked vertically:
    the hex+picker row, THEN the swatch strip, THEN the note/help. Previously the swatch strip and hex
    row shared one wrapping flex row with flex-wrap, so accent (3 swatches) and gray (8 swatches)
@@ -585,7 +585,7 @@ input[type='range']:focus-visible::-moz-range-thumb { outline: 2px solid var(--s
 .svc-color-hexrow { display: flex; align-items: center; gap: 0.5rem; }
 .svc-swatch-group { display: flex; gap: 2px; border-radius: 4px; overflow: hidden; border: 1px solid #33363f; flex-shrink: 0; align-self: flex-start; }
 .svc-color-swatch { display: block; width: 1.1rem; height: 1.1rem; }
-/* SPEC-C E1: hex text field - the PRIMARY color editor (B2: Chrome's native picker can't be forced
+/* Hex text field - the PRIMARY color editor (Chrome's native picker can't be forced
    into hex mode); the native picker sits beside it in the same row as a secondary swatch button. */
 .svc-color-hex {
 	width: 6.5rem;
@@ -598,7 +598,7 @@ input[type='range']:focus-visible::-moz-range-thumb { outline: 2px solid var(--s
 .svc-color-hex-msg[hidden] { display: none; }
 .svc-color-hex-msg[data-kind='error'] { color: #e08080; }
 .svc-color-hex-msg[data-kind='note'] { color: #8a90a0; }
-/* SPEC-C P3: the popover swatch button (replaces the native <input type=color>, which Chrome can't
+/* The popover swatch button (replaces the native <input type=color>, which Chrome can't
    force into hex mode) - a small square swatch button; its own background is painted live by
    controls.js/color-picker.js's setSwatch(). */
 .svc-color-picker {
@@ -648,7 +648,7 @@ input[type='range']:focus-visible::-moz-range-thumb { outline: 2px solid var(--s
 	color: inherit;
 }
 .svc-eyedropper-btn:hover { background: #2c303a; }
-/* Coordinator polish round: a role override's "follows the palette" state - a small muted tag next
+/* A role override's "follows the palette" state - a small muted tag next
    to the hex field (which still shows the resolved color), shown/hidden opposite the clear button so
    the row never carries two "back to default" affordances at once (see controls.js's resetBtn guard
    for the third one, the generic reset arrow, which stays hidden for every role-override control). */
@@ -725,7 +725,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-ia-import-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .svc-ia-add-row { display: flex; gap: 0.4rem; }
 
-/* ---- SPEC-C E3: the studio's restyled "Structure (advanced)" tree (Codex's shape) - a note, an
+/* ---- The studio's restyled "Structure (advanced)" tree - a note, an
    add-item row, a draggable/selectable tree with folder/page icons and indent guide lines, a
    move/delete toolbar, and a "Selected item" form below (built by createStudioTreeEditor in
    ia-editor.js). Overlay mode's tree above (.svc-ia-*) is untouched. ---- */
@@ -760,7 +760,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-structure-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; }
 .svc-structure-badge { font-size: 0.625rem; padding: 0.05rem 0.3rem; border-radius: 3px; background: #23262e; color: #b7bcc7; flex-shrink: 0; }
 .svc-structure-hidden-tag { font-size: 0.625rem; color: #8a90a0; flex-shrink: 0; font-style: italic; }
-/* Coordinator polish round: the move/outdent/indent/delete buttons were 1.4rem (22.4px, under a
+/* The move/outdent/indent/delete buttons were 1.4rem (22.4px, under a
    comfortable tap/click target) and relied on opacity alone for their disabled state, which read as
    nearly invisible rather than "visibly disabled". Scoped to THIS toolbar only (not the base
    .svc-ia-btn rule, shared with the untouched overlay tree's own per-row action buttons). */
@@ -792,7 +792,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	position: fixed;
 	top: 0;
 	left: 0;
-	z-index: 0; /* below .svc-drawer (z-index:1) - "under the drawer" is acceptable per SPEC.md */
+	z-index: 0; /* below .svc-drawer (z-index:1) - "under the drawer" is acceptable here */
 	pointer-events: none;
 	box-sizing: border-box;
 	border: 2px solid #6d8dfa;
@@ -871,16 +871,16 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 }
 
 /* =================================================================================================
-   SPEC-C studio (docked) light chrome. Every selector below is either scoped under
+   Studio (docked) light chrome. Every selector below is either scoped under
    :host([data-docked='true']) or is a class name that panel.js only ever creates in studio mode
-   (.svc-rail*, .svc-panel-col*, .svc-group-studio*) - a direct page visit (overlay mode, S16) is
+   (.svc-rail*, .svc-panel-col*, .svc-group-studio*) - a direct page visit (overlay mode) is
    untouched: it never gets data-docked, so none of this ever applies there, and none of it changes
    any selector the overlay path itself uses.
 
-   S3 readability: --ui-ink ~16:1, --ui-text ~11:1 and --ui-accent-fg (white on --ui-accent) ~6.3:1
+   Readability: --ui-ink ~16:1, --ui-text ~11:1 and --ui-accent-fg (white on --ui-accent) ~6.3:1
    on white/--ui-bg were verified against the WCAG relative-luminance formula before committing to
-   SPEC-C's own starting palette (asked to "verify, not trust") - the accent's ~6.3:1 clears the
-   4.5:1 floor SPEC-C explicitly sets for white-on-accent text (buttons, the selected rail item);
+   this starting palette (verified, not just assumed) - the accent's ~6.3:1 clears the
+   4.5:1 floor explicitly set for white-on-accent text (buttons, the selected rail item);
    --ui-muted's ~6.3:1 clears the 4.5:1 floor for help/eyebrow/caption text but is never used for a
    label, a rail label, a group title or button text (those need >=7:1 - see shell.mjs's contrast
    walk, which encodes this same accent exception and the help/eyebrow/caption exception).
@@ -895,14 +895,14 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	--ui-accent: #4453c9;
 	--ui-accent-fg: #ffffff;
 	--ui-accent-tint: rgba(68, 83, 201, 0.08);
-	/* S3: --ui-accent itself only reaches ~6.3:1 as TEXT on a light background (white-on-accent-FILL
-	   is the one case SPEC-C explicitly holds to 4.5:1 - buttons, the selected rail item; everything
+	/* --ui-accent itself only reaches ~6.3:1 as TEXT on a light background (white-on-accent-FILL
+	   is the one case explicitly held to 4.5:1 - buttons, the selected rail item; everything
 	   else needs 7:1, including "selected" accent-colored text like a page tab or file-list item on
 	   its light accent tint). --ui-accent-ink is that same hue, darkened until it clears 7:1 on white
-	   (measured ~7.8:1) - verified by shell.mjs's A4 contrast walk. */
+	   (measured ~7.8:1) - verified by shell.mjs's contrast walk. */
 	--ui-accent-ink: #3a46b0;
 	--ui-pass: #0b5c26;
-	/* P4 fix: darkened from #a3251c once the section body's own background moved from --ui-panel
+	/* Darkened from #a3251c once the section body's own background moved from --ui-panel
 	   (white) to --ui-bg (a light tint) - the lighter background left this red just under the 7:1
 	   floor for the Colors group's own pass/fail contrast readout (measured 6.84:1); this shade
 	   (shared with the docked hex-field error message color) clears 7:1 against BOTH backgrounds. */
@@ -1013,7 +1013,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-group-eyebrow { font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ui-muted); margin: 0 0 0.2rem; }
 .svc-group-title { font-size: 1.125rem; font-weight: 700; color: var(--ui-ink); margin: 0 0 0.3rem; }
 .svc-group-desc { font-size: 0.8125rem; color: var(--ui-muted); margin: 0 0 0.6rem; line-height: 1.4; }
-/* SPEC-C P4: Expand all / Collapse all sit beside the existing reset-group button, all three sharing
+/* Expand all / Collapse all sit beside the existing reset-group button, all three sharing
    one small-pill look (.svc-reset-group's own styling below, reused rather than duplicated). */
 .svc-group-header-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 /* Reset on the left; Expand all / Collapse all grouped on the right (the reset button is the first child). */
@@ -1068,12 +1068,12 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
    cards previously sharing indistinguishable near-white tones. */
 :host([data-docked='true']) .svc-group-body { background: transparent; padding: 0.2rem 0; gap: 0.6rem; border-inline-start: 0; }
 :host([data-docked='true']) .svc-section { background: var(--ui-bg); border: 1px solid var(--ui-line); }
-/* Item 4 (maintainer fix): .svc-section-body's base rule (above) has ZERO top padding, so the
+/* .svc-section-body's base rule (above) has ZERO top padding, so the
    section header band's bottom border sat flush against the first card's top border - no breathing
    room between the band and its content, unlike the (already-consistent) gap BETWEEN cards. Give it
    the same 0.625rem the body already uses as its inter-card spacing, so the header-to-first-card
    space reads the same as card-to-card space, in every group, docked (light chrome) only - overlay's
-   dark accordion (S16) stays byte-identical. */
+   dark accordion stays byte-identical. */
 :host([data-docked='true']) .svc-section-body { padding-block-start: 0.625rem; }
 :host([data-docked='true']) .svc-section-toggle { background: var(--ui-panel); border-bottom: 1px solid var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-section[data-open='false'] .svc-section-toggle { border-bottom-color: transparent; }
@@ -1112,12 +1112,12 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	color: var(--ui-ink);
 }
 :host([data-docked='true']) input[type='color'] { border-color: var(--ui-line); }
-/* SPEC-C P3: the popover picker, restyled light. */
+/* The popover picker, restyled light. */
 :host([data-docked='true']) .svc-color-picker { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-color-popover { background: var(--ui-panel); border-color: var(--ui-line); box-shadow: 0 12px 32px rgba(27, 33, 48, 0.25); }
 :host([data-docked='true']) .svc-eyedropper-btn { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-eyedropper-btn:hover { background: var(--ui-bg); }
-/* SPEC-C E1: hex field messages. The "note" reuses --ui-muted exactly (the A4 walk's own 4.5:1
+/* Hex field messages. The "note" reuses --ui-muted exactly (the contrast walk's own 4.5:1
    exception for muted text); the "error" is a dedicated red verified at >=7:1 on both --ui-panel and
    --ui-bg (the walk's default floor for anything that ISN'T muted/on-accent). */
 :host([data-docked='true']) .svc-color-hex-msg[data-kind='note'] { color: var(--ui-muted); }
@@ -1172,7 +1172,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-ia-import { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-ia-children { border-color: var(--ui-line); }
 
-/* ---- SPEC-C E3: the studio's restyled structure tree, light ---- */
+/* ---- The studio's restyled structure tree, light ---- */
 :host([data-docked='true']) .svc-structure-note { color: var(--ui-muted); }
 :host([data-docked='true']) .svc-structure-row { background: var(--ui-panel); border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-structure-row:hover { border-color: var(--ui-accent); }

@@ -10,7 +10,7 @@
  *  3. Pasted, "messy" text (JS-object-ish source, or an `ls -R` / `tree` /
  *     plain-newline file listing).
  *
- * ## SidebarItem shape (matches SPEC.md)
+ * ## SidebarItem shape
  * @typedef {{text: string, variant: 'note'|'tip'|'caution'|'danger'|'success'|'default', class?: string}} Badge
  * @typedef {{
  *   type: 'link',
@@ -42,7 +42,7 @@
  * }} SidebarAutogenerate
  * @typedef {SidebarLink | SidebarGroup | SidebarAutogenerate} SidebarItem
  *
- * `attrs` and `translations` are extensions beyond SPEC.md's typedef, carried
+ * `attrs` and `translations` are extensions beyond Starlight's own sidebar-config typedef, carried
  * through so a real config's HTML attributes / i18n label overrides are never
  * silently dropped on a config -> items -> config round trip. They are never
  * synthesized; they only appear when the source config had them.

@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file Verifies SPEC.md Round 2's `target` field contract: "Must match at least one element on
+ * @file Verifies every control's `target` field contract: "Must match at least one element on
  * `/guides/kitchen-sink/` or (hero) `/`." For every row in `manifest.js`'s `controls`, this loads
  * both pages at a desktop viewport (wide enough that TOC-rail/header-grid/two-column controls -
  * gated behind Starlight's own 50rem/72rem breakpoints - actually render) and asserts
@@ -26,10 +26,10 @@ const EXECUTABLE_PATH =
 // `?view` (studio design doc, item E) on the home page: astro.config.mjs's `/` -> `/studio/`
 // redirect only fires top-level with no `?view` in the URL - without it, this direct `page.goto`
 // would land on `/studio/` instead of the splash page hero-only targets need.
-// `/specimen/` added for workstream K (SPEC-C section 4): several new controls' targets
+// `/specimen/` added because several controls' targets
 // (Card/LinkButton/Badge, blockquote) are proven there explicitly, though most also happen to be
 // visible on kitchen-sink too.
-// `svc-overlay` (F1, SPEC-C phase 3): a direct top-level visit no longer mounts a panel at all -
+// `svc-overlay`: a direct top-level visit no longer mounts a panel at all -
 // this suite reads raw page markup only (never the panel/shadow root), so it doesn't strictly need
 // the panel mounted, but keeping the flag here matches every other engine suite's URLs.
 const PAGES = [`${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`, `${SVC_BASE_URL}/?view&svc-overlay`, `${SVC_BASE_URL}/specimen/?svc-overlay`];

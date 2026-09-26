@@ -46,8 +46,8 @@ export function defaultState() {
 }
 
 /**
- * SPEC-C S13: the theme name lives in `state.meta.name`, editable in the top bar. Emitted CSS
- * never reads `meta` (emit-css.js is untouched by this - K's golden files stay byte-identical), so
+ * The theme name lives in `state.meta.name`, editable in the top bar. Emitted CSS
+ * never reads `meta` (emit-css.js is untouched by this - its golden files stay byte-identical), so
  * this only affects the export dialog's `state.json` tab and the top bar's own input.
  * @param {ThemeState} state
  * @param {string} name

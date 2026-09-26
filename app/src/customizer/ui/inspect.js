@@ -1,11 +1,10 @@
 /**
- * @file SPEC-C phase 2, workstream I - "Inspect" (C3): click an element on the previewed page to
- * reach exactly the controls that style it, Lens-style (see SPEC-C section 0's Lens prototype
- * reference). Lives in the studio's own light DOM (a sibling of `studio.js`, same pattern: a plain
+ * @file "Inspect": click an element on the previewed page to
+ * reach exactly the controls that style it. Lives in the studio's own light DOM (a sibling of `studio.js`, same pattern: a plain
  * `initInspect()` called once after `initStudioShell()` from `studio.astro`).
  *
- * The reverse lookup this is built on already exists on every manifest control (owner: CORE-2,
- * `core/manifest.js`): a `target` CSS selector for the page element(s) it styles. I2's algorithm is
+ * The reverse lookup this is built on already exists on every manifest control
+ * (`core/manifest.js`): a `target` CSS selector for the page element(s) it styles. The algorithm is
  * exactly "walk up from the pointer to the innermost element matching ANY control's target, then
  * collect every control whose target matches THAT element" - built generically off `controls`, never
  * a per-control id.
@@ -18,9 +17,8 @@
  *    outlines and the pointer tag live in the SAME document as the elements/pointer they track, so
  *    no host<->frame coordinate translation is needed at all.
  *  - **The panel's own shadow root** (`host.shadowRoot`, opened by panel.js - `{mode: 'open'}`):
- *    the "Inspecting: <Group> - <Section>" chip (built and styled entirely here, per SPEC-C section
- *    5's instruction that Inspect-only shadow-root CSS lives here or in panel.js's own small marked
- *    block, never in styles.js) and expanding the sections that hold the scope's controls (direct
+ *    the "Inspecting: <Group> - <Section>" chip (built and styled entirely here or in panel.js's
+ *    own small additive block, never in styles.js) and expanding the sections that hold the scope's controls (direct
  *    DOM reads/writes against controls.js's already-rendered `.svc-section`/`.svc-control` markup -
  *    no controls.js changes needed). The scope's own persistent highlight on each control ROW,
  *    though, does need panel.js's help - `controlRows` (which row belongs to which control id) is
@@ -28,7 +26,7 @@
  *    one marked additive block.
  */
 import { controls, GROUPS } from '../core/manifest.js';
-// F0 fix (SPEC-C phase 3, point 13): `resolvedEl` below lives inside a lane iframe - a plain
+// `resolvedEl` below lives inside a lane iframe - a plain
 // `Element.scrollIntoView()` there can bleed into the HOST document's own scroll containers (see
 // target-highlight.js's file-level note on `scrollElementIntoView`). Shared with that module's own
 // scroll-and-correct loop rather than duplicated here.
@@ -141,7 +139,7 @@ function firstVisibleMatch(doc, target) {
 }
 
 /**
- * Coordinator review: I5's list is PAGE AREAS (Lens's "document elements"), not individual
+ * This list is PAGE AREAS, not individual
  * controls - listing every control duplicated the panel itself. One entry per distinct SCOPE
  * (the same `<group> › <section>` naming the hover tag and the chip use), for every scope with
  * at least one visible match on `doc`, grouped by manifest group in `GROUPS` (+ Navigation) order.
@@ -149,7 +147,7 @@ function firstVisibleMatch(doc, target) {
  *
  * A control whose OWN target is page-wide (`body`, matched literally - `color.role.bg`/
  * `color.role.text` are the only two in this manifest) is excluded: "the whole page" isn't a
- * clickable spot the way "Sidebar › Items" is. Decision (coordinator asked to hear which):
+ * clickable spot the way "Sidebar › Items" is.
  * LEFT OUT rather than added back as "<Group> › Whole page" - no group in this manifest is
  * page-wide-only (Colors, the only group with any body-level control, has plenty of specific ones
  * too), so a synthetic entry would only ever ADD noise, never fill a gap.
@@ -202,7 +200,7 @@ function isTypingIn(doc) {
 // also live-edits) ever coincidentally setting `outline` on the same elements.
 // ---------------------------------------------------------------------------------------------
 const FRAME_CSS = `
-/* Coordinator review: a plain accent outline disappears on an already accent-filled element (the
+/* A plain accent outline disappears on an already accent-filled element (the
    active sidebar item). Two INSET rings (white, then accent) read on any background in light or
    dark - whichever ring doesn't blend into what's under it still shows, and neither affects layout
    (box-shadow, like outline, never participates in box geometry). */
@@ -223,10 +221,9 @@ const FRAME_CSS = `
 }
 `;
 
-/** Shadow-root CSS for the "Inspecting: ..." chip (SPEC-C section 5: Inspect-only panel CSS lives
- * here or in panel.js's own marked block, never in styles.js). Uses the same `--ui-*` tokens
+/** Shadow-root CSS for the "Inspecting: ..." chip. Uses the same `--ui-*` tokens
  * styles.js defines under `:host([data-docked='true'])` so this inherits the existing, already
- * contrast-verified palette instead of inventing new colors the A4 walk hasn't seen. */
+ * contrast-verified palette instead of inventing new colors the contrast walk hasn't seen. */
 const CHIP_CSS = `
 .svc-inspect-chip { margin: 0 0 0.65rem; padding: 0.6rem 0.7rem; border: 1px solid var(--ui-line, #dde1e8); border-radius: 8px; background: var(--ui-accent-tint, rgba(68, 83, 201, 0.08)); }
 .svc-inspect-chip-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
@@ -235,7 +232,7 @@ const CHIP_CSS = `
 .svc-inspect-chip-close:hover { background: var(--ui-panel, #ffffff); color: var(--ui-ink, #1b2130); }
 .svc-inspect-chip-close:focus-visible { outline: 2px solid var(--ui-accent, #4453c9); outline-offset: 1px; }
 .svc-inspect-chip-list { list-style: none; margin: 0.55rem 0 0; padding: 0; display: grid; gap: 0.15rem; }
-/* Coordinator review: these looked like plain text - link/button styling (accent-ink color, which
+/* These looked like plain text - link/button styling (accent-ink color, which
    still clears the panel's 7:1 label floor at ~7.8:1, plus a hover/focus treatment) signals they're
    actionable, matching the reset-group button and rail items' own affordance language. */
 .svc-inspect-chip-list button { display: block; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 0.3rem 0.4rem; font-size: 0.75rem; font-weight: 600; color: var(--ui-accent-ink, #3a46b0); border-radius: 5px; cursor: pointer; }
@@ -388,7 +385,7 @@ export function initInspect() {
 		}
 	}
 
-	/** Coordinator review: `openGroup`'s own `focusControlId` -> `.focus()` did not reliably bring a
+	/** `openGroup`'s own `focusControlId` -> `.focus()` did not reliably bring a
 	 * just-revealed row (its section may have been collapsed a moment earlier, in the same tick) into
 	 * view in testing - an explicit `scrollIntoView` on the PANEL COLUMN's own row is more reliable
 	 * than depending on browser auto-scroll-on-focus. This only ever scrolls the shadow root's own

@@ -115,10 +115,10 @@ describe('emitApplyTheme: structure', () => {
 	});
 });
 
-// SPEC-C E4: site.title is build-time (no CSS token) - emitApplyTheme is the only place its value
+// site.title is build-time (no CSS token) - emitApplyTheme is the only place its value
 // is ever surfaced, so it needs its own direct coverage rather than relying on the golden files
 // (whose fixtures deliberately leave it at its default, empty value).
-describe('emitApplyTheme: site.title (SPEC-C E4)', () => {
+describe('emitApplyTheme: site.title', () => {
 	test('empty (default) value adds no config-options step and no title line', () => {
 		const out = emitApplyTheme(defaultState());
 		assert.doesNotMatch(out, /title:/);
@@ -146,7 +146,7 @@ describe('emitApplyTheme: site.title (SPEC-C E4)', () => {
 	});
 });
 
-describe('emitApplyTheme: alignment controls (SPEC.md Round 2)', () => {
+describe('emitApplyTheme: alignment controls', () => {
 	test('a changed alignment control appears in the Verification checklist as a treatment-derived selector+property check (round 2), not a bare "target value" label', () => {
 		let s = defaultState();
 		s = setValue(s, 'toc.position', 'left');
@@ -191,7 +191,7 @@ describe('emitApplyTheme: fonts', () => {
 	});
 
 	test('gap 4 (round 2 correction): a failed font install FAILS the build - not "dropped by the browser"', () => {
-		// Coordinator-verified against a real Starlight 0.42.4/Astro 7.3.5 site: an unresolved
+		// Verified against a real Starlight 0.42.4/Astro 7.3.5 site: an unresolved
 		// @import makes `npx astro build` fail (Vite resolves @import at build time), not degrade
 		// silently. The fix is to remove that package's @import line from theme.css, not wait for a
 		// browser to ignore it.
@@ -274,7 +274,7 @@ describe('emitApplyTheme: instruction gaps (W1 follow-up)', () => {
 	});
 });
 
-// Coordinator round 2: gap 1 was only half closed - the palette (accent/gray hue+chroma) and
+// An earlier round only half-closed this gap - the palette (accent/gray hue+chroma) and
 // treatment/select controls still spoke the studio's own vocabulary ("Accent hue: target value
 // 200", "Active item style: target value Left bar"), neither checkable on a real site.
 describe('emitApplyTheme: round 2 - palette hex checks and treatment-derived checks', () => {

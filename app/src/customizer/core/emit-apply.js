@@ -44,7 +44,7 @@ const FIXED_BUILD_IDS = new Set([
 	'type.font.body',
 	'type.font.heading',
 	'type.font.mono',
-	// SPEC-C E4: build-time, no visual/CSS effect of its own to list in `buildVerification`'s
+	// Build-time only: no visual/CSS effect of its own to list in `buildVerification`'s
 	// generic changed-controls loop - `configOptionsLines` below adds its own dedicated `title:` line.
 	'site.title',
 ]);
@@ -191,7 +191,7 @@ function renderFontStep(stepNumber, { pkgs }) {
 function configOptionsLines(state, base) {
 	const lines = [];
 
-	// SPEC-C E4: `site.title` default is '' ("keep your project's own title"), so a config line is
+	// `site.title` default is '' ("keep your project's own title"), so a config line is
 	// only added when it's genuinely been set to something.
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) {

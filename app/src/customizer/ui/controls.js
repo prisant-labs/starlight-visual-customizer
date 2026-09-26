@@ -2,13 +2,13 @@
  * @file DOM builders for the panel body: preset gallery, collapsible group sections, individual
  * manifest-driven controls (range/select/toggle/color/font), and the live WCAG contrast readout
  * block. Pure DOM construction - no state ownership; callers pass a `handlers` object and this
- * module calls back into it. Kept framework-free per SPEC.md.
+ * module calls back into it. Kept framework-free (no UI library dependency).
  */
 import { controls as manifestControls, FONTS } from '../core/manifest.js';
 import { getValue } from '../core/state.js';
 import { getPalettes, contrastRatio, oklchToHex, hexToOklchHueChroma, hexToHslHue } from '../core/color.js';
 import { createTileControl, TILE_CONTROL_IDS, createFontList } from './tiles/index.js';
-// SPEC-C phase 3, workstream P (P3): the hex-first color popover (vanilla-colorful) - see
+// The hex-first color popover (vanilla-colorful) - see
 // color-picker.js's file header for why it is imported ONLY from here.
 import { createColorPopover } from './color-picker.js';
 
@@ -20,10 +20,10 @@ function clampNum(v, min, max) {
 }
 
 /**
- * SPEC-C E1: validates and normalizes a typed hex color (3 or 6 hex digits, `#` optional) to
+ * Validates and normalizes a typed hex color (3 or 6 hex digits, `#` optional) to
  * lowercase `#rrggbb`. Deliberately stricter than what `culori`'s `hsl()`/`oklch()` parsers would
- * accept (they also parse `rgb(...)`/named colors) - E1 asks for "a valid hex (3 or 6 digits, `#`
- * optional)" specifically, with anything else treated as invalid input that changes nothing.
+ * accept (they also parse `rgb(...)`/named colors) - only "a valid hex (3 or 6 digits, `#`
+ * optional)" is accepted, with anything else treated as invalid input that changes nothing.
  * @param {string} raw
  * @returns {string | null}
  */
@@ -48,8 +48,7 @@ export function normalizeHexInput(raw) {
  */
 
 /**
- * One small inline-SVG glyph per GROUPS entry (SPEC.md Round 2: "a small inline-SVG icon per
- * group"), 24x24 viewBox, stroke-based so `currentColor` (set via `.svc-group-icon { color:
+ * One small inline-SVG glyph per GROUPS entry, 24x24 viewBox, stroke-based so `currentColor` (set via `.svc-group-icon { color:
  * var(--group-accent) }` in styles.js) tints them per group. Unknown/future group names (e.g. a
  * manifest addition) fall back to a plain dot rather than breaking.
  * @type {Record<string, string>}
@@ -77,7 +76,7 @@ function groupIconSvg(groupName) {
 	return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
-/** SPEC-C S5: one accurate, Codex-toned sentence per group, shown under the panel column's group
+/** One accurate, plain-language sentence per group, shown under the panel column's group
  * title. Keyed by the same stable `groupName` GROUP_ICON_PATHS uses (including 'Navigation', whose
  * visible rail label is retitled "Structure (advanced)" elsewhere without changing this key). */
 export const GROUP_DESCRIPTIONS = {
@@ -97,11 +96,11 @@ export const GROUP_DESCRIPTIONS = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// SPEC-C S15 (units): a `rem`-unit control's number field shows/accepts PX (its slider keeps
+// Units: a `rem`-unit control's number field shows/accepts PX (its slider keeps
 // working in the control's own stored unit); a `px`-unit control's number field is unchanged but
 // gains a secondary rem readout - except radius/shadow controls, which stay px-only. Driven purely
 // by `control.unit` (and an id/label heuristic for the radius/shadow exception) so this works for
-// every manifest control, including any workstream K adds later, with zero per-control UI code.
+// every manifest control, including any added later, with zero per-control UI code.
 // ---------------------------------------------------------------------------------------------
 const REM_PX = 16;
 
@@ -122,7 +121,7 @@ function formatUnitNum(n) {
 	return Number(n.toFixed(4)).toString();
 }
 
-/** SPEC-C P4: a collapsed range card's own value summary ("720 px", "8px", "0.27") - the same
+/** A collapsed range card's own value summary ("720 px", "8px", "0.27") - the same
  * `unitDisplayMode`/`formatUnitNum` machinery the live number-box display already uses, so it
  * always agrees with what the expanded card would show.
  * @param {import('../core/manifest.js').Control} control @param {number} value @returns {string} */
@@ -307,17 +306,17 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	const wrap = document.createElement('div');
 	wrap.className = 'svc-color-assist-row';
 
-	// Coordinator polish round: one consistent layout for every color-assist control - a hex+picker
+	// One consistent layout for every color-assist control - a hex+picker
 	// row, THEN the swatch strip, THEN the note/help (previously the swatch strip came first and
 	// accent's own extra help paragraph made its row look different from gray's).
 	const hexRow = document.createElement('div');
 	hexRow.className = 'svc-color-hexrow';
 
-	// SPEC-C E1: hex text field, PRIMARY editor (B2 - the maintainer wants hex entry because
-	// Chrome's native `<input type=color>` dialog can't be forced into hex mode). Applies hue (and,
+	// Hex text field, PRIMARY editor - hex entry is the primary way colors are set here because
+	// Chrome's native `<input type=color>` dialog can't be forced into hex mode. Applies hue (and,
 	// for accent/gray, chroma) through the same back-solve the native picker below uses, so both
 	// stay in exact sync; the two-id accent/gray case commits through `onChangeMany` (one undo
-	// step, not two - see panel.js's marked workstream-E block).
+	// step, not two - see panel.js's `onControlChangeMany`).
 	const hexInput = document.createElement('input');
 	hexInput.type = 'text';
 	hexInput.className = 'svc-color-hex';
@@ -330,7 +329,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	hexMsg.className = 'svc-color-hex-msg';
 	hexMsg.hidden = true;
 
-	// Coordinator bug fix: `lastKnownValue` is whatever the field currently shows because WE put it
+	// `lastKnownValue` is whatever the field currently shows because it was put
 	// there (initial paint, a produced-color readback, or an external refresh) - never because the
 	// user's own edit is still pending. A commit (Enter or blur) is a no-op whenever the field's text
 	// already equals this, so blurring right after Enter (e.g. a real click on the top-bar Undo
@@ -343,12 +342,12 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 		lastKnownValue = value;
 	}
 
-	// SPEC-C P3: shared back-solve, used by BOTH the row's own primary hex field (Enter/blur, below)
+	// Shared back-solve, used by BOTH the row's own primary hex field (Enter/blur, below)
 	// and the popover picker (hex-color-picker drag/keyboard + its own hex field/eyedropper) - one
 	// path, so the two stay in exact sync. `coalesceKey`, when given, lets many rapid calls (a
 	// popover drag fires `color-changed` continuously) merge into ONE undo step, the same way a
-	// plain slider drag's many `input` events already coalesce by control id - see panel.js's marked
-	// P3 addition threading a coalesce key through `onChangeMany`.
+	// plain slider drag's many `input` events already coalesce by control id - see panel.js's
+	// `coalesceKey` parameter threaded through `onChangeMany`.
 	function applyHex(normalized, { coalesceKey } = {}) {
 		if (assist.kind === 'semantic') {
 			const hue = clampNum(hexToHslHue(normalized), control.min, control.max);
@@ -418,7 +417,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	hexInput.addEventListener('blur', () => commitHex());
 	hexRow.appendChild(hexInput);
 
-	// SPEC-C P3: the popover swatch button replaces the native `<input type=color>` - see
+	// The popover swatch button replaces the native `<input type=color>` - see
 	// color-picker.js's file header for why (Chrome's own picker dialog can't open in hex mode).
 	const picker = createColorPopover({
 		label: control.label,
@@ -463,7 +462,7 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
  * @param {import('../core/state.js').ThemeState} state
  * @param {ControlHandlers} handlers
  * @param {{isCardOpen?: (controlId: string) => boolean, onCardToggle?: (controlId: string, open: boolean) => void}} [opts]
- *   SPEC-C phase 3, workstream P (P4): per-card open/closed state, same contract as
+ *   Per-card open/closed state, same contract as
  *   `createGroupSection`'s `isSectionOpen`/`onSectionToggle` one level up - `onCardToggle` fires
  *   only on a genuine user click (not the filter's auto-open), so panel.js persists just the user's
  *   own choices.
@@ -475,14 +474,13 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	root.dataset.controlId = control.id;
 	root.dataset.label = control.label.toLowerCase();
 
-	// SPEC-C P4: every card starts OPEN unless a restored sessionStorage choice says otherwise
-	// (default settled with the maintainer 2026-09-24 - see SPEC-C section 5b).
+	// Every card starts OPEN unless a restored sessionStorage choice says otherwise.
 	const startOpen = opts.isCardOpen ? opts.isCardOpen(control.id) !== false : true;
 	root.dataset.open = startOpen ? 'true' : 'false';
 
-	// `target` (SPEC.md Round 2, owner CORE-2) is optional and may not exist on every control yet -
+	// `target` is optional and may not exist on every control yet -
 	// every use below is guarded, so a manifest without it just never scrolls/highlights (graceful
-	// degrade), no per-control UI code needed once CORE-2's field lands.
+	// degrade), no per-control UI code needed once it's added.
 	const notifyTarget = (scroll) => {
 		if (control.target) handlers.onTarget?.(control.target, { scroll });
 	};
@@ -490,11 +488,11 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		root.addEventListener('pointerenter', () => notifyTarget(false));
 	}
 
-	// SPEC-C P4: the card header is now a collapsible toggle - a real <button> (Enter/Space
+	// The card header is a collapsible toggle - a real <button> (Enter/Space
 	// activation for free) holding the label, an optional build-tag, a value SUMMARY shown only
 	// while collapsed ("720 px", "Filled pill", a color chip + hex, "On"), and a chevron; the whole
-	// row is the click target. Deliberately NOT a `<label for=...>` around the input the way B's
-	// original row was: clicking to collapse a TOGGLE card must never also flip its checkbox, and a
+	// row is the click target. Deliberately NOT a `<label for=...>` around the input: clicking to
+	// collapse a TOGGLE card must never also flip its checkbox, and a
 	// `<label for>` on a range control would focus (and scroll to) the frame on every collapse click.
 	// Every input below gets its own `aria-label` instead (several already had one).
 	const head = document.createElement('div');
@@ -562,7 +560,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	let colorAssistHelpEl = null;
 	/** @type {HTMLInputElement | null} */
 	let colorPickerEl = null;
-	/** @type {HTMLInputElement | null} SPEC-C E1: the hex text field beside the picker. */
+	/** @type {HTMLInputElement | null} The hex text field beside the picker. */
 	let colorHexEl = null;
 	/** @type {((value: string) => void) | null} The ONLY way `refresh()` may update `colorHexEl`'s
 	 * displayed value - see `buildColorAssistRow`'s `syncHexDisplay` for why a bare `.value =` would
@@ -571,7 +569,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	/** @type {((value: string) => void) | null} Same contract as `colorHexSync`, for a `color`-type
 	 * (role override) control's own hex field. */
 	let colorRoleHexSync = null;
-	/** @type {{setSwatch: (hex: string) => void} | null} SPEC-C P3: a `color`-type (role override)
+	/** @type {{setSwatch: (hex: string) => void} | null} A `color`-type (role override)
 	 * control's own popover swatch button - `refresh()` re-seeds its swatch color the same way it
 	 * already re-seeds `colorHexSync`. */
 	let colorRoleSwatchPopover = null;
@@ -588,7 +586,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 
 	if (control.type === 'font' || (control.type === 'select' && TILE_CONTROL_IDS.has(control.id))) {
 		// Visual selects render as clickable tile grids, and every font control renders as a
-		// vertical list of font-name rows (SPEC.md "B" tiles item 1) - both own their full
+		// vertical list of font-name rows - both own their full
 		// selection UI (native radios), so this row only wires the shared commit/notify plumbing.
 		const commit = (value) => {
 			resetBtn.hidden = value === control.default;
@@ -608,7 +606,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		inputEl.value = String(getValue(state, control.id));
 		inputEl.setAttribute('aria-label', control.label);
 
-		// SPEC-C S15: the slider ALWAYS stays in the control's own stored unit (unchanged from B) -
+		// The slider ALWAYS stays in the control's own stored unit -
 		// only the adjacent number box's displayed/accepted unit and an optional secondary readout
 		// vary, per `unitDisplayMode`. `toDisplay`/`fromDisplay` convert stored <-> shown; the range
 		// input itself never goes through them.
@@ -749,7 +747,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	} else if (control.type === 'color') {
 		const currentValue = getValue(state, control.id);
 
-		// Coordinator polish round: three affordances for one idea (a clear button, an "auto"
+		// Three affordances for one idea (a clear button, an "auto"
 		// checkbox, and the row's own generic reset ↺) collapsed to two. The hex field is the PRIMARY
 		// editor; a small "Auto" tag shows/hides opposite the clear button (never both at once), and
 		// the generic resetBtn stays permanently hidden for this control type (below, and again at
@@ -827,7 +825,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			notifyTarget(true);
 		});
 
-		// SPEC-C P3: the popover swatch button replaces the native `<input type=color>` - always
+		// The popover swatch button replaces the native `<input type=color>` - always
 		// clickable (unlike the old native input, which was `disabled` while "auto"): opening the
 		// popover and picking a color is now just as valid a way to START an override as typing hex.
 		colorRoleSwatchPopover = createColorPopover({
@@ -845,7 +843,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		row.appendChild(clearBtn);
 		body.appendChild(hexMsg);
 	} else if (control.type === 'text') {
-		// SPEC-C E4: a free-text control (site.title so far). Commits on every keystroke (`input`,
+		// A free-text control (site.title so far). Commits on every keystroke (`input`,
 		// not just `change`) so the preview updates live as you type - `panel.js`'s
 		// `history.record(state, 'control:' + id, ...)` coalesces same-id/same-tick edits into one
 		// undo step (identical mechanism to the range/number-box live-typing path above), so a whole
@@ -878,7 +876,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 	}
 
 	if (!tileControl && control.type !== 'range') inputEl.id = inputId;
-	// Coordinator polish round: a role override's own clear button ("Follow the palette") already
+	// A role override's own clear button ("Follow the palette") already
 	// does what this generic reset arrow would - showing both is two affordances for one idea.
 	resetBtn.hidden = control.type === 'color' ? true : isDefaultNow();
 	head.appendChild(resetBtn);
@@ -892,9 +890,9 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		body.appendChild(help);
 	}
 
-	// SPEC-C P4: the collapsed-card value summary ("720 px", "Filled pill", a color chip + hex,
-	// "On") - computed by control TYPE so it works for every control, including any workstream K
-	// adds later, with zero per-control UI code (same design principle S15's unit display already
+	// The collapsed-card value summary ("720 px", "Filled pill", a color chip + hex,
+	// "On") - computed by control TYPE so it works for every control, including any added
+	// later, with zero per-control UI code (same design principle the unit display above already
 	// follows).
 	function updateCardSummary(nextState) {
 		summaryEl.replaceChildren();
@@ -961,8 +959,8 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			if (colorAssist) {
 				applyColorTrack(inputEl, control, colorAssist, nextState);
 				if (colorPickerEl) colorPickerEl.setSwatch(handlers.getResolvedColor(control.id));
-				// SPEC-C E1: don't clobber the hex field while the user is typing/focused in it. Coordinator
-				// polish round: after undo/redo/preset/group-reset/reset-all/import every hex field must
+				// Don't clobber the hex field while the user is typing/focused in it. After
+				// undo/redo/preset/group-reset/reset-all/import every hex field must
 				// show the CURRENT resolved color - `colorHexSync` (never a bare `.value =`) keeps the
 				// no-op-on-blur baseline in sync too, so the very next blur doesn't treat this refresh's
 				// new value as a user edit and record a spurious extra history step.
@@ -982,7 +980,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			if (autoTagEl) autoTagEl.hidden = !isAuto;
 			const clearEl = root.querySelector('.svc-color-clear');
 			if (clearEl) clearEl.hidden = isAuto;
-			// Coordinator polish round: after undo/redo/preset/group-reset/reset-all/import the hex
+			// After undo/redo/preset/group-reset/reset-all/import the hex
 			// field must show the CURRENT resolved color - `colorRoleHexSync` (never a bare `.value =`)
 			// keeps the no-op-on-blur baseline in sync too (see `commitRoleHex`'s own comment).
 			const hexEl = root.querySelector('.svc-color-hex');
@@ -1051,16 +1049,16 @@ export function createGroupSection(groupName, groupControls, state, handlers, op
 
 /**
  * Shared innards of `createGroupSection` (overlay accordion) and `createStudioGroupPanel` (studio's
- * rail-driven column, SPEC-C S5): builds each control's row, grouped into per-`section`
+ * rail-driven column): builds each control's row, grouped into per-`section`
  * disclosures exactly as before - factored out so both callers render byte-identical
- * section/control DOM, and S16's overlay-mode suites see no change at all.
+ * section/control DOM, and the overlay-mode test suites see no change at all.
  * @param {HTMLElement} body Container the sections/rows are appended into.
  * @param {string} groupName
  * @param {import('../core/manifest.js').Control[]} groupControls
  * @param {import('../core/state.js').ThemeState} state
  * @param {ControlHandlers} handlers
  * @param {{isSectionOpen?: Function, onSectionToggle?: Function, isCardOpen?: Function, onCardToggle?: Function}} [opts]
- *   SPEC-C phase 3, workstream P: `isCardOpen`/`onCardToggle` are forwarded straight through to
+ *   `isCardOpen`/`onCardToggle` are forwarded straight through to
  *   every `createControlRow` call below - same contract, one level down, as `isSectionOpen`.
  * @returns {{controlRows: Map<string, {root: HTMLElement, refresh: Function}>, refreshSectionDots: (state: import('../core/state.js').ThemeState) => void, firstSectionName: string|undefined}}
  */
@@ -1078,13 +1076,13 @@ function buildGroupSectionsInto(body, groupName, groupControls, state, handlers,
 	let firstSectionName;
 	for (const control of groupControls) {
 		if (control.showIf && getValue(state, control.showIf.id) !== control.showIf.equals) continue;
-		// `section` (SPEC.md Round 2, owner CORE-2) is optional; controls without it render as a
+		// `section` is optional; controls without it render as a
 		// flat list with no sub-heading/disclosure (graceful degrade if a control ever ships without
-		// one). Item 3: each distinct section becomes its own disclosure - default open for the
+		// one). Each distinct section becomes its own disclosure - default open for the
 		// FIRST section of the group, collapsed for the rest, unless `isSectionOpen` (restored
 		// sessionStorage state) says otherwise.
 		if (control.section && control.section !== lastSection) {
-			// SPEC-C P4 (settled with the maintainer 2026-09-24): every section starts OPEN by
+			// Every section starts OPEN by
 			// default, unless `isSectionOpen` (restored sessionStorage state) says otherwise -
 			// superseding this module's earlier "only the first section starts open" rule.
 			const isOpen = opts.isSectionOpen ? opts.isSectionOpen(groupName, control.section, isFirstSection) : true;
@@ -1148,7 +1146,7 @@ function buildGroupSectionsInto(body, groupName, groupControls, state, handlers,
 }
 
 /**
- * SPEC-C S5: the studio's panel-column rendering of one group - no accordion (the rail selects
+ * The studio's panel-column rendering of one group - no accordion (the rail selects
  * which group shows; `svc-panel-sections[data-filtering]` in styles.js controls visibility), just a
  * heading (shown only while the control filter has matching text, so a multi-group search result
  * still says which group each row belongs to) followed by the SAME section/control DOM
@@ -1213,11 +1211,11 @@ function getPresetLightPalette(preset) {
 }
 
 /**
- * SPEC-C E2: a small, self-drawn "mini page preview" for a preset card - a header bar, a sidebar
+ * A small, self-drawn "mini page preview" for a preset card - a header bar, a sidebar
  * with an active item styled per the preset's own `sidebar.activeStyle`, a heading in the preset's
  * own heading font, two text lines, and an accent callout, entirely in the preset's LIGHT palette
  * (`getPresetLightPalette`). Every line except the "Aa" heading sample is a plain colored bar (no
- * text) - deliberate: shell.mjs's A4 contrast walk inspects every real text node in this shadow root
+ * text) - deliberate: shell.mjs's contrast walk inspects every real text node in this shadow root
  * (preset cards aren't tile-sample previews, so they're not exempt), and a decorative bar carries no
  * text to check. The "Aa" sample uses the palette's own ink-on-page pair, which `getPalettes`
  * already tunes for readability, so it clears the walk's floor by construction.
@@ -1343,8 +1341,8 @@ export function createPresetGallery(presetList, state, handlers) {
 
 		card.appendChild(buildPresetMiniDoc(preset));
 
-		// P1 (point 2): the description moved to the card's own `title` tooltip above - showing it a
-		// second time as body text was the maintainer's specific complaint, so it isn't rendered here.
+		// The description moved to the card's own `title` tooltip above - showing it a
+		// second time as body text was redundant, so it isn't rendered here.
 		const meta = document.createElement('div');
 		meta.className = 'svc-preset-meta';
 		const name = document.createElement('span');
@@ -1413,7 +1411,7 @@ export function createContrastBlock() {
 }
 
 /**
- * SPEC-C S12: the status bar's contrast-warnings dialog (a table: mode, pair, swatches, ratio,
+ * The status bar's contrast-warnings dialog (a table: mode, pair, swatches, ratio,
  * target, pass/fail). Built in `controls.js` (not `studio.js`, which lives in the studio's light
  * DOM) so it can reuse the SAME `.svc-dialog*` shadow-DOM CSS `export.js`'s dialog already has -
  * appended into `panel.js`'s shadow root, alongside the export dialog.
@@ -1499,7 +1497,7 @@ function setSectionOpen(section, open) {
 	section.querySelector('.svc-section-toggle')?.setAttribute('aria-expanded', String(open));
 }
 
-/** SPEC-C P4: same contract, one level down, for a control card. @param {HTMLElement} card @param {boolean} open */
+/** Same contract, one level down, for a control card. @param {HTMLElement} card @param {boolean} open */
 function setCardOpen(card, open) {
 	card.dataset.open = open ? 'true' : 'false';
 	card.querySelector(':scope > .svc-control-head .svc-control-toggle')?.setAttribute('aria-expanded', String(open));
@@ -1513,7 +1511,7 @@ function setCardOpen(card, open) {
  *   filter match forced it open to. Falls back to "leave as-is" when omitted.
  * @param {(groupName: string, sectionName: string) => boolean} [restoreSectionOpen] Item 3: same
  *   contract, one level down, for each section's own open/closed state.
- * @param {(controlId: string) => boolean} [restoreCardOpen] SPEC-C P4: same contract, one level
+ * @param {(controlId: string) => boolean} [restoreCardOpen] Same contract, one level
  *   further down, for each control card's own open/closed state.
  */
 export function applyControlFilter(bodyRoot, filterText, restoreOpen, restoreSectionOpen, restoreCardOpen) {

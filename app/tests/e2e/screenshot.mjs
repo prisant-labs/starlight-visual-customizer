@@ -18,18 +18,18 @@
  * scroll call anywhere in this file, per the studio's rule that no host ancestor of a preview frame
  * ever scrolls.
  *
- * Verification method (per the coordinator's brief - decode both PNGs in the browser, no new npm
+ * Verification method (decode both PNGs in the browser, no new npm
  * dependencies): both the captured PNG and a genuine Playwright screenshot of the SAME on-screen
  * `<iframe>` element (the ground truth for "what the frame shows") are base64-encoded and handed to
  * `page.evaluate`, decoded via `<img>` + `<canvas>.getImageData`, and diffed pixel-by-pixel there -
  * see `compareImages`. All PNGs plus a red/grey diff visualization for every scenario are saved to
- * `BATCH_DIR` for the coordinator.
+ * `BATCH_DIR` for later review.
  *
- * Round 2 addition: a dedicated ALIGNMENT check (`alignmentProbesFor`/`checkAlignment`) catches a
+ * A dedicated ALIGNMENT check (`alignmentProbesFor`/`checkAlignment`) catches a
  * systematic render offset directly, by comparing the pixel position of a distinctive edge (the
  * header's bottom border row, the left sidebar's right border column) between `ours` and the
- * reference, 1px tolerance - this is what should have caught (and now does catch) the ~8px
- * top/left margin offset that round 1's region-diff-fraction thresholds were loose enough to miss.
+ * reference, 1px tolerance - this is what should have caught (and now does catch) an ~8px
+ * top/left margin offset that plain region-diff-fraction thresholds were loose enough to miss.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -40,7 +40,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
-/** Where the coordinator can find every PNG this suite produces, plus diff visualizations. */
+/** Where every PNG this suite produces, plus diff visualizations, are saved for review. */
 const BATCH_DIR =
 	process.env.SVC_SCREENSHOT_BATCH_DIR ||
 	path.join(__dirname, 'screenshots', 'screenshot-suite');
@@ -214,10 +214,10 @@ async function snapshotLiveState(frame) {
 }
 
 /**
- * Decodes both PNGs via `<canvas>`/`getImageData` IN THE BROWSER (no new npm dependency, per the
- * coordinator's brief) and diffs them: overall stats over the full overlapping area, plus per-region
+ * Decodes both PNGs via `<canvas>`/`getImageData` IN THE BROWSER (no new npm dependency
+ * needed) and diffs them: overall stats over the full overlapping area, plus per-region
  * stats for whatever rects are passed in `regions` (frame-viewport-relative `{x,y,width,height}`,
- * e.g. the sidebar/TOC/theme-select boxes), plus an ALIGNMENT check (round 2 - see `ALIGNMENT_TOLERANCE_PX`):
+ * e.g. the sidebar/TOC/theme-select boxes), plus an ALIGNMENT check (see `ALIGNMENT_TOLERANCE_PX`):
  * for each entry in `alignmentProbes`, scans a line of pixels in `ours` and the same line in `ref` and
  * finds the position of the single sharpest luminance jump (the real edge, e.g. a border or a
  * background-color change) - a systematic render offset moves that position in `ours` relative to
@@ -376,7 +376,7 @@ async function compareImages(page, { oursB64, refB64, regions, alignmentProbes }
 	);
 }
 
-/** Round 2: 1px tolerance on the alignment probes above, per the coordinator's brief - a real render
+/** 1px tolerance on the alignment probes above - a real render
  * (different rasterizer, subpixel antialiasing) can legitimately land an edge's exact sharpest-jump
  * position a fraction of a pixel apart between two otherwise-identical images; a SYSTEMATIC render
  * offset (the ~8px margin bug this round fixes) moves it by whole pixels, so 1px cleanly separates

@@ -10,7 +10,8 @@
  * consumer; it skips lookup entirely when a control's value equals the manifest default, so the
  * default option for each treatment intentionally has no entry here.
  *
- * Notable selector fidelity notes (see SPEC.md, "unlayered rules win only if they match"):
+ * Notable selector fidelity notes (this CSS is intentionally unlayered, so an unlayered rule here
+ * only wins a tie against another stylesheet if it actually matches the same selector):
  * - `header.header` (not bare `.header`): `PageFrame.astro` renders `<header class="header">`
  *   and `Header.astro` renders an *inner* `<div class="header">`. A bare `.header` selector
  *   would double-apply border/shadow/blur declarations to both.
@@ -256,13 +257,13 @@ starlight-toc a[aria-current='true']::before {
 			probe: { selector: '.right-sidebar-container', property: 'order' },
 		},
 
-		// F5 (SPEC-C phase 3, point 12): `.right-sidebar` is `position: fixed; width: 100%` in
+		// `.right-sidebar` is `position: fixed; width: 100%` in
 		// Starlight's own CSS, with `left`/`right` both `auto` - per the CSS2.1 abs-pos algorithm, an
 		// `auto` inline-start resolves to the box's own STATIC position (roughly where
 		// `.right-sidebar-container`, its non-positioned flex-item parent, sits in the row), and a
 		// non-auto `width` then resolves against the FIXED box's real containing block, the viewport -
-		// not the container's own (narrower) box. Measured empirically at 1920px (coordinator, before
-		// writing this): `.right-sidebar` rendered `left: 1320px; width: 1920px`, i.e. a 1920px-wide box
+		// not the container's own (narrower) box. Measured empirically at 1920px:
+		// `.right-sidebar` rendered `left: 1320px; width: 1920px`, i.e. a 1920px-wide box
 		// starting at x=1320 and extending to x=3240 - only its LEFT portion (1320 to 1920) was ever
 		// visible, clipped by the viewport edge, and the actual TOC content inside it is left-aligned
 		// within that oversized, mostly off-screen box - nowhere near the window's real right edge. The
@@ -271,7 +272,7 @@ starlight-toc a[aria-current='true']::before {
 		// container at all: an explicit `right: 0` (flush to the window, same edge the container's own
 		// box already touches) and a real, fixed `width` kill the runaway 100vw box outright.
 		// `.right-sidebar-container`'s own flex width (and therefore `.main-pane`'s complementary width
-		// formula) is untouched - "the content keeps its own alignment rules" (SPEC-C F5) - so a big gap
+		// formula) is untouched - the content keeps its own alignment rules - so a big gap
 		// can appear between the content column and a window-docked TOC on very wide screens; that's the
 		// accepted trade-off of pinning to the window rather than the content. `--sl-sidebar-pad-x`
 		// (`.right-sidebar-panel`'s own existing padding, PageSidebar.astro) already insets the visible

@@ -1,29 +1,16 @@
 // @ts-check
 /**
- * @file Studio route e2e suite (`/studio/`'s design doc). Verifies the docked layout, the page
+ * @file Studio route e2e suite (`/studio/`). Verifies the docked layout, the page
  * switcher + device widths, and that every panel operation (theming, TOC stamping, sidebar
  * re-render, target highlighting, tiles, export) correctly targets the preview `<iframe>`'s
  * document instead of the host document, per the studio's `getPageDoc()` indirection.
  *
- * SPEC-C rewrite (S16: "adapt studio.mjs checks rather than deleting them; list any removed check
- * and why" - see the report): B's studio was a single floating-panel dock with a plain toolbar; C
- * replaces it with the rail + panel column + toolbar + context line + status bar shell, so most
- * selectors below changed even though the underlying BEHAVIOR each check verifies did not. Checks
- * removed outright (no equivalent left to adapt):
- *  - "panel and frame don't overlap" / "host doesn't scroll" at width 1100 - S1's own drawer
- *    breakpoint is 900px, and B's 1100px case assumed the old fixed-400px single-column dock; the
- *    1440/1280/900/mobile-drawer geometry is covered fully by shell.mjs instead (which also owns the
- *    acceptance list's specific screenshot names), so this suite keeps only the always-current
- *    1440px layout check to avoid asserting stale B-era numbers.
- *  - the panel header's sun/moon icon-button toggle - S2 removes it outright; superseded by the
- *    toolbar's Light/Dark/Split (exercised here via the segmented control, and by shell.mjs's Split
- *    and "chrome stays light in Dark" checks).
- * Everything else below is the SAME assertion against the new selectors: `.svc-studio-btn` (old
- * toolbar) -> `.svc-page-tab`/`.svc-seg-btn` (light DOM) or `.svc-rail-item` (shadow DOM); the old
- * accordion's `data-open`/`.svc-group-toggle` -> the rail's `aria-selected` + `host.__svc.openGroup`;
- * `.svc-body` (the single scrolling panel column) -> `.svc-panel-sections`.
+ * The "panel and frame don't overlap" / "host doesn't scroll" checks only run at 1440px here -
+ * the full 1440/1280/900/mobile-drawer geometry (and the acceptance list's specific screenshot
+ * names) is covered fully by shell.mjs instead, so this suite keeps only the always-current
+ * 1440px layout check to avoid duplicating that coverage.
  *
- * Existing suites (`smoke`, `ui-round2`, `treatments`, `targets`, `tiles`) exercise the customizer
+ * Other suites (`smoke`, `ui-round2`, `treatments`, `targets`, `tiles`) exercise the customizer
  * against direct page URLs in plain overlay mode and are unaffected by the studio's existence.
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
@@ -85,7 +72,7 @@ function normalizePath(pathname) {
 	return s.endsWith('/') ? s : `${s}/`;
 }
 
-// Coordinator review (P1): these used to be script-dispatched `el.click()` calls, which bypass real
+// These used to be script-dispatched `el.click()` calls, which bypass real
 // hit-testing (see shell.mjs's file header for the pointer-events bug this class of bug produces) -
 // every click below is now a genuine `page.mouse.click()` at the element's actual on-screen center.
 
@@ -403,7 +390,7 @@ async function main() {
 		// own rAF-throttled `schedulePosition()` (fires on 'scroll', so it can still be one frame
 		// behind the smooth-scroll's true end) - poll the FULL snapshot (scrollY, the code block's
 		// viewport-relative rect, and the overlay's rect) until two consecutive reads agree, rather
-		// than guessing how long "catching up" takes (SPEC-C section 6: poll, never fixed sleeps).
+		// than guessing how long "catching up" takes - poll, never fixed sleeps.
 		async function snapshot() {
 			const [scrollY, codeRectInFrame] = await Promise.all([
 				frame.evaluate(() => window.scrollY),
@@ -524,9 +511,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 8. F1 (SPEC-C phase 3, point 1): a plain top-level page visit mounts NO panel at all - just the
+	// 8. A plain top-level page visit mounts NO panel at all - just the
 	//    saved theme (no-flash preload) plus a fixed "Open in Studio" pill; `?svc-overlay` restores
-	//    B's overlay for the engine test suites.
+	//    the overlay panel for the engine test suites.
 	// =============================================================================================
 	{
 		const outsidePage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -575,7 +562,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 9. F2 (SPEC-C phase 3, point 6): larger device widths and the zoom control.
+	// 9. Larger device widths and the zoom control.
 	// =============================================================================================
 	{
 		await clickPageTab(page, 'Document');
@@ -633,9 +620,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 10. F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the already-selected
+	// 10. Clicking the already-selected
 	//     rail item used to collapse the panel column - it now just re-selects the group like any
-	//     other rail click instead (Builder A, fix/structure-undo-rail), so the panel column stays
+	//     other rail click instead, so the panel column stays
 	//     open. Collapsing happens only via the panel column's own header button or '\'; any rail
 	//     item click, the button again, or '\' again reopens/toggles it; state persists.
 	// =============================================================================================
@@ -694,9 +681,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 11. F0 fix (SPEC-C phase 3, point 13): focusing controls at a scaled device never scrolls any
+	// 11. Focusing controls at a scaled device never scrolls any
 	//     host ancestor of the lane iframe, and the iframe's top stays aligned with its wrapper's -
-	//     the exact repro from the maintainer's report (1600x1000 window, Long doc, device 1440).
+	//     exact repro: 1600x1000 window, Long doc, device 1440.
 	// =============================================================================================
 	{
 		const f0page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });

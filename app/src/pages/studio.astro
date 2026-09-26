@@ -1,15 +1,14 @@
 ---
-// Studio route (design doc item A): a plain Astro page, NOT a Starlight page - no
+// Studio route: a plain Astro page, NOT a Starlight page - no
 // <StarlightPage>, no Starlight layout components. The previewed site renders in a same-origin
 // iframe beside a docked customizer panel, so every breakpoint, the fixed header, and the fixed
-// TOC rail behave exactly as they would for a real visitor at that width (the coordinator measured
-// a CSS-only dock and found it lied about layout at in-between window widths - see the effort's
-// design doc for the numbers).
+// TOC rail behave exactly as they would for a real visitor at that width (a CSS-only dock was
+// tried first and found to lie about layout at in-between window widths).
 //
-// SPEC-C: this file owns the studio's LIGHT-DOM shell only - top bar, toolbar, context line, the
+// This file owns the studio's LIGHT-DOM shell only - top bar, toolbar, context line, the
 // preview stage (one or two lanes), and the status bar. The rail (icon list, one group visible at a
 // time) and the panel column's contents (group header, sections, controls) live inside
-// `<sl-customizer>`'s shadow root (panel.js/styles.js/controls.js) - S4's rail is a `tablist` and
+// `<sl-customizer>`'s shadow root (panel.js/styles.js/controls.js) - the rail is a `tablist` and
 // the column its `tabpanel`, and `aria-controls` id references don't cross a shadow boundary, so
 // keeping both together in one shadow root was simpler and more robust than splitting them across
 // documents. `studio.js` builds everything in this file's containers and talks to panel.js through
@@ -53,7 +52,7 @@ import { withBase } from '../customizer/core/base-path.js';
 // anyway - every selector below targets the studio's own fixed ids/classes, not anything shared
 // with Starlight's pages.
 //
-// SPEC-C S2/S3: this is the studio's ONE light-chrome palette (`--ui-*`), independent of the
+// This is the studio's ONE light-chrome palette (`--ui-*`), independent of the
 // preview's light/dark mode - never `--sl-color-*`. Same literal values as styles.js's
 // `:host([data-docked='true'])` block (that file's header has the contrast-floor verification
 // notes); duplicated rather than shared across the two separate stylesheets/documents involved.
@@ -68,8 +67,8 @@ const studioLayoutCss = `
 	--ui-accent: #4453c9;
 	--ui-accent-fg: #ffffff;
 	--ui-accent-tint: rgba(68, 83, 201, 0.08);
-	/* S3: --ui-accent as TEXT (not a solid fill) only reaches ~6.3:1 on white/near-white - short of
-	   the 7:1 floor labels need (SPEC-C's explicit 4.5:1 exception is for white text ON an accent
+	/* --ui-accent as TEXT (not a solid fill) only reaches ~6.3:1 on white/near-white - short of
+	   the 7:1 floor labels need (the explicit 4.5:1 exception is for white text ON an accent
 	   FILL only - buttons, the selected rail item). --ui-accent-ink is the same hue darkened until it
 	   clears 7:1 (measured ~7.8:1) - used for the selected page tab's text. Kept identical to
 	   styles.js's copy of this same token. */
@@ -79,7 +78,7 @@ const studioLayoutCss = `
 html, body {
 	height: 100%;
 	margin: 0;
-	/* F0 fix (SPEC-C phase 3, point 13): 'overflow: hidden' still lets script (Element.scrollIntoView
+	/* 'overflow: hidden' still lets script (Element.scrollIntoView
 	   crossing a same-origin iframe boundary - see .svc-lane-wrap's own comment below) set a nonzero
 	   scrollTop/scrollLeft even though no scrollbar ever shows. 'overflow: clip' removes the scroll
 	   mechanism entirely (scrollTop/scrollLeft are inert), so nothing here can ever be nudged by a
@@ -233,8 +232,8 @@ body {
 }
 .svc-seg-btn[aria-pressed='true'] { background: var(--ui-panel); color: var(--ui-ink); box-shadow: 0 1px 2px rgba(27, 33, 48, 0.12); }
 .svc-seg-btn svg { width: 0.9rem; height: 0.9rem; display: block; }
-/* F2 (SPEC-C phase 3, point 6): disabled zoom buttons (Fit device has nothing to zoom, or a step is
-   already at either end) - var(--ui-muted), not opacity, so the A4 contrast walk's computed-color
+/* Disabled zoom buttons (Fit device has nothing to zoom, or a step is
+   already at either end) - var(--ui-muted), not opacity, so the contrast walk's computed-color
    read stays accurate (opacity would blend toward the background in a way a plain color read can't
    see, risking a false pass on a ratio that isn't really there). */
 .svc-seg-btn:disabled { color: var(--ui-muted); cursor: not-allowed; }
@@ -344,7 +343,7 @@ iframe[data-svc-preview] {
 	#svc-drawer-toggle { display: inline-flex; }
 }
 
-/* ---- SPEC-C phase 2, workstream I: Inspect toggle + "Elements" list (I1, I5). Reuses .svc-seg/
+/* ---- Inspect toggle + "Elements" list. Reuses .svc-seg/
    .svc-seg-btn's existing look (and its already contrast-verified [aria-pressed='true'] state) -
    .svc-inspect-elements-btn toggles via aria-expanded instead, so it needs its own copy of that
    same pressed treatment. ---- */
@@ -391,6 +390,7 @@ iframe[data-svc-preview] {
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
 		<title>Studio - Starlight Customizer</title>
 		<!-- Unlike Starlight pages (which get this from Head.astro), this plain page has no favicon
 		     link by default - without one, the browser's automatic /favicon.ico probe 404s on every

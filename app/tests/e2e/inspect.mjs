@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file SPEC-C phase 2, workstream I acceptance suite: Inspect (C3) - click an element on the
+ * @file Inspect acceptance suite: click an element on the
  * previewed page to reach exactly the controls that style it. Complements `shell.mjs` (which keeps
  * its own hit-test audit and A4 contrast walk green with Inspect active) rather than duplicating it.
  *
@@ -63,7 +63,7 @@ async function waitForComputed(getValue, predicate, { timeoutMs = 4000, interval
 	return last;
 }
 
-/** Coordinator review: after an Inspect click, `scrollAnchorRowIntoView` scrolls the PANEL COLUMN's
+/** After an Inspect click, `scrollAnchorRowIntoView` scrolls the PANEL COLUMN's
  * own `.svc-panel-sections` (smooth) so the scope's first control is actually visible, not just
  * highlighted - polls for the settled outcome rather than a fixed wait before a screenshot. Checks
  * the row's TOP edge only (not full containment): a font-list/tile-grid row can be taller than the
@@ -273,7 +273,7 @@ async function main() {
 			(v) => v === 'true'
 		);
 		check('clicking an h2 selects the Typography rail item', typographySelected === 'true', typographySelected);
-		// Coordinator review: the chip lists "Heading font" first (the scope's first/anchor control),
+		// The chip lists "Heading font" first (the scope's first/anchor control),
 		// but the Fonts section's own first row is "Body font" - the panel must scroll so the anchor
 		// row is actually visible, not just marked inspected below the fold.
 		const headingRowVisible = await waitForRowVisibleInPanel(page, 'type.font.heading');
@@ -402,8 +402,8 @@ async function main() {
 		);
 		check('pressing Enter on a focused list item selects it (a keyboard path to the same selection)', selectedAfterEnter === true, String(selectedAfterEnter));
 
-		// F0 fix (SPEC-C phase 3, point 13): the Elements list's own selection scrolls the frame
-		// (`{scroll: true}`, unlike a plain I4 click) - `inspect.js` routes that through
+		// The Elements list's own selection scrolls the frame
+		// (`{scroll: true}`, unlike a plain click) - `inspect.js` routes that through
 		// `scrollElementIntoView` (target-highlight.js), never `Element.scrollIntoView`, so no host
 		// ancestor of the lane iframe should ever pick up a nonzero scroll position from it.
 		await page.waitForTimeout(400); // let any smooth scroll settle

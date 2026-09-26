@@ -1,5 +1,5 @@
 /**
- * @file Schematic wireframe tiles (SPEC.md "B" tiles item 2, second bullet) for the six
+ * @file Schematic wireframe tiles for the six
  * layout/alignment controls: tiny inline-SVG page-layout diagrams (header bar / sidebar / content
  * column / TOC rail as blocks) drawn with the live theme's `--sl-color-*` tokens (via `style="fill:
  * var(...)"`, which Chromium resolves the same as any other CSS value) so they recolor with the
@@ -12,8 +12,8 @@ const W = 160;
 const H = 112;
 /** Item 5: cropped-wide canvas for the alignment diagrams whose rendered aspect ratio needs to
  * clear the grid-vs-rows rule's ~2:1 threshold (`tiles/index.js`'s `computeTileLayout`) - these
- * three show only "the part that matters" (a short, wide strip) rather than a whole-page mockup,
- * per the maintainer's brief. `toc.position` and `content.heroAlign` keep the default `W`x`H`
+ * three show only "the part that matters" (a short, wide strip) rather than a whole-page mockup.
+ * `toc.position` and `content.heroAlign` keep the default `W`x`H`
  * page-chrome canvas: both genuinely need the sidebar/TOC/hero context to read, and
  * `content.heroAlign` already clears the rows threshold on label length alone (see WIREFRAME_SIZE
  * below and the report). */
@@ -64,8 +64,8 @@ function pageChrome({ toc = true } = {}) {
 }
 
 /**
- * Item 5: cropped to "the header strip with the search box plus a hint of the content column
- * edge" (maintainer's brief), on the wide `WIDE_W`x`WIDE_H` canvas - no sidebar/content-below
+ * Cropped to "the header strip with the search box plus a hint of the content column
+ * edge", on the wide `WIDE_W`x`WIDE_H` canvas - no sidebar/content-below
  * chrome, since neither is what this control changes. The gray block under the header's left
  * portion is that "hint of the content column edge" peeking out below the bar.
  */
@@ -183,7 +183,7 @@ function heroAlign(option) {
 	);
 }
 
-/** Item 5: cropped to "just the two cards" (maintainer's brief) - no page chrome at all - on the
+/** Cropped to "just the two cards" - no page chrome at all - on the
  * wide canvas, so the crop has no empty band above/below (the old 160x112 canvas left ~15px of
  * dead space on each side of the cards). */
 function paginationAlign(option) {
