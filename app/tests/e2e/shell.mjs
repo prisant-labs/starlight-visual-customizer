@@ -1195,13 +1195,13 @@ async function main() {
 		const mediaMatches = await frame.evaluate(() => window.matchMedia('(min-width: 72rem)').matches);
 		check("matchMedia('(min-width: 72rem)') is true inside the frame at device=1440", mediaMatches === true);
 
-		// P8: the scaled frame's bounding rect must lie within its wrapper's CONTENT box (excluding
-		// padding/border), within 1px - a coordinator review caught a few px of clipping on the right
+		// The scaled frame's bounding rect must lie within its wrapper's CONTENT box (excluding
+		// padding/border), within 1px - an earlier round found a few px of clipping on the right
 		// edge at device 1440 in a 1440px window (the wrap's own padding was being counted as
 		// available space). Checked here for the single-lane case; the Split case is checked below.
 		await checkFrameWithinWrapContentBox(page, 'light', '1440');
 
-		// F0 fix (SPEC-C phase 3, point 13 - geometry edit): the maintainer's exact repro (a scaled
+		// Exact repro (a scaled
 		// device, focusing a targeted control) - every host ancestor of the lane iframe must stay at
 		// scrollTop 0, and the iframe's top must still equal its wrapper's content-box top within 1px
 		// (checkFrameWithinWrapContentBox above already covers the latter at rest; this re-checks it
@@ -1306,7 +1306,7 @@ async function main() {
 		);
 		check('the pagination links are in view after the Footer rail click (polled through any self-correction)', paginationVisible.visible, JSON.stringify(paginationVisible));
 
-		// F0 fix (SPEC-C phase 3, point 13 - geometry edit): the scroll above is now driven by
+		// The scroll above is now driven by
 		// `scrollElementIntoView` (target-highlight.js), never `Element.scrollIntoView`, so it must
 		// never leave a nonzero scroll position on any host ancestor of the lane iframe.
 		const hostAncestorTops = await page.evaluate(() => {
@@ -1331,9 +1331,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// I0 (the coordinator's exact repro shape): Footer, from a FRESH navigation, on a page with NO
+	// Footer, from a FRESH navigation, on a page with NO
 	// pagination of its own (Landing) - forces the "navigate to /specimen/ first, then scroll" path
-	// (S10) on a document that is, by construction, brand new - exactly the "just-loaded page still
+	// on a document that is, by construction, brand new - exactly the "just-loaded page still
 	// settling" scenario the Footer-on-Style-guide check above (already-loaded, no navigation) cannot
 	// exercise at all.
 	// =============================================================================================
@@ -1463,8 +1463,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 2, workstream I: with Inspect active (the toolbar button, a selection chip in the
-	// panel column, and the "Elements" popover all on screen), the hit-test audit and the A4 contrast
+	// With Inspect active (the toolbar button, a selection chip in the
+	// panel column, and the "Elements" popover all on screen), the hit-test audit and the contrast
 	// walk both still pass - full coverage of Inspect's own interaction/acceptance lives in
 	// `inspect.mjs`; this is only the "doesn't break the existing shell suites" half.
 	// =============================================================================================
