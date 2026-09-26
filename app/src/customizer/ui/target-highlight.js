@@ -1,6 +1,6 @@
 /**
- * @file "What does this control change?" (SPEC.md Round 2 item 4). Given a control's `target`
- * CSS selector list (owner: CORE-2, may not exist on every control yet - every call site guards
+ * @file "What does this control change?" Given a control's `target`
+ * CSS selector list (may not exist on every control yet - every call site guards
  * `if (control.target)`, so this module simply never gets invoked for a control without one), draws
  * a fixed-position highlight box inside the customizer's own shadow root - never touches the
  * target element itself (no class/style added to page elements) - and optionally scrolls it into
@@ -10,9 +10,9 @@
  * (`:host`) sits at z-index 2147483000, above all real page content, while `.svc-drawer` is given
  * `position:relative; z-index:1` and this overlay `z-index:0` (see styles.js) so the overlay always
  * paints *under* the drawer/panel - "if the target is under the drawer, still highlight it (the
- * overlay sits under the drawer) - acceptable" per SPEC.md.
+ * overlay sits under the drawer)" is an accepted trade-off here.
  *
- * PAGE-facing (studio.astro's design doc, item C): `getPageDoc` locates the target element inside
+ * PAGE-facing: `getPageDoc` locates the target element inside
  * whichever document is currently being previewed. In studio mode that element's own
  * `getBoundingClientRect()` is relative to the IFRAME's viewport, not the host window's - `getFrameEl`
  * supplies the `<iframe>` element itself so `position()` can add its own offset (the frame's
@@ -25,7 +25,7 @@
 const FADE_MS = 1200;
 
 // ---------------------------------------------------------------------------------------------
-// I0 fix (SPEC-C phase 2, workstream I): `shell.mjs`'s "pagination links are in view after the
+// `shell.mjs`'s "pagination links are in view after the
 // Footer rail click" failed once in a full sequential run (pagination at top 777px in a 681px-tall
 // frame, scrollY 2225) but passed run alone - the scroll is computed while the just-navigated page
 // is still shifting (web fonts swapping in, images loading), so `scrollIntoView`'s target position
@@ -108,13 +108,13 @@ function waitForScrollSettle(win) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// F0 fix (SPEC-C phase 3, point 13): `Element.scrollIntoView()` on an element inside a same-origin
+// `Element.scrollIntoView()` on an element inside a same-origin
 // iframe doesn't stop at that frame's own document - per the CSSOM View algorithm it continues into
 // the PARENT browsing context, trying to bring the <iframe> element itself into view against ITS OWN
-// ancestor chain too. Reproduced by the coordinator: focusing a targeted control at a scaled device
-// (studio at 1600x1000, Long doc, device 1440) scrolled `#svc-lane-shell` (a host ancestor of the
+// ancestor chain too. Reproduced by focusing a targeted control at a scaled device
+// (studio at 1600x1000, Long doc, device 1440), which scrolled `#svc-lane-shell` (a host ancestor of the
 // lane iframe) to a nonzero scrollTop, clipping the frame's own fixed header. `overflow: clip` on
-// every host ancestor (studio.astro) blocks most of this outright, but F2 gives `.svc-lane-wrap` a
+// every host ancestor (studio.astro) blocks most of this outright, but `.svc-lane-wrap` also gets a
 // deliberate x-axis scroll container for zoom panning that `clip` can't cover - so every scroll that
 // targets a frame-internal element goes through `scrollElementIntoView` below instead of the native
 // method, which can only ever move `win`'s own document (never a parent's).
@@ -268,7 +268,7 @@ export function createTargetHighlighter(shadowRoot, hooks = {}) {
 		// iframe's viewport, not the host's, so the frame's own position within the host is added on
 		// top. In overlay mode getFrameEl() returns null and this is a no-op, exactly as before.
 		const frameRect = frameEl ? frameEl.getBoundingClientRect() : { left: 0, top: 0 };
-		// SPEC-C S8: the frame may be `transform: scale(s)`'d down to fit its lane (studio.js sets
+		// The frame may be `transform: scale(s)`'d down to fit its lane (studio.js sets
 		// `data-svc-scale` on the iframe whenever it recomputes). `currentEl`'s rect is measured in
 		// the IFRAME'S OWN (unscaled) viewport coordinates, so it must be scaled by `s` before adding
 		// it to `frameRect` (which - because it comes from the SCALED element's own
