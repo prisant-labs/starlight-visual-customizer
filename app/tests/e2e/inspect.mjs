@@ -63,7 +63,7 @@ async function waitForComputed(getValue, predicate, { timeoutMs = 4000, interval
 	return last;
 }
 
-/** Coordinator review: after an Inspect click, `scrollAnchorRowIntoView` scrolls the PANEL COLUMN's
+/** After an Inspect click, `scrollAnchorRowIntoView` scrolls the PANEL COLUMN's
  * own `.svc-panel-sections` (smooth) so the scope's first control is actually visible, not just
  * highlighted - polls for the settled outcome rather than a fixed wait before a screenshot. Checks
  * the row's TOP edge only (not full containment): a font-list/tile-grid row can be taller than the
@@ -273,7 +273,7 @@ async function main() {
 			(v) => v === 'true'
 		);
 		check('clicking an h2 selects the Typography rail item', typographySelected === 'true', typographySelected);
-		// Coordinator review: the chip lists "Heading font" first (the scope's first/anchor control),
+		// The chip lists "Heading font" first (the scope's first/anchor control),
 		// but the Fonts section's own first row is "Body font" - the panel must scroll so the anchor
 		// row is actually visible, not just marked inspected below the fold.
 		const headingRowVisible = await waitForRowVisibleInPanel(page, 'type.font.heading');

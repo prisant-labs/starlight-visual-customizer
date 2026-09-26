@@ -4,7 +4,7 @@
  * JSON-serializable (the UI ships it to the browser, and `state.js` round-trips it through
  * `encodeState`/`decodeState`).
  *
- * Fixed ids (must not be renamed - CORE-IA and the UI import by exact id/shape, per SPEC.md):
+ * Fixed ids (must not be renamed - the sidebar-IA module and the UI import them by exact id/shape):
  * `page.toc.minLevel`, `page.toc.maxLevel`, `page.pagination`, `page.lastUpdated`,
  * `page.headingLinks`, `page.credits`, `code.theme`, `type.font.body`, `type.font.heading`,
  * `type.font.mono`.
@@ -22,7 +22,7 @@
  *  default: any,
  *  min?: number, max?: number, step?: number, unit?: string,
  *  options?: {value: string, label: string}[],
- *  maxLength?: number,   // 'text' controls only (SPEC-C E4)
+ *  maxLength?: number,   // 'text' controls only
  *  tier: 1|1.5|2|'build',
  *  modes?: 'both'|'dark'|'light',
  *  showIf?: {id: string, equals: any},
@@ -362,7 +362,7 @@ export const controls = [
 		section: 'Scale',
 		target: '.sl-markdown-content h2',
 		label: 'Type scale ratio',
-		// P7 (coordinator polish round): technical detail moved out of `help` (user-facing) - generates
+		// Technical detail moved out of `help` (user-facing) - generates
 		// the whole --sl-text-* ladder (raw steps + headings, both breakpoints) from base size and this ratio.
 		help: 'How much bigger each heading level gets compared to the one below it.',
 		type: 'range',
@@ -667,7 +667,7 @@ export const controls = [
 		default: true,
 		tier: 2,
 	},
-	// SPEC-C E4: build-time only (no live CSS - the header renders your project's real title via
+	// Build-time only (no live CSS - the header renders your project's real title via
 	// Astro props, so the preview sets `.site-title span`'s text directly instead). Empty string
 	// (the manifest default) means "keep your project's own title" - `emitApplyTheme` only adds a
 	// `title:` config line when this is non-empty, and the preview only overrides the DOM text then.
@@ -850,9 +850,9 @@ export const controls = [
 		section: 'Placement',
 		target: '.right-sidebar-container',
 		label: 'TOC placement',
-		// P7: technical detail moved out of `help` - applies at the TOC breakpoint (>=72rem); "Left"
+		// Technical detail moved out of `help` - applies at the TOC breakpoint (>=72rem); "Left"
 		// moves the rail between the sidebar and the content column and flips its divider to the other
-		// side; F5 (SPEC-C phase 3, point 12): "Right edge of window" pins the rail to the window's own
+		// side; "Right edge of window" pins the rail to the window's own
 		// right edge on wide screens instead of wherever the centered content column happens to end.
 		help: 'On wide screens only. "Left" moves the outline between the sidebar and the page content; "Right edge of window" pins it to the window instead of the content column.',
 		type: 'select',
