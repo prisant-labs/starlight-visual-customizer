@@ -200,7 +200,10 @@ function unmarkSelectsAfterClone(marked) {
  * `cloneNode`'s own spec algorithm), so preventing the throw itself isn't cheap - but the resulting
  * `error` event IS cancelable (that's what "report the exception" fires), and cancelling it suppresses
  * the browser's console logging without changing anything about the capture. So: install a scoped
- * `error` listener for the duration of the capture only.
+ * `error` listener for the duration of the capture only - round 2: narrowed to only the specific
+ * known message shapes this failure mode produces (`KNOWN_CLONE_ERROR_FRAGMENTS` below), so a real,
+ * unrelated error during the same window still surfaces normally instead of being silently eaten; the
+ * number actually suppressed is logged once via `console.info` after the capture finishes.
  * @param {'visible'|'full'} kind
  * @returns {Promise<{blob: Blob, width: number, height: number}>}
  */
@@ -242,11 +245,21 @@ async function capturePageScreenshot(kind) {
 	// whatever SSR marked `selected` in the static markup - see the doc comment above.
 	const markedSelects = markSelectsForClone(doc);
 
-	// Requirement 4: custom elements re-run their constructor when `modern-screenshot` clones them
-	// (see the doc comment above); that's caught by the browser already, but still logs to the
-	// console. Suppress just that reporting for the duration of this capture.
+	// Requirement 4 (round 2 - narrowed): only the specific, known clone-time failures get
+	// suppressed (custom element constructors re-running on a still-childless shallow clone - see
+	// the doc comment above); anything else propagates and logs normally, so a REAL bug during a
+	// capture is never silently hidden. Counted and reported once, after the capture, rather than
+	// swallowed outright.
+	const KNOWN_CLONE_ERROR_FRAGMENTS = ["reading 'addEventListener'", "reading 'querySelectorAll'"];
+	let suppressedErrorCount = 0;
 	/** @param {ErrorEvent} event */
-	const suppressCloneErrors = (event) => event.preventDefault();
+	const suppressCloneErrors = (event) => {
+		const msg = event?.message || event?.error?.message || '';
+		if (KNOWN_CLONE_ERROR_FRAGMENTS.some((fragment) => msg.includes(fragment))) {
+			suppressedErrorCount++;
+			event.preventDefault();
+		}
+	};
 	win.addEventListener('error', suppressCloneErrors, true);
 
 	try {
@@ -256,7 +269,22 @@ async function capturePageScreenshot(kind) {
 			scale: 1, // never devicePixelRatio-scale - the PNG's own pixel dimensions must equal W (and the frame's height)
 			backgroundColor: bg,
 			features: { restoreScrollPosition: true }, // honors any element with its OWN internal scroll (e.g. an overflowing sidebar)
-			style: shiftFixed ? { transform: `translateY(-${scrollY}px)` } : undefined,
+			// W9a round 2 - the ~8px offset bug: `modern-screenshot` unconditionally strips every
+			// margin-* longhand from the capture ROOT's copied inline style (`copyCssStyles`'s
+			// `if (isRoot) { style.delete('margin-top'); ... }`), on the assumption that a typical
+			// capture root's own page-context margin shouldn't push the render around inside the
+			// image. The render target is an SVG `foreignObject` serialized to a data URI and decoded
+			// as an isolated image resource - NONE of the live document's stylesheets apply there
+			// (that's why `copyCssStyles` bothers copying every computed property inline at all); only
+			// the browser's own UA default stylesheet plus whatever inline styles this library set. Our
+			// root IS `doc.body`, and the UA default stylesheet's `body { margin: 8px }` rule still
+			// matches a bare `<body>` tag with no inline margin override - so every capture rendered
+			// with a full 8px margin at the top-left that the live page never had (Starlight's own
+			// reset.css zeroes it there, but that stylesheet doesn't exist inside the foreignObject).
+			// Overriding `margin` here (applied via `applyCssStyleWithOptions`, which runs AFTER
+			// `copyCssStyles` stripped the diffed value) fixes it for every capture, not just the
+			// scrolled/shiftFixed case - Full page hit the exact same 8px offset at scroll 0.
+			style: { margin: '0', ...(shiftFixed ? { transform: `translateY(-${scrollY}px)` } : {}) },
 			onCloneEachNode(cloned) {
 				if (cloned.nodeType !== 1) return cloned;
 				const el = /** @type {HTMLElement} */ (cloned);
@@ -281,6 +309,9 @@ async function capturePageScreenshot(kind) {
 		return { blob, width, height };
 	} finally {
 		win.removeEventListener('error', suppressCloneErrors, true);
+		if (suppressedErrorCount > 0) {
+			console.info(`[svc] screenshot: suppressed ${suppressedErrorCount} error(s) from cloned custom elements`);
+		}
 		unmarkSelectsAfterClone(markedSelects);
 		for (const el of marked) el.removeAttribute(FIXED_MARK);
 	}
