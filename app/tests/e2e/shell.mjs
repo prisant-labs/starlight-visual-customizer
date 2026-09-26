@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file SPEC-C workstream S acceptance suite: the studio SHELL (rail, panel column, toolbar,
+ * @file Acceptance suite for the studio SHELL (rail, panel column, toolbar,
  * context line, scaling, Split, status bar, history, theme name/save status, contrast floors).
  * Complements `studio.mjs` (frame-targeting/page-switcher/device/follow-on-page regression checks,
  * adapted for the new DOM) rather than duplicating it.
@@ -85,8 +85,8 @@ async function waitForComputed(getValue, predicate, { timeoutMs = 4000, interval
 }
 
 // =================================================================================================
-// Coordinator review (P1): script-dispatched clicks (`el.click()` inside `page.evaluate`) bypass
-// real hit-testing entirely - they found the rail unresponsive to an actual `page.mouse.click()`
+// Script-dispatched clicks (`el.click()` inside `page.evaluate`) bypass
+// real hit-testing entirely - an earlier round found the rail unresponsive to an actual `page.mouse.click()`
 // even though every script-click "worked" (a real OS-level click at a rail button's center hit
 // whatever the browser's compositor puts there, which turned out to be #svc-body-row/body/html
 // underneath, because `:host`'s base `pointer-events: none` - needed in overlay mode, where the
@@ -174,10 +174,10 @@ async function lightQueryByAttr(page, selector, attr, value) {
 }
 
 /**
- * Browser-side hit-test audit snapshot (P1(b)): for every visible interactive element in the host
+ * Browser-side hit-test audit snapshot: for every visible interactive element in the host
  * document and the panel's shadow root, assert the relevant root's `elementFromPoint` at its own
  * center resolves to itself or a descendant - exactly the failure mode a real click would hit.
- * Factored out (SPEC-C phase 2, workstream I) so both the per-rail-group loop below AND the
+ * Factored out so both the per-rail-group loop below AND the
  * Inspect-active pass near the end of `main()` run the identical check, instead of drifting apart.
  * @returns {{total: number, failed: number, failures: any[]}}
  */
@@ -194,7 +194,7 @@ function hitTestAuditSnapshot() {
 		const r = rects[0];
 		return r.width > 1 && r.height > 1;
 	}
-	// Phase 2 workstream E: [role="treeitem"] covers the restyled structure tree's div-based rows.
+	// [role="treeitem"] covers the restyled structure tree's div-based rows.
 	const selector = 'button, input, select, textarea, summary, [role="tab"], [role="treeitem"], label.svc-tile';
 	let total = 0;
 	let failed = 0;
@@ -237,7 +237,7 @@ function hitTestAuditSnapshot() {
 	return { total, failed, failures };
 }
 
-/** P8 (coordinator review): the scaled iframe's bounding rect must lie within its `.svc-lane-wrap`
+/** The scaled iframe's bounding rect must lie within its `.svc-lane-wrap`
  * CONTENT box (excluding padding/border), within 1px - a few px of clipping on the right edge at
  * device 1440 in a 1440px window was traced to the wrap's own padding being counted as available
  * space when computing the scale (studio.js's `scaleLane`). */
@@ -320,7 +320,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// F3 (SPEC-C phase 3, point 6), reversed by the maintainer: clicking the ALREADY-selected rail
+	// Clicking the ALREADY-selected rail
 	// item used to collapse the panel column - that affordance is removed. Collapsing is still
 	// reachable via the panel-header collapse button and the `\` key; any rail item click (even the
 	// one already selected before collapsing) reopens a collapsed panel.
@@ -371,12 +371,12 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// P1(b) (coordinator review): a generic hit-test audit, not just spot-checks. For every rail
+	// A generic hit-test audit, not just spot-checks. For every rail
 	// group, for every visible interactive element in the host document and the panel's shadow root
 	// (button, input, select, textarea, summary, [role=tab], and tile labels, each in their own
 	// nested shadow root since a tile grid mounts one per control), scroll it into view and assert
 	// the relevant root's `elementFromPoint` at its center is the element itself or a descendant -
-	// exactly the failure mode P1's pointer-events bug produced (a real click landing on whatever was
+	// exactly the failure mode the pointer-events bug above produced (a real click landing on whatever was
 	// underneath instead of the intended control).
 	// =============================================================================================
 	{
@@ -401,8 +401,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// SPEC-C phase 3, workstream P (P4): every section AND every control card starts OPEN (settled
-	// with the maintainer 2026-09-24, superseding B's "only the first section starts open"). Checked
+	// Every section AND every control card starts OPEN (superseding an earlier
+	// "only the first section starts open" rule). Checked
 	// on Colors, the first group with sections/cards this fresh page has ever opened - nothing earlier
 	// in this run has clicked a section/card toggle, so sessionStorage has no overrides yet.
 	// =============================================================================================
@@ -424,7 +424,7 @@ async function main() {
 		check('every section in a never-toggled group starts open', openState.sectionCount > 0 && openState.sectionsOpen === openState.sectionCount, JSON.stringify(openState));
 		check('every control card in a never-toggled group starts open', openState.cardCount > 0 && openState.cardsOpen === openState.cardCount, JSON.stringify(openState));
 
-		// P4 "more contrast between levels": a card's border must read against its section's own
+		// "More contrast between levels": a card's border must read against its section's own
 		// (light-tinted) background, at least 1.5:1 - computed from real getComputedStyle colors, not
 		// the token names, so a future palette tweak that quietly erodes the contrast fails this too.
 		const bandColors = await page.evaluate(() => {
@@ -445,13 +445,13 @@ async function main() {
 		check('the section header band is a different fill than the section body (reads as its own band)', bandColors.headerBg !== bandColors.sectionBg, JSON.stringify(bandColors));
 		check('a control card is a different fill than its section body (cards pop as their own layer)', bandColors.cardBg !== bandColors.sectionBg, JSON.stringify(bandColors));
 
-		// Item 4 (maintainer fix): a section's header band must not touch its first card - the gap
+		// A section's header band must not touch its first card - the gap
 		// above the first card should read the same as the gap BETWEEN cards, in every group. Checked
-		// on Colors (here) and Layout (below), per the maintainer's own screenshot request. Colors is
+		// on Colors (here) and Layout (below). Colors is
 		// ALREADY the selected rail item at this point (the two checks just above ran against it), so
-		// the first iteration below is itself a re-click of the selected item - F3 (reversed) makes
+		// the first iteration below is itself a re-click of the selected item - re-clicking makes
 		// that a plain re-selection now (it used to collapse the panel instead of a no-op measuring
-		// against a collapsed, zero-size panel - see the dedicated F3 regression check above).
+		// against a collapsed, zero-size panel - see the dedicated regression check above).
 		for (const groupName of ['Colors', 'Layout']) {
 			await realClick(page, await shadowQuery(page, `.svc-rail-item[data-group="${groupName}"]`));
 			await page.waitForTimeout(200);
