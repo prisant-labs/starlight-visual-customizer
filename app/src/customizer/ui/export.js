@@ -98,6 +98,30 @@ function buildExportZipBlob(tabDefs, textareas) {
 	return new Blob([zipped], { type: 'application/zip' });
 }
 
+/** Throwaway attribute (requirement 2/5): records a live `<select>`'s current `.value` so
+ * `onCloneEachNode` can fix up the CLONE's `<option>`s without ever touching the live `<option>`
+ * elements' own `selected` attribute - see `capturePageScreenshot`'s doc comment. A brand-new
+ * attribute that gets added then removed leaves every pre-existing attribute (name, value, AND
+ * order) untouched, which a remove-then-re-add of an EXISTING attribute (e.g. `selected`) cannot
+ * guarantee, since re-adding always appends at the end of the attribute list. */
+const SELECT_VALUE_MARK = 'data-svc-shot-select-value';
+
+/** @param {Document} doc @returns {HTMLSelectElement[]} */
+function markSelectsForClone(doc) {
+	/** @type {HTMLSelectElement[]} */
+	const marked = [];
+	for (const select of doc.body.querySelectorAll('select')) {
+		select.setAttribute(SELECT_VALUE_MARK, select.value);
+		marked.push(select);
+	}
+	return marked;
+}
+
+/** @param {HTMLSelectElement[]} marked */
+function unmarkSelectsAfterClone(marked) {
+	for (const select of marked) select.removeAttribute(SELECT_VALUE_MARK);
+}
+
 /**
  * Item 3: screenshot the primary preview lane's page (`page-doc.js`'s `getPageDoc()`/`getPageWin()`)
  * at its natural width W, current light/dark mode, current theme - `modern-screenshot` is dynamically
@@ -130,6 +154,56 @@ function buildExportZipBlob(tabDefs, textareas) {
  * entirely - caught by looking at the produced PNGs next to a live capture, not by the automated
  * dimension checks, which happily passed on the wrong image). Rooting at `body` sidesteps this: its
  * own scrollTop is always 0, so only real inner-scrolled descendants get touched.
+ *
+ * W9a fix - the blank sidebar/TOC bug: the compensating `translateY(+scrollY)` above was built as
+ * `prev ? \`translateY(${scrollY}px) ${prev}\` : \`translateY(${scrollY}px)\`` , where `prev` is
+ * whatever `el.style.transform` already reads on the clone. That is safe when `prev` is empty, but
+ * `modern-screenshot`'s own `copyCssStyles` step (which runs before `onCloneEachNode`, and copies
+ * each cloned node's computed style as an inline style, diffed against a generic default instance of
+ * the same tag) sets `prev` to the STRING `"none"` - not `""` - for exactly `.sidebar-pane` and
+ * `.right-sidebar` (their diff against a default element includes `transform` even though there's no
+ * real transform; `.header` and the skip-link's diff doesn't, by whatever quirk of that comparison,
+ * so they read `prev === ""` and never hit this). `"none"` is truthy, so those two elements got
+ * `transform: "translateY(2400px) none"` - a single CSS `<transform-list>` value can never mix a
+ * function with the `none` keyword, so the browser's CSSOM setter silently REJECTS the whole
+ * assignment and leaves `transform: none` in place. With no compensating shift, the sidebar and TOC
+ * stayed offset by the ancestor's `translateY(-scrollY)` - at scrollY 2400 against an ~800-1000px
+ * viewport, that pushes them entirely outside the rendered box, i.e. blank. (Confirmed empirically:
+ * instrumenting `onCloneEachNode` showed `el.style.transform` reading back unchanged, exactly for the
+ * elements whose `prev` was `"none"`, and only those.) Fix: treat `"none"` the same as no existing
+ * transform - see `existingTransform` below.
+ *
+ * W9a fix - the `<select>`'s wrong value: `modern-screenshot`'s `copyInputValue` sets a `value`
+ * *attribute* on cloned `<input>`/`<textarea>`/`<select>` elements, but `<select>` has no such
+ * attribute - which option renders as chosen is driven purely by which `<option>` carries the
+ * `selected` *content attribute*, copied verbatim from the live option by the native `cloneNode`.
+ * Starlight's `ThemeSelect.astro` always marks the `auto` option `selected` in its SSR markup;
+ * switching the theme at runtime (`select.value = ...` / `option.selected = true`) changes the LIVE
+ * selectedness but never rewrites that content attribute, so a clone always shows the SSR default
+ * ("Auto") regardless of the page's actual theme. Fix: before capture, mark every live `<select>`
+ * with its current `.value` (`markSelectsForClone`); in `onCloneEachNode`, once a marked select's
+ * `<option>` clones are attached (children are cloned before `onCloneEachNode` fires for their
+ * parent), set `selected` on the one matching option clone and clear it from the rest. This touches
+ * only the CLONE's `<option>`s, never the live ones, so there's nothing to restore on them at all.
+ *
+ * W9a fix - the three page errors: Starlight's `<site-search>` (and a couple of other inline-script
+ * custom elements) read `this.querySelector(...)` synchronously in their constructor and call a
+ * method on the result without a null check. `modern-screenshot` clones every element (including
+ * already-upgraded custom elements) via a shallow, native `node.cloneNode(false)`; per the custom
+ * element spec this re-invokes the constructor on the new (still childless) clone, so those
+ * `querySelector` calls return `null` and the follow-on call throws. The browser's own "create an
+ * element" algorithm already catches that exception (it substitutes a plain unknown-element stand-in
+ * and reports the error) - rendering isn't affected: this library's `cloneChildNodes` walk populates
+ * the clone's children itself, independent of whether the native upgrade succeeded, and CSS matches
+ * on tag/class regardless of the JS interface behind it. There's no public API to opt an element out
+ * of the custom-element-upgrade-on-clone behavior (it's a synchronous, unconditional step of
+ * `cloneNode`'s own spec algorithm), so preventing the throw itself isn't cheap - but the resulting
+ * `error` event IS cancelable (that's what "report the exception" fires), and cancelling it suppresses
+ * the browser's console logging without changing anything about the capture. So: install a scoped
+ * `error` listener for the duration of the capture only - round 2: narrowed to only the specific
+ * known message shapes this failure mode produces (`KNOWN_CLONE_ERROR_FRAGMENTS` below), so a real,
+ * unrelated error during the same window still surfaces normally instead of being silently eaten; the
+ * number actually suppressed is logged once via `console.info` after the capture finishes.
  * @param {'visible'|'full'} kind
  * @returns {Promise<{blob: Blob, width: number, height: number}>}
  */
@@ -167,6 +241,27 @@ async function capturePageScreenshot(kind) {
 
 	const bg = win.getComputedStyle(doc.body).backgroundColor || win.getComputedStyle(doc.documentElement).backgroundColor || '#ffffff';
 
+	// Requirement 2: make every <select> (theme, language) clone show its LIVE value, not
+	// whatever SSR marked `selected` in the static markup - see the doc comment above.
+	const markedSelects = markSelectsForClone(doc);
+
+	// Requirement 4 (round 2 - narrowed): only the specific, known clone-time failures get
+	// suppressed (custom element constructors re-running on a still-childless shallow clone - see
+	// the doc comment above); anything else propagates and logs normally, so a REAL bug during a
+	// capture is never silently hidden. Counted and reported once, after the capture, rather than
+	// swallowed outright.
+	const KNOWN_CLONE_ERROR_FRAGMENTS = ["reading 'addEventListener'", "reading 'querySelectorAll'"];
+	let suppressedErrorCount = 0;
+	/** @param {ErrorEvent} event */
+	const suppressCloneErrors = (event) => {
+		const msg = event?.message || event?.error?.message || '';
+		if (KNOWN_CLONE_ERROR_FRAGMENTS.some((fragment) => msg.includes(fragment))) {
+			suppressedErrorCount++;
+			event.preventDefault();
+		}
+	};
+	win.addEventListener('error', suppressCloneErrors, true);
+
 	try {
 		const blob = await domToBlob(doc.body, {
 			width,
@@ -174,18 +269,50 @@ async function capturePageScreenshot(kind) {
 			scale: 1, // never devicePixelRatio-scale - the PNG's own pixel dimensions must equal W (and the frame's height)
 			backgroundColor: bg,
 			features: { restoreScrollPosition: true }, // honors any element with its OWN internal scroll (e.g. an overflowing sidebar)
-			style: shiftFixed ? { transform: `translateY(-${scrollY}px)` } : undefined,
+			// W9a round 2 - the ~8px offset bug: `modern-screenshot` unconditionally strips every
+			// margin-* longhand from the capture ROOT's copied inline style (`copyCssStyles`'s
+			// `if (isRoot) { style.delete('margin-top'); ... }`), on the assumption that a typical
+			// capture root's own page-context margin shouldn't push the render around inside the
+			// image. The render target is an SVG `foreignObject` serialized to a data URI and decoded
+			// as an isolated image resource - NONE of the live document's stylesheets apply there
+			// (that's why `copyCssStyles` bothers copying every computed property inline at all); only
+			// the browser's own UA default stylesheet plus whatever inline styles this library set. Our
+			// root IS `doc.body`, and the UA default stylesheet's `body { margin: 8px }` rule still
+			// matches a bare `<body>` tag with no inline margin override - so every capture rendered
+			// with a full 8px margin at the top-left that the live page never had (Starlight's own
+			// reset.css zeroes it there, but that stylesheet doesn't exist inside the foreignObject).
+			// Overriding `margin` here (applied via `applyCssStyleWithOptions`, which runs AFTER
+			// `copyCssStyles` stripped the diffed value) fixes it for every capture, not just the
+			// scrolled/shiftFixed case - Full page hit the exact same 8px offset at scroll 0.
+			style: { margin: '0', ...(shiftFixed ? { transform: `translateY(-${scrollY}px)` } : {}) },
 			onCloneEachNode(cloned) {
-				if (shiftFixed && cloned.nodeType === 1 && /** @type {Element} */ (cloned).hasAttribute?.(FIXED_MARK)) {
-					const el = /** @type {HTMLElement} */ (cloned);
+				if (cloned.nodeType !== 1) return cloned;
+				const el = /** @type {HTMLElement} */ (cloned);
+				if (shiftFixed && el.hasAttribute?.(FIXED_MARK)) {
+					// `copyCssStyles` may have already set `transform: none` inline (see doc comment) -
+					// "none" can't be combined with a translate() in one value, so treat it as empty.
 					const prev = el.style.transform;
-					el.style.transform = prev ? `translateY(${scrollY}px) ${prev}` : `translateY(${scrollY}px)`;
+					const existingTransform = prev && prev !== 'none' ? prev : '';
+					el.style.transform = existingTransform ? `translateY(${scrollY}px) ${existingTransform}` : `translateY(${scrollY}px)`;
+				}
+				if (el.tagName === 'SELECT' && el.hasAttribute(SELECT_VALUE_MARK)) {
+					const value = el.getAttribute(SELECT_VALUE_MARK);
+					el.removeAttribute(SELECT_VALUE_MARK);
+					for (const option of /** @type {HTMLSelectElement} */ (el).options) {
+						if (option.value === value) option.setAttribute('selected', '');
+						else option.removeAttribute('selected');
+					}
 				}
 				return cloned;
 			},
 		});
 		return { blob, width, height };
 	} finally {
+		win.removeEventListener('error', suppressCloneErrors, true);
+		if (suppressedErrorCount > 0) {
+			console.info(`[svc] screenshot: suppressed ${suppressedErrorCount} error(s) from cloned custom elements`);
+		}
+		unmarkSelectsAfterClone(markedSelects);
 		for (const el of marked) el.removeAttribute(FIXED_MARK);
 	}
 }
@@ -357,6 +484,14 @@ export function createExportDialog(handlers) {
 	/** @param {'visible'|'full'} kind @param {HTMLButtonElement} btn */
 	async function handleScreenshot(kind, btn) {
 		const original = btn.textContent;
+		// `btn` has focus (a real click always focuses the button it lands on) when this starts.
+		// Disabling a focused element unfocuses it (focus moves off to nothing in particular, usually
+		// the document body) - browsers never restore it just because the element becomes enabled
+		// again. Left alone, that silently breaks Escape-to-close afterward: the dialog's own keydown
+		// listener lives on the backdrop and only fires for events that bubble through it, so once
+		// focus has drifted outside the dialog, Escape does nothing and a later click can land on the
+		// backdrop instead of whatever the caller expected. Re-focusing the button once it's usable
+		// again (below) keeps the dialog's normal keyboard behavior intact through a long capture.
 		btn.disabled = true;
 		btn.textContent = 'Rendering…';
 		try {
@@ -373,6 +508,7 @@ export function createExportDialog(handlers) {
 		} finally {
 			btn.disabled = false;
 			btn.textContent = original;
+			btn.focus();
 		}
 	}
 	const visibleBtn = textButton('Visible area', (event) => handleScreenshot('visible', event.currentTarget));
