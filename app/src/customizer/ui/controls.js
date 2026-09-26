@@ -890,9 +890,9 @@ export function createControlRow(control, state, handlers, opts = {}) {
 		body.appendChild(help);
 	}
 
-	// SPEC-C P4: the collapsed-card value summary ("720 px", "Filled pill", a color chip + hex,
-	// "On") - computed by control TYPE so it works for every control, including any workstream K
-	// adds later, with zero per-control UI code (same design principle S15's unit display already
+	// The collapsed-card value summary ("720 px", "Filled pill", a color chip + hex,
+	// "On") - computed by control TYPE so it works for every control, including any added
+	// later, with zero per-control UI code (same design principle the unit display above already
 	// follows).
 	function updateCardSummary(nextState) {
 		summaryEl.replaceChildren();
@@ -959,8 +959,8 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			if (colorAssist) {
 				applyColorTrack(inputEl, control, colorAssist, nextState);
 				if (colorPickerEl) colorPickerEl.setSwatch(handlers.getResolvedColor(control.id));
-				// SPEC-C E1: don't clobber the hex field while the user is typing/focused in it. Coordinator
-				// polish round: after undo/redo/preset/group-reset/reset-all/import every hex field must
+				// Don't clobber the hex field while the user is typing/focused in it. After
+				// undo/redo/preset/group-reset/reset-all/import every hex field must
 				// show the CURRENT resolved color - `colorHexSync` (never a bare `.value =`) keeps the
 				// no-op-on-blur baseline in sync too, so the very next blur doesn't treat this refresh's
 				// new value as a user edit and record a spurious extra history step.
@@ -980,7 +980,7 @@ export function createControlRow(control, state, handlers, opts = {}) {
 			if (autoTagEl) autoTagEl.hidden = !isAuto;
 			const clearEl = root.querySelector('.svc-color-clear');
 			if (clearEl) clearEl.hidden = isAuto;
-			// Coordinator polish round: after undo/redo/preset/group-reset/reset-all/import the hex
+			// After undo/redo/preset/group-reset/reset-all/import the hex
 			// field must show the CURRENT resolved color - `colorRoleHexSync` (never a bare `.value =`)
 			// keeps the no-op-on-blur baseline in sync too (see `commitRoleHex`'s own comment).
 			const hexEl = root.querySelector('.svc-color-hex');
@@ -1049,16 +1049,16 @@ export function createGroupSection(groupName, groupControls, state, handlers, op
 
 /**
  * Shared innards of `createGroupSection` (overlay accordion) and `createStudioGroupPanel` (studio's
- * rail-driven column, SPEC-C S5): builds each control's row, grouped into per-`section`
+ * rail-driven column): builds each control's row, grouped into per-`section`
  * disclosures exactly as before - factored out so both callers render byte-identical
- * section/control DOM, and S16's overlay-mode suites see no change at all.
+ * section/control DOM, and the overlay-mode test suites see no change at all.
  * @param {HTMLElement} body Container the sections/rows are appended into.
  * @param {string} groupName
  * @param {import('../core/manifest.js').Control[]} groupControls
  * @param {import('../core/state.js').ThemeState} state
  * @param {ControlHandlers} handlers
  * @param {{isSectionOpen?: Function, onSectionToggle?: Function, isCardOpen?: Function, onCardToggle?: Function}} [opts]
- *   SPEC-C phase 3, workstream P: `isCardOpen`/`onCardToggle` are forwarded straight through to
+ *   `isCardOpen`/`onCardToggle` are forwarded straight through to
  *   every `createControlRow` call below - same contract, one level down, as `isSectionOpen`.
  * @returns {{controlRows: Map<string, {root: HTMLElement, refresh: Function}>, refreshSectionDots: (state: import('../core/state.js').ThemeState) => void, firstSectionName: string|undefined}}
  */
@@ -1076,13 +1076,13 @@ function buildGroupSectionsInto(body, groupName, groupControls, state, handlers,
 	let firstSectionName;
 	for (const control of groupControls) {
 		if (control.showIf && getValue(state, control.showIf.id) !== control.showIf.equals) continue;
-		// `section` (SPEC.md Round 2, owner CORE-2) is optional; controls without it render as a
+		// `section` is optional; controls without it render as a
 		// flat list with no sub-heading/disclosure (graceful degrade if a control ever ships without
-		// one). Item 3: each distinct section becomes its own disclosure - default open for the
+		// one). Each distinct section becomes its own disclosure - default open for the
 		// FIRST section of the group, collapsed for the rest, unless `isSectionOpen` (restored
 		// sessionStorage state) says otherwise.
 		if (control.section && control.section !== lastSection) {
-			// SPEC-C P4 (settled with the maintainer 2026-09-24): every section starts OPEN by
+			// Every section starts OPEN by
 			// default, unless `isSectionOpen` (restored sessionStorage state) says otherwise -
 			// superseding this module's earlier "only the first section starts open" rule.
 			const isOpen = opts.isSectionOpen ? opts.isSectionOpen(groupName, control.section, isFirstSection) : true;
