@@ -1263,7 +1263,7 @@ function initCustomizer(host) {
 			}
 		}
 
-		/** SPEC-C S10. Exposed as `host.__svc.openGroup` for phase-2 Inspect. */
+		/** Exposed as `host.__svc.openGroup` for Inspect. */
 		function openGroup(name, opts = {}) {
 			const { scroll = true, focusControlId } = opts;
 			if (!RAIL_GROUPS.includes(name)) return;
@@ -1284,8 +1284,8 @@ function initCustomizer(host) {
 		}
 
 		// =========================================================================================
-		// SPEC-C phase 2, workstream I (Inspect) - additive controller functions ONLY. inspect.js
-		// (workstream I, `ui/inspect.js`) drives everything else itself via direct `host.shadowRoot`
+		// Inspect support - additive controller functions ONLY. `ui/inspect.js`
+		// drives everything else itself via direct `host.shadowRoot`
 		// queries (row elements, sections) - these three exist only for state this closure already
 		// owns and inspect.js has no other way to reach: `controlRows` (row DOM per control id) and
 		// `targetHighlighter`'s enable flag (see `openGroupForInspect` below).
@@ -1304,7 +1304,7 @@ function initCustomizer(host) {
 		}
 		/**
 		 * Opens `groupName` and focuses `focusControlId`'s own input, for an Inspect click/selection
-		 * (I4: "the page does not scroll on an Inspect click"). `openGroup`'s own `focusControlId`
+		 * (the page must not scroll on an Inspect click). `openGroup`'s own `focusControlId`
 		 * path calls that control row's `.focus()`, and every control's input already wires `focus ->
 		 * notifyTarget(true) -> targetHighlighter.notify(target, {scroll:true})` (controls.js, for the
 		 * unrelated "focus a control, see what it affects" feature) - left enabled, that would scroll
@@ -1321,11 +1321,10 @@ function initCustomizer(host) {
 			openGroup(groupName, { scroll: false, focusControlId });
 			targetHighlighter.setEnabled(followOnPage);
 		}
-		// `.svc-control-inspected`'s CSS: SPEC-C section 5 asks for inspected-row styling to live
-		// here or be injected from inspect.js, never in styles.js (workstream E owns that file in
-		// phase 2). An inset accent bar + translucent tint (not accent-as-TEXT, which only reaches
+		// `.svc-control-inspected`'s CSS lives here or gets injected from inspect.js, never in
+		// styles.js. An inset accent bar + translucent tint (not accent-as-TEXT, which only reaches
 		// ~6.3:1 - short of the panel's 7:1 label floor) keeps every row's own text on an
-		// effectively-white background, so the A4 contrast walk sees no change.
+		// effectively-white background, so the contrast walk sees no change.
 		const inspectStyle = document.createElement('style');
 		inspectStyle.textContent = `.svc-control-inspected { background: var(--ui-accent-tint, rgba(68, 83, 201, 0.08)); border-radius: 6px; box-shadow: inset 3px 0 0 0 var(--ui-accent, #4453c9); }`;
 		shadow.appendChild(inspectStyle);
@@ -1341,7 +1340,7 @@ function initCustomizer(host) {
 			redo: doRedo,
 			canUndo: () => history.canUndo(),
 			canRedo: () => history.canRedo(),
-			// Coordinator polish round: studio mode has no visible "Reset all" button (only the overlay
+			// Studio mode has no visible "Reset all" button (only the overlay
 			// does), so tests need a way to exercise it - exposes the same `onResetAll` the overlay's own
 			// button already calls, one undo step, unchanged behavior.
 			resetAll: onResetAll,
@@ -1359,7 +1358,7 @@ function initCustomizer(host) {
 			getContrastReport: () => computeStatusContrastReport(state),
 			openContrastDialog: () => contrastDialog.open(computeStatusContrastReport(state)),
 			openGroup,
-			// SPEC-C phase 2, workstream I (Inspect) - see the marked block above `host.__svc`.
+			// Inspect support - see the block above `host.__svc`.
 			highlightControls,
 			clearInspected,
 			openGroupForInspect,
@@ -1376,7 +1375,7 @@ function initCustomizer(host) {
 				for (const id of Object.keys(COLOR_ASSIST)) controlRows.get(id)?.refresh(state);
 				for (const id of ROLE_OVERRIDE_IDS) controlRows.get(id)?.refresh(state);
 			},
-			// SPEC-C phase 3, workstream F (F3) - see the marked block above the rail loop. studio.js's
+			// See the panel-collapse block above the rail loop. studio.js's
 			// own `\` keyboard handler calls togglePanelCollapse(); the rail-click/header-button paths
 			// call setPanelCollapsed directly since they already close over it.
 			togglePanelCollapse: () => setPanelCollapsed(!panelCollapsed),
@@ -1385,7 +1384,7 @@ function initCustomizer(host) {
 
 		buildBody();
 		openGroup(activeGroupName, { scroll: false });
-		setPanelCollapsed(panelCollapsed); // F3: apply the persisted collapse state (host width, button icon/aria)
+		setPanelCollapsed(panelCollapsed); // Apply the persisted collapse state (host width, button icon/aria)
 	}
 
 	// Studio design doc, item D: triggers (2) and (3) for attachToPageDoc, registered before the
@@ -1420,8 +1419,8 @@ function loadInitialState() {
 	return defaultState();
 }
 
-/** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - SPEC-C
- * S13's save status ("Not saved (storage blocked)" when this is false). */
+/** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - drives
+ * the top bar's save status ("Not saved (storage blocked)" when this is false). */
 function persistState(state) {
 	try {
 		localStorage.setItem(LOCALSTORAGE_STATE_KEY, encodeState(state));
@@ -1433,8 +1432,8 @@ function persistState(state) {
 
 /**
  * @returns {{openGroups?: string[], scrollTop?: number, filterText?: string, collapsed?: boolean,
- *   followOnPage?: boolean, activeGroup?: string}} Panel UI state (SPEC.md Round 2 item 2, extended
- *   by SPEC-C S4's `activeGroup`). `sessionStorage`, not `localStorage`.
+ *   followOnPage?: boolean, activeGroup?: string}} Panel UI state, including the rail's
+ *   `activeGroup`. `sessionStorage`, not `localStorage`.
  */
 function loadUiState() {
 	try {
@@ -1498,7 +1497,7 @@ function fontFaceCss(state) {
 // studio.astro's own document is kept cascade-identical to the previewed page for exactly those
 // tokens (same base props.css, same emitted theme CSS via `hostSheet`, `data-theme` kept in sync
 // with the primary lane's). Reading `document` here is correct in both modes and avoids a
-// cross-document computed-style read entirely. SPEC-C's S12 status-bar contrast report also uses
+// cross-document computed-style read entirely. The status-bar contrast report also uses
 // this (with an explicit themeOverride for BOTH modes) rather than re-deriving Starlight's cascade
 // by hand - see STATUS_CONTRAST_PAIRS's comment.
 function resolveCssColor(cssProperty, cssValue, themeOverride) {
@@ -1535,7 +1534,7 @@ function computeContrastRows() {
 	];
 }
 
-/** SPEC-C S12, status bar left: "N changes from Starlight default" - `state.values` already holds
+/** Status bar left: "N changes from Starlight default" - `state.values` already holds
  * exactly the controls that differ from their manifest default (setValue's own canonicalization
  * drops a value equal to the default instead of storing it), so its key count IS that number
  * directly, with each `color.role.*` override counted individually. Structure edits
@@ -1545,7 +1544,7 @@ function computeChangeCount(state) {
 }
 
 /**
- * SPEC-C S12, status bar middle: contrast for BOTH light and dark, from the palette actually in
+ * Status bar middle: contrast for BOTH light and dark, from the palette actually in
  * effect.
  * @param {import('../core/state.js').ThemeState} state
  * @returns {{rows: {label:string, mode:'dark'|'light', ratio:number, target:number, pass:boolean, textColor:string, bgColor:string}[], allPass: boolean, minRatio: number, target: number}}
