@@ -11,7 +11,7 @@
  * Needs a running server; start one first: `npm run build` then
  * `npm run preview:bg` (or `npx astro preview --background --port 4420`).
  *   node tests/e2e/screenshot.mjs
- * Env overrides: BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
  *
  * Real mouse/keyboard throughout (device select, preset card, theme toggle, Export, the capture
  * buttons, closing the dialog) - see `realClick` below. The frame's own `window.scrollTo` is the only
@@ -37,7 +37,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 /** Where the coordinator can find every PNG this suite produces, plus diff visualizations. */
@@ -600,7 +600,7 @@ async function main() {
 			if (msg.type() === 'error') errors.push(`[console error] ${msg.text()}`);
 		});
 
-		await page.goto(`${BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		await page.waitForTimeout(300);
 

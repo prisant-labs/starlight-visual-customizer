@@ -18,6 +18,7 @@ import { emitCss } from '../core/emit-css.js';
 import { emitApplyTheme } from '../core/emit-apply.js';
 import { encodeState, getName } from '../core/state.js';
 import { isStudio, getPageDoc, getPageWin } from './page-doc.js';
+import { stripBase } from '../core/base-path.js';
 
 /** @param {number} bytes @returns {string} e.g. "1.2 KB" - matches Codex's file-list sizing display. */
 function formatSize(bytes) {
@@ -78,7 +79,8 @@ function slugifyThemeName(name) {
 
 /** @param {string} pathname e.g. "/specimen/" @returns {string} e.g. "specimen"; "/" -> "landing" */
 function pageSlugFromPath(pathname) {
-	const trimmed = String(pathname || '/').replace(/^\/+|\/+$/g, '');
+	// Base-free first, so a site served under a sub-path still names its root page "landing".
+	const trimmed = stripBase(String(pathname || '/')).replace(/^\/+|\/+$/g, '');
 	return trimmed ? trimmed.split('/').pop() : 'landing';
 }
 
