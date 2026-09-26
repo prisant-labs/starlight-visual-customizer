@@ -203,8 +203,8 @@ export function buildPaginationSample() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Hand-authored (globally-styled, unscoped) samples - each wrapped in a padded box (coordinator
-// review, round 2: these ran text flush to the tile edge with no room to wrap).
+// Hand-authored (globally-styled, unscoped) samples - each wrapped in a padded box (without it,
+// these ran text flush to the tile edge with no room to wrap).
 // ---------------------------------------------------------------------------------------------
 
 export function buildAsideSample() {
@@ -249,7 +249,7 @@ export function buildBlockquoteSample() {
 }
 
 /**
- * `article.card` (Card.astro, workstream K) - Astro-scoped like the header/sidebar/TOC samples
+ * `article.card` (Card.astro) - Astro-scoped like the header/sidebar/TOC samples
  * above, so cloned from the page when a `<Card>` is present (specimen.mdx and kitchen-sink.mdx
  * both use one inside a `<CardGrid>`).
  */
@@ -266,7 +266,7 @@ export function buildCardSample() {
 	return wrap;
 }
 
-/** `.sl-link-button` (LinkButton.astro, workstream K) - prefers the real "primary" variant
+/** `.sl-link-button` (LinkButton.astro) - prefers the real "primary" variant
  * (specimen.mdx and kitchen-sink.mdx both render one) since it's the only variant with a filled
  * background, which is what makes a corner-radius change actually visible in a small tile. */
 export function buildLinkButtonSample() {
@@ -280,7 +280,7 @@ export function buildLinkButtonSample() {
 	return wrap;
 }
 
-/** `.sl-badge` (Badge.astro, workstream K) - the "default" variant specifically, so the sample's
+/** `.sl-badge` (Badge.astro) - the "default" variant specifically, so the sample's
  * own color never depends on which semantic hue happens to be selected. */
 export function buildBadgeSample() {
 	const wrap = document.createElement('div');
@@ -321,7 +321,7 @@ export const SAMPLE_BUILDERS = {
  * @type {Record<string, string>}
  */
 export const SAMPLE_CONTAIN_CSS = {
-	// Coordinator review, round 2, three fixes landed here together:
+	// Three fixes landed here together:
 	//  1. Small, close-to-1:1 canvas (~0.7-0.8x scale - see SAMPLE_VIRTUAL_WIDTH/HEIGHT) instead of a
 	//     wide "show everything" one (~820px, ~0.2x scale): at that aggressive a scale-down a 1px
 	//     border and 14px text both shrank below a device pixel and all four options looked identical.
@@ -337,7 +337,7 @@ export const SAMPLE_CONTAIN_CSS = {
 	//     (see tile-grid.js's optionCssFor) additionally pulls content up to genuinely overlap the bar,
 	//     since blur specifically needs something behind it to blur.
 	'header.style': `.svc-header-canvas { position: relative; width: 100%; height: 100%; background: var(--sl-color-bg); overflow: hidden; } .svc-header-page-content { position: absolute; top: 0; left: 0; right: 0; padding: var(--sl-nav-height, 3.5rem) 0.85rem 0; } .svc-header-page-content p { margin: 0 0 0.35rem; } header.header { position: absolute; top: 0; left: 0; width: 100%; display: flex; align-items: center; } .right-group, site-search { display: none; } .title-wrapper { min-width: 0; flex: 1 1 auto; overflow: hidden; } .site-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; max-width: 100%; }`,
-	// `'rows'` layout (SAMPLE_LAYOUT, coordinator review round 3) gives this a full-panel-width row
+	// `'rows'` layout (SAMPLE_LAYOUT) gives this a full-panel-width row
 	// instead of a 2-column tile, so the real `width: 100%; max-width: 22rem` box just fills it
 	// naturally - the earlier `width: auto` override (needed when this shared a cramped 2-column
 	// tile) would now just shrink-wrap it smaller than it needs to be.
@@ -397,13 +397,13 @@ export const SAMPLE_VIRTUAL_WIDTH = {
 	// header.searchTriggerStyle's job, with its own dedicated sample): a gentler scale factor here
 	// keeps the border/shadow/blur difference - and the page-content text behind the bar - legible.
 	// At the original 820px-wide "show everything" canvas, a 1px border and 14px body text both
-	// scaled down to a fraction of a device pixel and effectively vanished (coordinator review,
-	// round 2: "all four look identical").
+	// scaled down to a fraction of a device pixel and effectively vanished - all four options
+	// looked identical at that scale.
 	'header.style': 220,
 	'header.searchTriggerStyle': 360,
 	'sidebar.activeStyle': 220,
 	'sidebar.groupLabelStyle': 220,
-	// Narrowed from 200 (coordinator review, round 3: 3 short TOC lines left a "grid"-layout tile's
+	// Narrowed from 200 (3 short TOC lines left a "grid"-layout tile's
 	// fixed 4:3 box mostly empty at that scale) - a gentler scale (narrower canvas -> bigger scale
 	// factor) makes the same content taller, at the minor cost of the longest line ("Long-form
 	// paragraphs") wrapping to two lines, which if anything helps fill the box further.
@@ -412,7 +412,7 @@ export const SAMPLE_VIRTUAL_WIDTH = {
 	// canvas just forced an aggressive scale-down that shrank the whole thing into a small,
 	// hard-to-read blob in the tile's top-left corner. A canvas close to the tile's own real width
 	// keeps the scale gentle (~0.7-0.85x) so the text stays legible, matching the fix already applied
-	// to header.style (coordinator review, round 2); narrowed further for asideStyle in round 3
+	// to header.style; narrowed further for asideStyle
 	// alongside its own extra content, to close the rest of the empty band.
 	'content.asideStyle': 190,
 	'content.inlineCodeStyle': 220,
