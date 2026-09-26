@@ -1,6 +1,6 @@
 /**
  * @file "Navigation" section: a tree editor over `state.ia`, materializing
- * `iaFromStarlightConfig(fixtureSidebar)` into `state.ia` on the first edit (SPEC.md). Owns its
+ * `iaFromStarlightConfig(fixtureSidebar)` into `state.ia` on the first edit. Owns its
  * own `workingTree` (a structured clone), mutates it in place via direct array-splice operations,
  * and calls back into `panel.js` on every commit so the sidebar re-renders and state persists.
  *
@@ -9,11 +9,11 @@
  * edits (move/indent/delete/checkbox/select) commit immediately since they aren't typed into.
  *
  * The label input is the one exception: it updates the model + the live sidebar preview on every
- * `input` (real-time, per SPEC.md Round 2 item 2) without calling `renderTree()`, and only
+ * `input` (real-time) without calling `renderTree()`, and only
  * triggers a full tree re-render on `change` (blur/Enter) - so typing a multi-word label never
  * loses focus. Disclosure ("show details") open/closed state is tracked in `openIds` (by stable
  * `item.id`) across `renderTree()` calls, independent of the DOM nodes it rebuilds each time -
- * without this, `buildDetails` re-hid every row on every edit (Round 2 item 1, root cause (b)).
+ * without this, `buildDetails` re-hid every row on every edit.
  */
 import { iaFromStarlightConfig, parseSidebarSource, iaFromFileListing } from '../core/ia.js';
 import { fixtureSidebar } from '../../fixture-sidebar.mjs';
@@ -53,7 +53,7 @@ function field(labelText, inputEl) {
 	return label;
 }
 
-/** Module-scope (SPEC-C E3: shared by both the overlay tree editor and the studio one below, which
+/** Module-scope (shared by both the overlay tree editor and the studio one below, which
  * have their own separate `workingTree`/`commit` closures) - `isGroup` is accepted for readability
  * at call sites even though the badge shape doesn't currently vary by item type.
  * @param {import('../core/ia.js').SidebarItem} item
@@ -93,16 +93,16 @@ function buildBadgeFields(item, isGroup, commit) {
 }
 
 /**
- * SPEC-C E3: dispatches to whichever rendering the caller needs. `core/ia.js` (the data model) and
- * this dispatch are the only things the two share on purpose - S16/overlay mode must stay
+ * Dispatches to whichever rendering the caller needs. `core/ia.js` (the data model) and
+ * this dispatch are the only things the two share on purpose - overlay mode must stay
  * byte-identical (smoke.mjs/ui-round2.mjs assert its exact DOM shape: `.svc-ia-row`,
  * `.svc-ia-details`, `.svc-ia-btn`, live-typing `.svc-ia-label-input`), so `createOverlayTreeEditor`
  * below is that pre-existing implementation - its DOM shape is still exactly that, byte-identical;
- * coordinator bug fix: its label input's `input`/`change` handlers now pass the same undo-coalescing
+ * its label input's `input`/`change` handlers pass the same undo-coalescing
  * key `createStudioTreeEditor`'s do (see each one's own comment), since panel.js's single shared
- * `onIaChange` callback needed it for BOTH builders to fix the Structure-undo bug. `createStudioTreeEditor`
- * is new: Codex's tree shape (A6), restyle only - no new structure capability, per the settled
- * decision - plus its own drag insertion marker and Escape-cancel (feedback only, same restriction).
+ * `onIaChange` callback needed it for BOTH builders to fix a Structure-undo bug. `createStudioTreeEditor`
+ * is the studio's own restyled tree shape - restyle only, no new structure capability over the
+ * overlay editor - plus its own drag insertion marker and Escape-cancel (feedback only, same restriction).
  * @param {import('../core/state.js').ThemeState} initialState
  * @param {{onIaChange: (ia: import('../core/ia.js').SidebarItem[] | null, coalesceKey?: string) => void}} callbacks
  * @param {{studio?: boolean}} [opts]
@@ -385,7 +385,7 @@ function createOverlayTreeEditor(initialState, callbacks) {
 		typeTag.textContent = item.type === 'autogenerate' ? 'auto' : item.type;
 		main.appendChild(typeTag);
 
-		// Full row width (SPEC.md Round 2 root cause (d) - six buttons used to squeeze this input
+		// Full row width (six buttons used to squeeze this input
 		// down to a handful of visible characters). `input` updates the model + live sidebar preview
 		// immediately without rebuilding the tree (real-time, keeps focus); `change` (blur/Enter)
 		// does the normal full commit, safe now that `openIds` survives the rebuild.
@@ -394,7 +394,7 @@ function createOverlayTreeEditor(initialState, callbacks) {
 		labelInput.className = 'svc-ia-label-input';
 		labelInput.value = item.label ?? '';
 		labelInput.disabled = item.type === 'autogenerate';
-		// Coordinator bug fix (undo-after-rename): `input` (every keystroke, live preview) and
+		// Undo-after-rename fix: `input` (every keystroke, live preview) and
 		// `change` (blur/Enter) both feed the SAME per-item coalescing key so panel.js's
 		// `history.record` merges a whole typing+blur gesture into ONE undo step - the same "many
 		// events, one key, one step" contract a slider drag already gets. `change` still needs its
@@ -469,10 +469,10 @@ function createOverlayTreeEditor(initialState, callbacks) {
 }
 
 // =================================================================================================
-// SPEC-C E3: the studio's "Structure (advanced)" tree - Codex's shape (restyle only, per the
-// settled decision: no new structure capability, `core/ia.js` unchanged). Separate implementation
+// The studio's "Structure (advanced)" tree - restyle only (no new structure capability,
+// `core/ia.js` unchanged). Separate implementation
 // from `createOverlayTreeEditor` above (its own `workingTree`/`commit`/model-mutation closures) so
-// S16's overlay suites (smoke.mjs, ui-round2.mjs) keep asserting that pre-existing DOM byte-for-byte
+// the overlay suites (smoke.mjs, ui-round2.mjs) keep asserting that pre-existing DOM byte-for-byte
 // unchanged; this shares only the pure `core/ia.js` conversions and the module-level
 // `cloneTree`/`iconButton`/`textButton`/`field`/`buildBadgeFields` helpers above.
 // =================================================================================================
@@ -965,7 +965,7 @@ function createStudioTreeEditor(initialState, callbacks) {
 		labelInput.className = 'svc-ia-label-input';
 		labelInput.value = item.label ?? '';
 		labelInput.disabled = item.type === 'autogenerate';
-		// Coordinator bug fix (undo-after-rename): see the overlay editor's identical comment above -
+		// Undo-after-rename fix: see the overlay editor's identical comment above -
 		// the same per-item coalescing key across `input`/`change` keeps a whole typing+blur gesture
 		// as ONE undo step (panel.js's own no-op guard drops `change`'s redundant re-commit).
 		const renameKey = `label:${item.id}`;
