@@ -378,8 +378,8 @@ async function main() {
 	}
 	await checkFontList('type.font.body');
 
-	// ---- 5: no tile preview overflows horizontally, in both themes (coordinator review, round 2:
-	// pagination text was clipping/wrapping, the header title ran off the edge). Every live-sample
+	// ---- 5: no tile preview overflows horizontally, in both themes (an earlier round found
+	// pagination text clipping/wrapping and the header title running off the edge). Every live-sample
 	// control's `.svc-tile-canvas` is a fixed-pixel-width "virtual canvas" (samples.js) scaled down
 	// as one block - if its OWN content is wider than the canvas declared, that's a real authoring
 	// bug (missing padding, no wrap), not just a scale artifact, so this checks scrollWidth against
@@ -427,8 +427,8 @@ async function main() {
 	await checkNoOverflow('dark');
 	await checkNoOverflow('light');
 
-	// ---- 5b: no tile preview has a dead empty band taller than ~30% of its own height (coordinator
-	// review, round 3: search-trigger/pagination-style rendered their wide canvas scaled into the top
+	// ---- 5b: no tile preview has a dead empty band taller than ~30% of its own height (an earlier
+	// round found search-trigger/pagination-style rendering their wide canvas scaled into the top
 	// ~15% of a fixed 4:3 box, leaving most of the tile blank). Compares the CANVAS's scaled height
 	// (offsetHeight, unaffected by transform, times the live transform's own scale factor) against the
 	// PREVIEW box's real rendered height. -----------------------------------------------------------
@@ -513,7 +513,7 @@ async function main() {
 	await checkNoEmptyBand('dark');
 	await checkNoEmptyBand('light');
 
-	// ---- 5c: SPEC-C P6 (point 10) - no tile preview has more than ~12px of empty space below its
+	// ---- 5c: no tile preview has more than ~12px of empty space below its
 	// last content, measured directly (the canvas's own rendered bottom edge vs the deepest visible
 	// content element's rendered bottom edge, both already in final screen pixels since
 	// `getBoundingClientRect()` reflects the live CSS transform scale) rather than inferred from a
@@ -574,8 +574,8 @@ async function main() {
 	await checkTrimmedEmptySpace('light');
 
 	// ---- 6: every option tile within a control actually LOOKS different from its siblings (a
-	// screenshot-Buffer-inequality regression guard for "all four look the same" - coordinator review,
-	// round 2), in both themes. Wireframes included (cheap: SVG). Font lists excluded (not a tile
+	// screenshot-Buffer-inequality regression guard for "all four look the same"), in both themes.
+	// Wireframes included (cheap: SVG). Font lists excluded (not a tile
 	// grid; already checked structurally above). ---------------------------------------------------
 	async function checkTilesVisuallyDiffer(theme) {
 		await freshLoad(page, KITCHEN_SINK, DEFAULT_VIEWPORT);
@@ -773,9 +773,9 @@ async function main() {
 		check('Tab never focuses anything inside a .svc-tile-preview', !tabEnteredPreview);
 	}
 
-	// ---- 8: item 3 - section collapse/expand, the dirty-dot, persistence across navigation, and
-	// filter auto-open (+ restore-on-clear). SPEC-C P4 (settled with the maintainer 2026-09-24): every
-	// section now starts OPEN (superseding "only the first section starts open") - the scenarios below
+	// ---- 8: section collapse/expand, the dirty-dot, persistence across navigation, and
+	// filter auto-open (+ restore-on-clear). Every
+	// section starts OPEN (an earlier build only opened the first section) - the scenarios below
 	// that need a COLLAPSED starting point now get there with an explicit real toggle click first. ----
 	{
 		await freshLoad(page, KITCHEN_SINK, DEFAULT_VIEWPORT);
@@ -785,7 +785,7 @@ async function main() {
 			return Array.from(group.querySelectorAll('.svc-section')).map((s) => ({ name: s.dataset.section, open: s.dataset.open }));
 		});
 		check(
-			'SPEC-C P4: every section in Colors starts open, not just the first',
+			'every section in Colors starts open, not just the first',
 			initial.length > 1 && initial.every((s) => s.open === 'true'),
 			JSON.stringify(initial)
 		);
