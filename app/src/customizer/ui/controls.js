@@ -2,13 +2,13 @@
  * @file DOM builders for the panel body: preset gallery, collapsible group sections, individual
  * manifest-driven controls (range/select/toggle/color/font), and the live WCAG contrast readout
  * block. Pure DOM construction - no state ownership; callers pass a `handlers` object and this
- * module calls back into it. Kept framework-free per SPEC.md.
+ * module calls back into it. Kept framework-free (no UI library dependency).
  */
 import { controls as manifestControls, FONTS } from '../core/manifest.js';
 import { getValue } from '../core/state.js';
 import { getPalettes, contrastRatio, oklchToHex, hexToOklchHueChroma, hexToHslHue } from '../core/color.js';
 import { createTileControl, TILE_CONTROL_IDS, createFontList } from './tiles/index.js';
-// SPEC-C phase 3, workstream P (P3): the hex-first color popover (vanilla-colorful) - see
+// The hex-first color popover (vanilla-colorful) - see
 // color-picker.js's file header for why it is imported ONLY from here.
 import { createColorPopover } from './color-picker.js';
 
@@ -20,10 +20,10 @@ function clampNum(v, min, max) {
 }
 
 /**
- * SPEC-C E1: validates and normalizes a typed hex color (3 or 6 hex digits, `#` optional) to
+ * Validates and normalizes a typed hex color (3 or 6 hex digits, `#` optional) to
  * lowercase `#rrggbb`. Deliberately stricter than what `culori`'s `hsl()`/`oklch()` parsers would
- * accept (they also parse `rgb(...)`/named colors) - E1 asks for "a valid hex (3 or 6 digits, `#`
- * optional)" specifically, with anything else treated as invalid input that changes nothing.
+ * accept (they also parse `rgb(...)`/named colors) - only "a valid hex (3 or 6 digits, `#`
+ * optional)" is accepted, with anything else treated as invalid input that changes nothing.
  * @param {string} raw
  * @returns {string | null}
  */
@@ -48,8 +48,7 @@ export function normalizeHexInput(raw) {
  */
 
 /**
- * One small inline-SVG glyph per GROUPS entry (SPEC.md Round 2: "a small inline-SVG icon per
- * group"), 24x24 viewBox, stroke-based so `currentColor` (set via `.svc-group-icon { color:
+ * One small inline-SVG glyph per GROUPS entry, 24x24 viewBox, stroke-based so `currentColor` (set via `.svc-group-icon { color:
  * var(--group-accent) }` in styles.js) tints them per group. Unknown/future group names (e.g. a
  * manifest addition) fall back to a plain dot rather than breaking.
  * @type {Record<string, string>}
@@ -77,7 +76,7 @@ function groupIconSvg(groupName) {
 	return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
-/** SPEC-C S5: one accurate, Codex-toned sentence per group, shown under the panel column's group
+/** One accurate, plain-language sentence per group, shown under the panel column's group
  * title. Keyed by the same stable `groupName` GROUP_ICON_PATHS uses (including 'Navigation', whose
  * visible rail label is retitled "Structure (advanced)" elsewhere without changing this key). */
 export const GROUP_DESCRIPTIONS = {
@@ -97,11 +96,11 @@ export const GROUP_DESCRIPTIONS = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// SPEC-C S15 (units): a `rem`-unit control's number field shows/accepts PX (its slider keeps
+// Units: a `rem`-unit control's number field shows/accepts PX (its slider keeps
 // working in the control's own stored unit); a `px`-unit control's number field is unchanged but
 // gains a secondary rem readout - except radius/shadow controls, which stay px-only. Driven purely
 // by `control.unit` (and an id/label heuristic for the radius/shadow exception) so this works for
-// every manifest control, including any workstream K adds later, with zero per-control UI code.
+// every manifest control, including any added later, with zero per-control UI code.
 // ---------------------------------------------------------------------------------------------
 const REM_PX = 16;
 
@@ -122,7 +121,7 @@ function formatUnitNum(n) {
 	return Number(n.toFixed(4)).toString();
 }
 
-/** SPEC-C P4: a collapsed range card's own value summary ("720 px", "8px", "0.27") - the same
+/** A collapsed range card's own value summary ("720 px", "8px", "0.27") - the same
  * `unitDisplayMode`/`formatUnitNum` machinery the live number-box display already uses, so it
  * always agrees with what the expanded card would show.
  * @param {import('../core/manifest.js').Control} control @param {number} value @returns {string} */
