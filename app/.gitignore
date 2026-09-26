@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # Browser-suite screenshots are review output, not baselines
 tests/e2e/screenshots/
+
+# Round-trip suite output: JSON report + screenshots, regenerated on every run
+tests/roundtrip/.output/
