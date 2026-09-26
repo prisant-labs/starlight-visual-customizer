@@ -11,4 +11,4 @@ You won't get one. There is no subscription to cancel and no seat count to true 
 
 ## If you need something billing-shaped anyway
 
-Paid implementation support (see [Pricing & Plans](/product/pricing/)) is invoiced manually, case by case, outside of any product billing system this site would document.
+Paid implementation support (see [Pricing & Plans](../../product/pricing/)) is invoiced manually, case by case, outside of any product billing system this site would document.

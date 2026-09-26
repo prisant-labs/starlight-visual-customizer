@@ -7,7 +7,7 @@
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/inspect.mjs
- * Env overrides: BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
  *
  * Runs at the default device (Fit, scale 1, no transform) throughout - deliberately: `boundingBox()`
  * on a frame-obtained element handle already reports host-viewport coordinates (Playwright
@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
@@ -143,7 +143,7 @@ async function main() {
 
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 	trackErrors(page);
-	await page.goto(`${BASE_URL}/studio/?page=specimen`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/studio/?page=specimen`, { waitUntil: 'networkidle' });
 	await waitForPanelBody(page);
 	await page.waitForTimeout(300);
 

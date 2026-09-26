@@ -10,7 +10,7 @@ import { surfaces, appliesTo } from './surfaces.mjs';
 
 export const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 
-export const BASE_ORIGIN = process.env.BASE_URL || 'http://localhost:4420';
+export const BASE_ORIGIN = process.env.SVC_BASE_URL || 'http://localhost:4420';
 export const FRESH_ORIGIN = 'http://localhost:4431';
 export const VIEWPORT = { width: 1440, height: 1000 };
 

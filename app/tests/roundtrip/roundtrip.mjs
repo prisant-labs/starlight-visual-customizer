@@ -25,7 +25,7 @@
  * Usage (PowerShell or bash), from `app/`:
  *   npm run test:roundtrip
  * Env overrides:
- *   BASE_URL              - the app's own preview origin (default http://localhost:4420 - this
+ *   SVC_BASE_URL              - the app's own preview origin (default http://localhost:4420 - this
  *                            project's production preview; see README.md for why not :4422/:4700).
  *   FRESH_SITE_DIR         - where the fresh site lives (default an OS-temp path reused across
  *                            runs - see fresh-site.mjs).
@@ -35,7 +35,7 @@
  *   SVC_ROUNDTRIP_SCREENSHOTS - set to `0` to skip screenshots entirely (faster).
  *   SVC_ROUNDTRIP_FORCE_INSTALL - set to `1` to force a fresh `npm install` in the fresh site even
  *                            if it looks already set up.
- * Prerequisites: the app's OWN production preview already running at BASE_URL (`npx astro build`
+ * Prerequisites: the app's OWN production preview already running at SVC_BASE_URL (`npx astro build`
  * then `npx astro preview --background --port <that port>` from `app/`); network access for the
  * fresh site's `npm install` (only on first run, or after `SVC_ROUNDTRIP_FORCE_INSTALL=1`); nothing
  * else already running on :4431 (this suite starts and stops its own preview server there).
@@ -203,7 +203,7 @@ async function checkBaseReachable() {
 		throw new Error(
 			`Could not reach ${BASE_ORIGIN} (the app's own preview). Build and start it first: ` +
 				`\`npx astro build\` then \`npx astro preview --background --port <port>\` from app/, ` +
-				`and pass that port as BASE_URL if it isn't 4420. Original error: ${err.message}`
+				`and pass that port as SVC_BASE_URL if it isn't 4420. Original error: ${err.message}`
 		);
 	}
 }

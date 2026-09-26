@@ -15,7 +15,7 @@
  *   5. Regression: the shared `[hidden] { display: none !important; }` fix also makes
  *      `applyControlFilter`'s filtered-out rows actually disappear.
  *
- * Run: node tests/e2e/ui-round2.mjs   (env: BASE_URL, default http://localhost:4420 = production preview, http://localhost:4700 = dev server; SVC_CHROME_PATH)
+ * Run: node tests/e2e/ui-round2.mjs   (env: SVC_BASE_URL, default http://localhost:4420 = production preview, http://localhost:4700 = dev server; SVC_CHROME_PATH)
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
@@ -23,7 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
@@ -77,7 +77,7 @@ async function run(browser) {
 	{
 		const page = await browser.newPage();
 		page.on('pageerror', (err) => console.log('[browser page error]', err.message));
-		await page.goto(`${BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+		await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 		await readyCustomizer(page);
 		const colorBeforePreset = await page.evaluate(() => {
 			const a = document.querySelector('.sl-markdown-content a');
@@ -136,7 +136,7 @@ async function run(browser) {
 	page.on('console', (msg) => {
 		if (msg.type() === 'error') console.log('[browser console error]', msg.text());
 	});
-	await page.goto(`${BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+	await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 	await readyCustomizer(page);
 
 	// ---- 2. filter regression: a filtered-out row is actually display:none (the shared [hidden]
@@ -252,7 +252,7 @@ async function run(browser) {
 	check('Typography added to persisted openGroups before navigating', (uiStateBefore.openGroups || []).includes('Typography'));
 	check('scrollTop (120) persisted before navigating', uiStateBefore.scrollTop === 120);
 
-	await page.goto(`${BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'load' });
+	await page.goto(`${SVC_BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'load' });
 	await readyCustomizer(page);
 	const afterNav = await page.evaluate(() => {
 		const host = document.querySelector('sl-customizer');
@@ -267,7 +267,7 @@ async function run(browser) {
 	// assert the page scrolls to that control's `target` and the panel's own overlay lands on it.
 	// (No `/src/...` imports: those paths exist on the dev server only, not in a production build.)
 	{
-		await page.goto(`${BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+		await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 		await readyCustomizer(page);
 		await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');

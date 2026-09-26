@@ -14,11 +14,11 @@ npm run preview:bg
 npm run test:roundtrip
 ```
 
-`test:roundtrip` needs the app's own production preview already running (`BASE_URL`, default
-`http://localhost:4420` - the port `npm run preview:bg` uses). Point it elsewhere with `$env:BASE_URL`:
+`test:roundtrip` needs the app's own production preview already running (`SVC_BASE_URL`, default
+`http://localhost:4420` - the port `npm run preview:bg` uses). Point it elsewhere with `$env:SVC_BASE_URL`:
 
 ```powershell
-$env:BASE_URL = 'http://localhost:4422'; npm run test:roundtrip; Remove-Item Env:BASE_URL
+$env:SVC_BASE_URL = 'http://localhost:4422'; npm run test:roundtrip; Remove-Item Env:SVC_BASE_URL
 ```
 
 It manages its OWN second server on **:4431** for the fresh site (start/stop are automatic - make
@@ -108,7 +108,7 @@ total is greater than 0, so this composes into a CI-style pipeline like the othe
 
 | Var | Default | Meaning |
 |---|---|---|
-| `BASE_URL` | `http://localhost:4420` | The app's own preview origin to compare against. |
+| `SVC_BASE_URL` | `http://localhost:4420` | The app's own preview origin to compare against. |
 | `FRESH_SITE_DIR` | an OS-temp path, fixed across runs | Where the fresh site lives. |
 | `SVC_CHROME_PATH` | `playwright-core`'s own pinned Chromium | Browser executable. |
 | `SVC_ROUNDTRIP_OUTPUT_DIR` | `.output/` next to this file | Where the JSON report/screenshots go. |

@@ -111,13 +111,85 @@ Background mode (Astro 7.2+) is per folder: `status`, `stop`, and `logs` act on 
 Get-NetTCPConnection -LocalPort 4420 -State Listen | ForEach-Object { Stop-Process -Id $_.OwningProcess }
 ```
 
+## Serving under a sub-path
+
+By default the app builds and runs at `/` (this README's own commands above, unchanged). The app
+can also be served under a sub-path instead - for example a GitHub Pages **project** site at
+`https://<user>.github.io/<repo>/`, or any fork's `https://<user>.github.io/<repo>/` - without
+touching root behavior at all.
+
+Two build-time env vars, both read only in `astro.config.mjs`:
+
+| Var | Default | Meaning |
+|---|---|---|
+| `SVC_SITE_BASE` | `/` | The base path to deploy under. Include the trailing slash (e.g. `/astro-starlight-visual-customizer/`) - Astro's own `trailingSlash` config (left at its default here) then keeps that slash on `import.meta.env.BASE_URL` too. |
+| `SVC_SITE_URL` | unset | Optional: the deployed origin (e.g. `https://prisant-labs.github.io`), for canonical URLs/sitemaps only. Internal navigation never depends on it. |
+
+**Never** set a plain `BASE_URL` when building this app - it is a different, unrelated name (a
+previous builder found it silently turns `astro build`'s internal links absolute if it leaks in
+from a parent shell) that `astro.config.mjs` never reads.
+
+```powershell
+npm run preview:stop   # if the default-base preview from above is still running in this folder
+$env:SVC_SITE_BASE = '/astro-starlight-visual-customizer/'
+npx astro build
+npx astro preview --port 4420   # SVC_SITE_BASE must stay set through this too - astro preview
+                                 # re-reads astro.config.mjs, so unsetting it first serves dist/
+                                 # (built with every href under the sub-path) back at plain `/`
+Remove-Item Env:SVC_SITE_BASE
+```
+
+In Git Bash (not PowerShell), prefix both the build and the preview command with
+`MSYS_NO_PATHCONV=1` - MSYS otherwise rewrites a leading-slash value like `SVC_SITE_BASE` into a
+Windows path (`/astro-starlight-visual-customizer/` becomes `C:/Program Files/Git/astro-starlight-visual-customizer/`,
+which breaks the build), e.g.
+`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/astro-starlight-visual-customizer/ npx astro build` and, since
+`astro preview` re-reads `astro.config.mjs` too,
+`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/astro-starlight-visual-customizer/ npx astro preview --port 4420`.
+
+Open `http://localhost:4420/astro-starlight-visual-customizer/` - it redirects to the studio at
+that same base, exactly as `/` does at the default base. Rebuild at the default base afterward
+(`npm run preview:stop` first, then plain `npm run build`, no env var) before committing `dist/` to
+anything that expects root.
+
+Every internal URL the customizer builds at runtime - the studio's page tabs and frame navigation,
+"Open in Studio", the sidebar re-render after a Structure edit - goes through one helper,
+`src/customizer/core/base-path.js`'s `withBase()`/`stripBase()`, built on Astro's resolved
+`import.meta.env.BASE_URL`. The studio's own `?page=` query value and its
+`sessionStorage['svc-ui']` state stay base-free by design, so a saved link, a share screenshot, or
+a bookmark look identical at any base. Demo content's own hand-written links (`specimen.mdx`,
+`kitchen-sink.mdx`, `index.mdx`'s hero actions, a couple of `prev`/`next` frontmatter overrides)
+are relative instead, since Starlight does not base-prefix a hand-written Markdown/frontmatter
+link the way it does its own sidebar/pagination.
+
+### Running the e2e suites against a sub-path build
+
+The browser suites take the app's full origin **and** base together in one env var,
+`SVC_BASE_URL` (renamed from `BASE_URL` - no fallback to the old name; see "Tests" below):
+
+```powershell
+$env:SVC_BASE_URL = 'http://localhost:4420/astro-starlight-visual-customizer'
+npm run test:e2e
+Remove-Item Env:SVC_BASE_URL
+```
+
+No trailing slash on `SVC_BASE_URL` - every suite joins it with a leading-slash path
+(`` `${SVC_BASE_URL}/studio/` ``), so one would double up (`...customizer//studio/`).
+
+`tests/roundtrip` reads the SAME var name for a DIFFERENT, narrower purpose - "the app's own
+preview origin to compare a themed export against" (see the Tests table below), never a base path,
+because that suite always builds its own throwaway comparison site at `/` and only ever runs
+against a root build of the app itself. Point it at a plain origin with no base suffix
+(`$env:SVC_BASE_URL = 'http://localhost:4420'`) when running `npm run test:roundtrip` - don't reuse
+whatever value it was carrying for the e2e suites' sub-path run above.
+
 ## Tests
 
 | Command | What it covers | Needs a running server |
 |---|---|---|
-| `npm test` | 180 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state), color, sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
+| `npm test` | 193 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state), color, sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, `core/base-path.js`'s `withBase`/`stripBase` (both trailing-slash shapes of `import.meta.env.BASE_URL` - see "Serving under a sub-path" below), and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
 | `npm run test:e2e` | 9 browser suites, real mouse/keyboard throughout (see below) | Yes, the **production preview on 4420** by default |
-| `npm run test:roundtrip` | Applies an exported `theme.css` + `APPLY-THEME.md` to a real, freshly-scaffolded Starlight site and compares it against the live preview - proves the export/preview promise holds outside the studio, not just inside it (see `tests/roundtrip/README.md`) | Yes, the app's own production preview (`BASE_URL`, default 4420); it starts/stops its own fresh-site preview on 4431 |
+| `npm run test:roundtrip` | Applies an exported `theme.css` + `APPLY-THEME.md` to a real, freshly-scaffolded Starlight site and compares it against the live preview - proves the export/preview promise holds outside the studio, not just inside it (see `tests/roundtrip/README.md`) | Yes, the app's own production preview (`SVC_BASE_URL`, default 4420, a root-only origin with no base suffix - see "Serving under a sub-path" above); it starts/stops its own fresh-site preview on 4431 |
 
 The 9 e2e suites, run one at a time in this order (`smoke && ui-round2 && treatments && targets && tiles && studio && shell && inspect && editors`):
 
@@ -138,7 +210,7 @@ The 9 e2e suites, run one at a time in this order (`smoke && ui-round2 && treatm
 Against the dev server instead:
 
 ```powershell
-$env:BASE_URL = 'http://localhost:4700'; npm run test:e2e; Remove-Item Env:BASE_URL
+$env:SVC_BASE_URL = 'http://localhost:4700'; npm run test:e2e; Remove-Item Env:SVC_BASE_URL
 ```
 
 The browser suites use `playwright-core` with the Chromium build it expects (install it once with `npx playwright install chromium`); set `SVC_CHROME_PATH` to use another Chromium or Chrome. Every suite drives real `page.mouse.click`/`down`/`move`/`up` and `page.keyboard.type` at element centers - never a script-dispatched `.click()` - because a prior round shipped an unclickable rail that only script clicks had exercised, and this round's own hex-entry bug only reproduced under a real click (it blurs the field; a script-invoked undo never does).

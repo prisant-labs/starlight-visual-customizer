@@ -10,7 +10,7 @@
  * Needs a running server; start one first: `npm run build` then
  * `npm run preview:bg` (or `npx astro preview --background --port 4420`).
  *   node tests/e2e/editors.mjs
- * Env overrides: BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync, readFileSync, copyFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ import { unzipSync, strFromU8 } from 'fflate';
 import sharp from 'sharp';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
@@ -169,7 +169,7 @@ async function main() {
 		if (msg.type() === 'error') errors.push(`[console] ${msg.text()}`);
 	});
 
-	await page.goto(`${BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
 	await waitForPanelBody(page);
 	await page.waitForTimeout(300);
 

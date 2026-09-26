@@ -23,8 +23,9 @@
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after
  * `npm run build`) or `npm run dev:bg`.
  *   node tests/e2e/tiles.mjs
- * Env overrides: BASE_URL (default http://localhost:4420 = this project's production preview; use
- * http://localhost:4700 for its dev server), SVC_BASE_URL, SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use
+ * http://localhost:4700 for its dev server; under a sub-path build, the full origin plus base path,
+ * e.g. http://localhost:4425/astro-starlight-visual-customizer), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
@@ -38,7 +39,7 @@ import { TILE_CONTROL_IDS, computeTileLayout } from '../../src/customizer/ui/til
 import { WIREFRAME_CONTROL_IDS, WIREFRAME_SIZE } from '../../src/customizer/ui/tiles/wireframes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BASE_URL = process.env.BASE_URL || process.env.SVC_BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
@@ -46,11 +47,11 @@ const EXECUTABLE_PATH =
 // `svc-overlay` (F1, SPEC-C phase 3, URL-flag-only edit): a direct top-level visit no longer mounts
 // a panel at all (a small "Open in Studio" pill instead) - this suite drives the panel's own shadow
 // root directly, so it needs the escape-hatch flag to keep mounting it.
-const KITCHEN_SINK = `${BASE_URL}/guides/kitchen-sink/?svc-overlay`;
+const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
 // `?view` (studio design doc, item E): astro.config.mjs's `/` -> `/studio/` redirect only fires
 // top-level with no `?view` in the URL - without it, this direct `page.goto('/')` would land on
 // `/studio/` instead of the splash page these hero-tile checks need. `&svc-overlay` (F1, above).
-const HOME = `${BASE_URL}/?view&svc-overlay`;
+const HOME = `${SVC_BASE_URL}/?view&svc-overlay`;
 const DEFAULT_VIEWPORT = { width: 1280, height: 900 };
 const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
@@ -831,7 +832,7 @@ async function main() {
 
 		// "Contrast" is still collapsed from the manual toggle above (P4: never reopened since) -
 		// verify that CHOICE (not the default) survives a full-page navigation.
-		await page.goto(`${BASE_URL}/guides/getting-started/?svc-overlay`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/guides/getting-started/?svc-overlay`, { waitUntil: 'networkidle' });
 		await page.waitForFunction(() => {
 			const host = document.querySelector('sl-customizer');
 			return !!(host && host.shadowRoot && host.shadowRoot.querySelector('.svc-panel'));
@@ -1285,7 +1286,7 @@ async function main() {
 	// rather than by clicking through the panel: the panel is a floating overlay that can occlude
 	// the very element being screenshotted, and its group/section might be collapsed - neither
 	// matters to what these screenshots need to show (the PAGE's own reaction to the control).
-	const SPECIMEN = `${BASE_URL}/specimen/?svc-overlay`;
+	const SPECIMEN = `${SVC_BASE_URL}/specimen/?svc-overlay`;
 	const K_SCREENSHOT_VIEWPORT = { width: 1440, height: 900 };
 
 	/** @param {import('playwright-core').Page} page @param {string} url @param {any} state @param {'dark'|'light'} theme */

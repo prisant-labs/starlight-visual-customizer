@@ -13,12 +13,12 @@
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run build`) or `npm run dev:bg`.
  *   node tests/e2e/targets.mjs
- * Env overrides: BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server),
- * falling back to SVC_BASE_URL; SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server;
+ * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer); SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 
-const BASE_URL = process.env.BASE_URL || process.env.SVC_BASE_URL || 'http://localhost:4420';
+const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
@@ -32,7 +32,7 @@ const EXECUTABLE_PATH =
 // `svc-overlay` (F1, SPEC-C phase 3): a direct top-level visit no longer mounts a panel at all -
 // this suite reads raw page markup only (never the panel/shadow root), so it doesn't strictly need
 // the panel mounted, but keeping the flag here matches every other engine suite's URLs.
-const PAGES = [`${BASE_URL}/guides/kitchen-sink/?svc-overlay`, `${BASE_URL}/?view&svc-overlay`, `${BASE_URL}/specimen/?svc-overlay`];
+const PAGES = [`${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`, `${SVC_BASE_URL}/?view&svc-overlay`, `${SVC_BASE_URL}/specimen/?svc-overlay`];
 
 const { controls } = await import('../../src/customizer/core/manifest.js');
 
