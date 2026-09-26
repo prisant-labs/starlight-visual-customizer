@@ -1,0 +1,464 @@
+---
+// Studio route: a plain Astro page, NOT a Starlight page - no
+// <StarlightPage>, no Starlight layout components. The previewed site renders in a same-origin
+// iframe beside a docked customizer panel, so every breakpoint, the fixed header, and the fixed
+// TOC rail behave exactly as they would for a real visitor at that width (a CSS-only dock was
+// tried first and found to lie about layout at in-between window widths).
+//
+// This file owns the studio's LIGHT-DOM shell only - top bar, toolbar, context line, the
+// preview stage (one or two lanes), and the status bar. The rail (icon list, one group visible at a
+// time) and the panel column's contents (group header, sections, controls) live inside
+// `<sl-customizer>`'s shadow root (panel.js/styles.js/controls.js) - the rail is a `tablist` and
+// the column its `tabpanel`, and `aria-controls` id references don't cross a shadow boundary, so
+// keeping both together in one shadow root was simpler and more robust than splitting them across
+// documents. `studio.js` builds everything in this file's containers and talks to panel.js through
+// a small controller object panel.js sets on the host element in studio mode (`host.__svc`, see
+// panel.js's file header) - the same document, two files, one clean seam.
+//
+// Starlight's own base tokens (design doc item C): pulled in via Vite's `?raw` suffix, not a plain
+// module import and not `fs.readFileSync` - three things went wrong before landing here, each
+// worth recording since the next person to touch this file will hit the same wall otherwise:
+//  1. `@astrojs/starlight/style/props.css` isn't reachable through the package's `exports` map
+//     (only `./props` -> dist/props.js, the JS module of the same name, is exported).
+//  2. A plain ESM `import '../../node_modules/...props.css'` (no `?raw`) crossing from src/ into
+//     node_modules confused this Astro/Vite version's DEV-mode CSS-module handling: it emitted a
+//     SECOND, broken `<script type="module" src=".../props.css">` alongside the correctly inlined
+//     `<style>`, and the browser tried to parse raw CSS as JS ("Unexpected identifier").
+//  3. Switching to `fs.readFileSync(new URL('../../node_modules/...', import.meta.url))` fixed dev
+//     but broke the STATIC BUILD: `import.meta.url` there points at wherever Vite/Rollup happens to
+//     emit the bundled chunk (`dist/.prerender/chunks/studio_*.mjs`), not this source file's own
+//     directory - node_modules isn't copied into `dist/`, so the relative path resolved to nothing
+//     (ENOENT) once bundled, even though it worked fine unbundled in dev.
+// `?raw` sidesteps all three: Vite inlines the file's TEXT CONTENT directly into the built module at
+// bundle time (a plain JS string, not a stylesheet import and not a runtime file read), so there is
+// no CSS-module URL to mis-fetch in dev and no post-bundle path to go stale in prod. Without this,
+// `var(--sl-color-*)` inside the panel's shadow DOM (swatches, the contrast readout) would have
+// nothing to resolve against in THIS document - the panel lives here, not in the iframe.
+// @ts-ignore - Vite's `?raw` suffix has no ambient .d.ts in this project; the import IS valid.
+import starlightPropsCss from '../../node_modules/@astrojs/starlight/dist/style/props.css?raw';
+// D3a: the same base-path helper `ui/studio.js`/`ui/panel.js` use at runtime - this frontmatter runs
+// through the same Vite module graph (build AND dev), so `import.meta.env.BASE_URL` resolves here
+// exactly as it does client-side. Used below for the favicon link and both lanes' initial iframe
+// `src` (both hand-written literals, unlike Starlight's own Head/asset pipeline).
+import { withBase } from '../customizer/core/base-path.js';
+
+// The studio's own layout CSS is ALSO written as a plain string and inlined via `set:html` (below)
+// rather than a native Astro `<style>` block - this dev server's Astro/Vite pairing emits a second,
+// broken `<script type="module" src=".../studio.astro?...lang.css">` alongside ANY page-level
+// `<style>` block's normal inlining (confirmed by reproducing it with this exact block before this
+// rewrite - not unique to the node_modules-crossing import above), and the browser trying to parse
+// that CSS response as a JS module is what threw "Unexpected identifier 'display'". Astro's
+// automatic style *scoping* (the astro-XXXXXXXX class it would otherwise add) is not needed here
+// anyway - every selector below targets the studio's own fixed ids/classes, not anything shared
+// with Starlight's pages.
+//
+// This is the studio's ONE light-chrome palette (`--ui-*`), independent of the
+// preview's light/dark mode - never `--sl-color-*`. Same literal values as styles.js's
+// `:host([data-docked='true'])` block (that file's header has the contrast-floor verification
+// notes); duplicated rather than shared across the two separate stylesheets/documents involved.
+const studioLayoutCss = `
+:root {
+	--ui-ink: #1b2130;
+	--ui-text: #343b4a;
+	--ui-muted: #566072;
+	--ui-line: #dde1e8;
+	--ui-bg: #f5f6f8;
+	--ui-panel: #ffffff;
+	--ui-accent: #4453c9;
+	--ui-accent-fg: #ffffff;
+	--ui-accent-tint: rgba(68, 83, 201, 0.08);
+	/* --ui-accent as TEXT (not a solid fill) only reaches ~6.3:1 on white/near-white - short of
+	   the 7:1 floor labels need (the explicit 4.5:1 exception is for white text ON an accent
+	   FILL only - buttons, the selected rail item). --ui-accent-ink is the same hue darkened until it
+	   clears 7:1 (measured ~7.8:1) - used for the selected page tab's text. Kept identical to
+	   styles.js's copy of this same token. */
+	--ui-accent-ink: #3a46b0;
+	color-scheme: light;
+}
+html, body {
+	height: 100%;
+	margin: 0;
+	/* 'overflow: hidden' still lets script (Element.scrollIntoView
+	   crossing a same-origin iframe boundary - see .svc-lane-wrap's own comment below) set a nonzero
+	   scrollTop/scrollLeft even though no scrollbar ever shows. 'overflow: clip' removes the scroll
+	   mechanism entirely (scrollTop/scrollLeft are inert), so nothing here can ever be nudged by a
+	   frame-internal scroll again - every ancestor of a lane <iframe> gets the same treatment below. */
+	overflow: clip;
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+	color: var(--ui-text);
+	background: var(--ui-bg);
+}
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+body {
+	display: flex;
+	flex-direction: column;
+}
+:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+
+/* ---- S1: top bar ---- */
+#svc-topbar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	height: 52px;
+	padding: 0 0.875rem;
+	background: var(--ui-panel);
+	border-bottom: 1px solid var(--ui-line);
+}
+.svc-brand { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.svc-brand-mark {
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 7px;
+	background: var(--ui-ink);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+	flex-shrink: 0;
+}
+.svc-brand-mark svg { width: 1.05rem; height: 1.05rem; }
+.svc-brand-name { font-size: 0.9375rem; font-weight: 700; color: var(--ui-ink); white-space: nowrap; }
+.svc-brand-name b { font-weight: 700; }
+.svc-brand-tag {
+	font-size: 0.625rem;
+	font-weight: 700;
+	color: var(--ui-muted);
+	border: 1px solid var(--ui-line);
+	border-radius: 4px;
+	padding: 0.05rem 0.3rem;
+}
+.svc-topbar-sep { width: 1px; align-self: stretch; margin: 0.5rem 0; background: var(--ui-line); flex-shrink: 0; }
+#svc-theme-name {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--ui-ink);
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	padding: 0.3rem 0.45rem;
+	min-width: 8rem;
+	max-width: 16rem;
+}
+#svc-theme-name:hover { border-color: var(--ui-line); }
+#svc-theme-name:focus-visible { border-color: var(--ui-accent); outline: none; background: var(--ui-panel); }
+#svc-save-status { font-size: 0.75rem; color: var(--ui-muted); white-space: nowrap; }
+.svc-topbar-spacer { flex: 1 1 auto; min-width: 0.5rem; }
+#svc-topbar-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+
+.svc-tb-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--ui-text);
+	background: var(--ui-panel);
+	border: 1px solid var(--ui-line);
+	border-radius: 6px;
+	padding: 0.4rem 0.6rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.svc-tb-btn:hover:not(:disabled) { background: var(--ui-bg); }
+.svc-tb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.svc-tb-btn-icon { padding: 0.4rem; }
+.svc-tb-btn-primary { background: var(--ui-accent); border-color: var(--ui-accent); color: var(--ui-accent-fg); }
+.svc-tb-btn-primary:hover:not(:disabled) { background: #38439e; border-color: #38439e; }
+.svc-tb-btn svg { width: 1rem; height: 1rem; display: block; }
+#svc-drawer-toggle { display: none; }
+
+/* ---- Body row: rail + panel column (both inside <sl-customizer>) beside the workarea ---- */
+/* F0: both are host ancestors of the lane <iframe>s further down the tree - overflow: clip, not
+   hidden (see html/body's own comment above). */
+#svc-body-row { flex: 1 1 auto; display: flex; min-height: 0; overflow: clip; }
+#svc-workarea { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: clip; }
+
+/* ---- S6: toolbar ---- */
+#svc-toolbar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	padding: 0.5rem 0.75rem;
+	background: var(--ui-panel);
+	border-bottom: 1px solid var(--ui-line);
+}
+.svc-page-tabs { display: flex; align-items: center; gap: 0.15rem; flex-wrap: wrap; }
+.svc-page-tab {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: var(--ui-text);
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	padding: 0.35rem 0.55rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.svc-page-tab:hover { background: var(--ui-bg); }
+.svc-page-tab[aria-selected='true'] { background: var(--ui-accent-tint); color: var(--ui-accent-ink); }
+.svc-page-tab svg { width: 0.95rem; height: 0.95rem; }
+.svc-page-other { font-size: 0.75rem; color: var(--ui-muted); padding: 0 0.3rem; }
+.svc-toolbar-spacer { flex: 1 1 auto; min-width: 0.5rem; }
+/* P5 fix: #svc-toolbar wraps as a whole (flex-wrap on the toolbar itself, above) - when the page
+   tabs and the mode/device controls together don't fit one row, .svc-toolbar-right used to drop to
+   its own line starting flush left (a wrapped flex item's default position is the start of its own
+   line), looking orphaned under the tabs. margin-inline-start:auto pushes it to the END of whichever
+   line it lands on - the same row when there's room, its own right-aligned row when there isn't -
+   so .svc-toolbar-spacer (now redundant with this) is no longer inserted between them. */
+.svc-toolbar-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-inline-start: auto; }
+
+.svc-seg { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: 7px; padding: 2px; background: var(--ui-bg); }
+.svc-seg-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: var(--ui-text);
+	background: transparent;
+	border: 0;
+	border-radius: 5px;
+	padding: 0.3rem 0.5rem;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.svc-seg-btn[aria-pressed='true'] { background: var(--ui-panel); color: var(--ui-ink); box-shadow: 0 1px 2px rgba(27, 33, 48, 0.12); }
+.svc-seg-btn svg { width: 0.9rem; height: 0.9rem; display: block; }
+/* Disabled zoom buttons (Fit device has nothing to zoom, or a step is
+   already at either end) - var(--ui-muted), not opacity, so the contrast walk's computed-color
+   read stays accurate (opacity would blend toward the background in a way a plain color read can't
+   see, risking a false pass on a ratio that isn't really there). */
+.svc-seg-btn:disabled { color: var(--ui-muted); cursor: not-allowed; }
+.svc-zoom-seg { gap: 0.05rem; }
+.svc-zoom-value { display: inline-block; min-width: 2.6rem; text-align: center; font-size: 0.75rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ui-text); padding: 0.3rem 0.15rem; }
+.svc-zoom-fit { font-size: 0.6875rem; }
+.svc-icon-link, .svc-icon-link:visited {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 6px;
+	border: 1px solid var(--ui-line);
+	background: var(--ui-panel);
+	color: var(--ui-text);
+	text-decoration: none;
+}
+.svc-icon-link:hover { background: var(--ui-bg); }
+.svc-icon-link svg { width: 1rem; height: 1rem; }
+
+/* ---- S7: context line ---- */
+#svc-context-line {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.3rem 0.875rem;
+	font-size: 0.75rem;
+	color: var(--ui-muted);
+	background: var(--ui-bg);
+	border-bottom: 1px solid var(--ui-line);
+}
+#svc-breadcrumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#svc-context-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; white-space: nowrap; }
+#svc-scale-label { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ui-text); }
+
+/* ---- Stage: one or two lanes ---- */
+/* F0: #svc-stage and .svc-lane are also host ancestors of a lane <iframe> - overflow: clip. */
+#svc-stage { flex: 1 1 auto; min-height: 0; display: flex; gap: 1px; background: var(--ui-line); overflow: clip; }
+.svc-lane { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; background: var(--ui-bg); overflow: clip; }
+.svc-lane[hidden] { display: none; }
+.svc-lane-head {
+	flex: 0 0 auto;
+	display: none;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.2rem 0.6rem;
+	font-size: 0.6875rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--ui-muted);
+}
+/* Only shown in Split (studio.js toggles a [data-split] attribute on #svc-stage). */
+[data-split='true'] .svc-lane-head { display: flex; }
+/* F0: overflow: clip (not hidden) - the direct host ancestor a bug was traced to (point 13: focusing
+   a control scrolled THIS box, clipping the frame's own fixed header). 'justify-content: safe
+   center' (F2): a zoomed-in lane's .svc-lane-shell can render wider than this box - plain 'center'
+   would clip the overflowing START edge with no way to reach it; 'safe' falls back to start-aligned
+   only when the content doesn't fit, so a Fit/non-zoomed lane still centers exactly as before. */
+.svc-lane-wrap { flex: 1 1 auto; min-height: 0; overflow: clip; display: flex; align-items: flex-start; justify-content: safe center; padding: 0.75rem; }
+/* F2: a zoom level that renders wider than the lane makes the lane pan horizontally - the ONE
+   deliberate exception to F0's "no host ancestor of the iframe is ever scrollable" rule, and only on
+   the x-axis (studio.js's scaleLane toggles this attribute; overflow-y stays clip unconditionally,
+   so the vertical-scroll bug F0 fixed can never come back even while panning). */
+.svc-lane-wrap[data-pannable='true'] { overflow-x: auto; }
+.svc-lane-shell { position: relative; width: 100%; height: 100%; overflow: clip; background: #fff; border: 1px solid var(--ui-line); border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 33, 48, 0.08); }
+iframe[data-svc-preview] {
+	display: block;
+	border: 0;
+	background: #fff;
+	transform-origin: top left;
+}
+
+/* ---- S12: status bar ---- */
+#svc-statusbar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	height: 28px;
+	padding: 0 0.875rem;
+	font-size: 0.6875rem;
+	color: var(--ui-muted);
+	background: var(--ui-panel);
+	border-top: 1px solid var(--ui-line);
+}
+#svc-status-left { flex: 0 0 auto; font-weight: 600; color: var(--ui-text); }
+#svc-status-mid {
+	flex: 1 1 auto;
+	text-align: center;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	font: inherit;
+	cursor: pointer;
+	padding: 0;
+}
+#svc-status-mid:hover { color: var(--ui-ink); }
+#svc-status-mid.svc-status-warn { color: var(--ui-fail, #a3251c); font-weight: 700; }
+#svc-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+.svc-legend-chip { border: 1px solid var(--ui-line); border-radius: 4px; padding: 0.05rem 0.35rem; font-weight: 600; }
+
+/* ---- Below 900px (S1): the panel column becomes a drawer, toggled from the top bar. ---- */
+@media (max-width: 899px) {
+	#svc-drawer-toggle { display: inline-flex; }
+}
+
+/* ---- Inspect toggle + "Elements" list. Reuses .svc-seg/
+   .svc-seg-btn's existing look (and its already contrast-verified [aria-pressed='true'] state) -
+   .svc-inspect-elements-btn toggles via aria-expanded instead, so it needs its own copy of that
+   same pressed treatment. ---- */
+.svc-inspect-elements-btn[aria-expanded='true'] { background: var(--ui-panel); color: var(--ui-ink); box-shadow: 0 1px 2px rgba(27, 33, 48, 0.12); }
+.svc-inspect-elements-popover {
+	position: fixed;
+	z-index: 50;
+	min-width: 220px;
+	max-width: 320px;
+	max-height: 60vh;
+	overflow-y: auto;
+	background: var(--ui-panel);
+	border: 1px solid var(--ui-line);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(27, 33, 48, 0.18);
+	padding: 0.4rem;
+}
+.svc-inspect-elements-group {
+	font-size: 0.6875rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--ui-muted);
+	padding: 0.4rem 0.4rem 0.2rem;
+}
+.svc-inspect-elements-item {
+	display: block;
+	width: 100%;
+	text-align: left;
+	border: 0;
+	background: transparent;
+	color: var(--ui-text);
+	font-size: 0.8125rem;
+	padding: 0.35rem 0.4rem;
+	border-radius: 5px;
+	cursor: pointer;
+}
+.svc-inspect-elements-item:hover { background: var(--ui-bg); }
+`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Studio - Starlight Customizer</title>
+		<!-- Unlike Starlight pages (which get this from Head.astro), this plain page has no favicon
+		     link by default - without one, the browser's automatic /favicon.ico probe 404s on every
+		     load (harmless, but noisy in the console). Same icon Starlight pages use. -->
+		<link rel="icon" href={withBase('/favicon.svg')} />
+		<!--
+			Mirrors node_modules/@astrojs/starlight/dist/components/ThemeProvider.astro's own
+			theme-detection exactly (stored value, else prefers-color-scheme) - see that file for the
+			canonical version. This document isn't a Starlight page, so it doesn't get ThemeProvider for
+			free; without this, data-theme would be unset until panel.js's attach flow later copies it
+			over from the frame, causing panel swatches to flash the wrong palette on first paint. This
+			is the PREVIEW's mode (S2's "primary lane" mirror target), never the studio CHROME's own
+			color, which stays light unconditionally via studioLayoutCss/styles.js's `--ui-*` tokens.
+			`is:inline` so Astro leaves it as a literal, synchronous, blocking script - matching the
+			no-flash preload script in astro.config.mjs, which relies on the same guarantee.
+		-->
+		<script is:inline>
+			(function () {
+				try {
+					var stored = localStorage.getItem('starlight-theme');
+					var theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+					document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+				} catch (e) {}
+			})();
+		</script>
+		<style set:html={starlightPropsCss}></style>
+		<!-- Design doc item A: the host document never scrolls - exactly two kinds of scroll region
+		     exist anywhere in the studio: each lane's own previewed page, and the panel column's
+		     internal `.svc-panel-sections` (inside <sl-customizer>'s shadow root). The panel (a direct
+		     child of #svc-body-row, sized via :host([data-docked]) rules in styles.js) is a normal flex
+		     item, not a floating one - this file doesn't need to (and can't, from outside its shadow
+		     DOM) style it further. -->
+		<style set:html={studioLayoutCss}></style>
+	</head>
+	<body>
+		<div id="svc-topbar"></div>
+		<div id="svc-body-row">
+			<sl-customizer></sl-customizer>
+			<div id="svc-workarea">
+				<div id="svc-toolbar"></div>
+				<div id="svc-context-line"></div>
+				<div id="svc-stage">
+					<div class="svc-lane" data-lane="light">
+						<div class="svc-lane-head"><span>Light</span><span class="svc-lane-scale"></span></div>
+						<div class="svc-lane-wrap">
+							<div class="svc-lane-shell">
+								<iframe data-svc-preview data-svc-lane="light" src={withBase('/specimen/')} title="Theme preview"></iframe>
+							</div>
+						</div>
+					</div>
+					<div class="svc-lane" data-lane="dark" hidden>
+						<div class="svc-lane-head"><span>Dark</span><span class="svc-lane-scale"></span></div>
+						<div class="svc-lane-wrap">
+							<div class="svc-lane-shell">
+								<iframe data-svc-preview data-svc-lane="dark" src={withBase('/specimen/')} title="Theme preview (dark lane)"></iframe>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="svc-statusbar"></div>
+		<script>
+			import '../customizer/ui/panel.js';
+			import { initStudioShell } from '../customizer/ui/studio.js';
+			import { initInspect } from '../customizer/ui/inspect.js';
+			initStudioShell();
+			initInspect();
+		</script>
+	</body>
+</html>

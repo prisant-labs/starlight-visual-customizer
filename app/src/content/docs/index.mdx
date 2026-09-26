@@ -1,0 +1,42 @@
+---
+title: Starlight Customizer
+description: Visually theme your Starlight documentation site, then export production-ready CSS. No build plugin, no design tool, no lock-in.
+template: splash
+hero:
+  title: Starlight Customizer
+  tagline: Point, click, and theme your Starlight docs site right in the browser. Export a single stylesheet when you're happy with it.
+  image:
+    file: ../../assets/houston.webp
+    alt: Houston, the Starlight mascot, wearing a paint-splattered space suit
+  # D3a: relative, not root-absolute - Starlight's Hero.astro passes a hero action's `link` straight
+  # into `<LinkButton {href}>` unprocessed (same gap as `prev`/`next` frontmatter overrides - see
+  # specimen.mdx's comment). Relative from this page's own URL (`/`) resolves correctly at any base.
+  actions:
+    - text: Get Started
+      link: guides/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View the Kitchen Sink
+      link: guides/kitchen-sink/
+      icon: rocket
+      variant: secondary
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why teams reach for it
+
+<CardGrid>
+	<Card title="Live preview" icon="laptop">
+		Every control recomputes real CSS against your actual site, not a mockup in a separate tab. What you see in the panel is what ships.
+	</Card>
+	<Card title="Accessible by default" icon="approve-check-circle">
+		A built-in contrast readout flags text and link color combinations that fail WCAG AA before you ever export.
+	</Card>
+	<Card title="No build step" icon="setting">
+		Drag sliders, pick a preset, and reorder your sidebar without touching a terminal or reinstalling anything.
+	</Card>
+	<Card title="Own the output" icon="document">
+		Export one `theme.css` file and a short `APPLY-THEME.md` walkthrough. No proprietary format and no ongoing dependency.
+	</Card>
+</CardGrid>

@@ -1,0 +1,183 @@
+/*
+ * Starlight Visual Customizer
+ * Target: Starlight 0.42.4 (@astrojs/starlight)
+ * Load via the `customCss` option in astro.config.mjs.
+ * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.
+ */
+
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/work-sans';
+
+:root {
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #ebeeef;
+	--sl-color-gray-2: #bfc3c4;
+	--sl-color-gray-3: #858d90;
+	--sl-color-gray-4: #52595c;
+	--sl-color-gray-5: #33393c;
+	--sl-color-gray-6: #22282a;
+	--sl-color-black: #16191a;
+	--sl-color-accent-low: #002a2c;
+	--sl-color-accent: #00797d;
+	--sl-color-accent-high: #97d6d8;
+	--sl-font: 'Work Sans Variable', var(--sl-font-system);
+	--sl-font-mono: 'JetBrains Mono Variable', var(--sl-font-system-mono);
+	--sl-text-2xs: 0.6563rem;
+	--sl-text-xs: 0.7109rem;
+	--sl-text-sm: 0.7656rem;
+	--sl-text-base: 0.875rem;
+	--sl-text-lg: 0.9531rem;
+	--sl-text-xl: 1.0254rem;
+	--sl-text-2xl: 1.1914rem;
+	--sl-text-3xl: 1.3939rem;
+	--sl-text-4xl: 1.6289rem;
+	--sl-text-5xl: 1.8926rem;
+	--sl-text-6xl: 2.7923rem;
+	--sl-text-h1: 1.6289rem;
+	--sl-text-h2: 1.3939rem;
+	--sl-text-h3: 1.1914rem;
+	--sl-text-h4: 1.0254rem;
+	--sl-text-h5: 0.9531rem;
+	--sl-text-h6: 0.875rem;
+	--sl-line-height: 1.5;
+	--sl-line-height-headings: 1.1;
+	--sl-content-width: 55rem;
+	--sl-content-gap-y: 0.75rem;
+	--sl-shadow-sm: none;
+	--sl-shadow-md: none;
+	--sl-shadow-lg: none;
+	--svc-radius: 0px;
+}
+
+@media (min-width: 50em) {
+	:root {
+		--sl-text-h1: 1.8926rem;
+		--sl-text-h2: 1.6289rem;
+		--sl-text-h3: 1.3939rem;
+		--sl-text-h4: 1.1914rem;
+	}
+}
+
+:root[data-theme='light'] {
+	--sl-color-white: #16191a;
+	--sl-color-gray-1: #22282a;
+	--sl-color-gray-2: #33393c;
+	--sl-color-gray-3: #52595c;
+	--sl-color-gray-4: #858d90;
+	--sl-color-gray-5: #bfc3c4;
+	--sl-color-gray-6: #ebeeef;
+	--sl-color-gray-7: #f5f6f7;
+	--sl-color-black: #ffffff;
+	--sl-color-accent-low: #b3e1e3;
+	--sl-color-accent: #007579;
+	--sl-color-accent-high: #003a3d;
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6), h1#_top, .site-title {
+	font-family: 'Work Sans Variable', var(--sl-font-system);
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+}
+
+:root {
+	--ec-brdRad: var(--svc-radius);
+}
+
+.sidebar-content a[aria-current='page'] {
+	border-radius: var(--svc-radius);
+}
+
+@media (min-width: 50rem) {
+	button[data-open-modal] {
+		border-radius: var(--svc-radius);
+	}
+}
+
+.pagination-links a {
+	border-radius: var(--svc-radius);
+}
+
+mobile-starlight-toc .toggle {
+	border-radius: var(--svc-radius);
+}
+
+.starlight-aside {
+	border-radius: var(--svc-radius);
+}
+
+.sidebar-content a {
+	padding-block: 0.2em;
+}
+
+starlight-toc a {
+	font-size: 0.75rem;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+	padding-block: 0.3125rem;
+}
+
+:root {
+	--ec-codeFontSize: 0.8125rem;
+}
+
+.pagination-links a {
+	box-shadow: none;
+}
+
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background-color: transparent;
+	color: var(--sl-color-text-accent);
+	border-inline-start: 2px solid var(--sl-color-text-accent);
+	border-radius: 0;
+	padding-inline-start: calc(var(--sl-sidebar-item-padding-inline, 0.5rem) - 2px);
+}
+
+starlight-toc a[aria-current='true'] {
+	color: var(--sl-color-white);
+	background-color: transparent;
+	border-inline-start: 2px solid var(--sl-color-text-accent);
+}
+
+.starlight-aside {
+	border: 1px solid var(--sl-color-asides-border);
+	border-inline-start-width: 1px;
+	border-radius: var(--svc-radius, 0.25rem);
+}
+
+.sl-markdown-content code:not(:where(.not-content *)):not(pre code) {
+	background-color: transparent;
+	border: 1px solid var(--sl-color-gray-5);
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+	border: 1px solid var(--sl-color-gray-5);
+}
+
+starlight-tabs [role='tablist'] {
+	border-bottom: none;
+	border: 1px solid var(--sl-color-gray-5);
+	border-radius: var(--svc-radius, 0.5rem);
+	padding: 0.2rem;
+	gap: 0;
+}
+starlight-tabs .tab > [role='tab'] {
+	box-shadow: none;
+	border-radius: var(--svc-radius, 0.4rem);
+}
+starlight-tabs .tab > [role='tab'][aria-selected='true'] {
+	background-color: var(--sl-color-accent);
+	color: var(--sl-color-text-invert);
+}
+
+article.card {
+	border: none;
+	background-color: var(--sl-color-gray-6);
+}
+
+.sl-badge {
+	border-radius: 0;
+}

@@ -1,0 +1,41 @@
+{
+  "name": "starlight-visual-customizer",
+  "type": "module",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prisant-labs/astro-starlight-visual-customizer.git",
+    "directory": "app"
+  },
+  "scripts": {
+    "dev": "astro dev --port 4700",
+    "start": "astro dev --port 4700",
+    "build": "astro build",
+    "preview": "astro preview --port 4420",
+    "astro": "astro",
+    "test": "node --test \"tests/core/**/*.test.js\"",
+    "dev:bg": "astro dev --background --port 4700",
+    "dev:status": "astro dev status",
+    "dev:stop": "astro dev stop",
+    "dev:logs": "astro dev logs",
+    "preview:bg": "astro preview --background --port 4420",
+    "preview:status": "astro preview status",
+    "preview:stop": "astro preview stop",
+    "preview:logs": "astro preview logs",
+    "test:e2e": "node tests/e2e/smoke.mjs && node tests/e2e/ui-round2.mjs && node tests/e2e/treatments.mjs && node tests/e2e/targets.mjs && node tests/e2e/tiles.mjs && node tests/e2e/studio.mjs && node tests/e2e/shell.mjs && node tests/e2e/inspect.mjs && node tests/e2e/editors.mjs && node tests/e2e/screenshot.mjs",
+    "test:roundtrip": "node tests/roundtrip/roundtrip.mjs"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.4",
+    "astro": "7.3.5",
+    "culori": "4.0.2",
+    "fflate": "0.8.3",
+    "modern-screenshot": "4.7.0",
+    "sharp": "0.35.4",
+    "vanilla-colorful": "0.7.2"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}
