@@ -1009,7 +1009,7 @@ async function main() {
 				chroma: host.shadowRoot.querySelector("[data-control-id='color.accent.chroma'] input[type=range]").value,
 			};
 		});
-		// SPEC-C phase 3, workstream P (P3): the native <input type=color> picker is now a hex-first
+		// The native <input type=color> picker is now a hex-first
 		// popover (vanilla-colorful) opened from a swatch BUTTON - real click it, then real click +
 		// type into the POPOVER's own hex field (not the row's primary one), matching this suite's
 		// real-mouse-only rule (this used to script-set the native input's `.value` directly).
@@ -1121,11 +1121,11 @@ async function main() {
 			check(`${id}: data-layout is "${expected}" (item 5's grid-vs-rows rule)`, actual === expected, `DOM says "${actual}"`);
 		}
 
-		// SPEC-C P5 (point 9): "at the current panel width (about 300 to 360px), every tile control
+		// "At the current panel width (about 300 to 360px), every tile control
 		// lays out in ONE column (rows)" - a single summary check over every tiled control, in addition
 		// to the per-control checks just above.
 		const allRows = Array.from(TILE_CONTROL_IDS).every((id) => computeTileLayout(controlsById.get(id)) === 'rows');
-		check('P5: every tiled control computes "rows" (one column) at the panel\'s real width', allRows);
+		check('every tiled control computes "rows" (one column) at the panel\'s real width', allRows);
 
 		await page.screenshot({ path: path.join(__dirname, 'screenshots', 'c3-tiles-one-column.png'), fullPage: false });
 
@@ -1178,7 +1178,7 @@ async function main() {
 	}
 	console.log('\nScreenshots written to tests/e2e/screenshots/b-tiles-<group>-<theme>.png');
 
-	// ---- Maintainer review screenshots: tests/e2e/screenshots/b12-*.png, dark + light -------------
+	// ---- Review screenshots: tests/e2e/screenshots/b12-*.png, dark + light -------------
 	async function screenshotPanel(name, theme, setup) {
 		// Clicks the REAL toggle (rather than setting data-theme directly, as every other theme-switch
 		// in this file does) so the icon itself stays in sync - these screenshots exist specifically
@@ -1206,8 +1206,8 @@ async function main() {
 		await freshLoad(page, KITCHEN_SINK, SCREENSHOT_VIEWPORT);
 		await screenshotPanel('panel-header', theme, async () => {});
 
-		// Colors group: Palette (swatches, gradient tracks, picker) plus, per SPEC-C P4 (every section
-		// starts open now, superseding B's original "only the first section starts open"), the other
+		// Colors group: Palette (swatches, gradient tracks, picker) plus, since every section
+		// starts open now (an earlier build only opened the first section), the other
 		// sections' own headers right below it too - this deliberately does NOT go through
 		// `openGroupOnly` (which also expands every CARD for the functional tests above).
 		await freshLoad(page, KITCHEN_SINK, SCREENSHOT_VIEWPORT);
@@ -1277,7 +1277,7 @@ async function main() {
 	}
 	console.log('Screenshots written to tests/e2e/screenshots/b12-<name>-<theme>.png');
 
-	// ---- Workstream K (SPEC-C section 4) review screenshots -----------------------------------
+	// ---- Review screenshots for the range/toggle controls with literal selector overrides -----
 	// `k1-specimen-defaults-{light,dark}.png`: the bare page (no tile interaction) so a reviewer has
 	// a stock baseline to compare every `k1-<control>-<option>.png` below against.
 	// `k1-<control>-<option>.png`: one screenshot per non-default option of each of the four new
