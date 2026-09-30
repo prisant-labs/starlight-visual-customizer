@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { fixtureSidebar } from './src/fixture-sidebar.mjs';
 
-// Sub-path support: the base to deploy under, e.g. `/astro-starlight-visual-customizer/` for
+// Sub-path support: the base to deploy under, e.g. `/starlight-visual-customizer/` for
 // a GitHub Pages project site at `https://<user>.github.io/<repo>/`. Defaults to `/` (today's
 // behavior, unchanged). Deliberately a project-specific name, `SVC_SITE_BASE` - NEVER read a plain
 // `BASE_URL` env var here: an inherited `BASE_URL` (meant for the e2e suites' own
@@ -26,7 +26,7 @@ const siteUrl = process.env.SVC_SITE_URL || undefined;
 // `normalizeBase` exactly: `/` collapses to `''` so joining below never doubles a slash, and any
 // other base keeps its content minus a trailing slash.
 const baseNoTrailingSlash = siteBase === '/' ? '' : siteBase.replace(/\/$/, '');
-// The site's own root, base-aware: `/` at the default base, `/astro-starlight-visual-customizer/`
+// The site's own root, base-aware: `/` at the default base, `/starlight-visual-customizer/`
 // under that sub-path - exactly what a top-level visit to the deployed root looks like either way.
 const rootPath = `${baseNoTrailingSlash}/`;
 const studioPath = `${baseNoTrailingSlash}/studio/`;
@@ -80,12 +80,12 @@ export default defineConfig({
 				{
 					icon: 'github',
 					label: 'GitHub',
-					href: 'https://github.com/prisant-labs/astro-starlight-visual-customizer',
+					href: 'https://github.com/prisant-labs/starlight-visual-customizer',
 				},
 			],
 			editLink: {
 				baseUrl:
-					'https://github.com/prisant-labs/astro-starlight-visual-customizer/edit/main/app/',
+					'https://github.com/prisant-labs/starlight-visual-customizer/edit/main/app/',
 			},
 			// No reliable git history in this fixture repo, so lastUpdated is derived
 			// from frontmatter only (see resources/changelog.mdx) rather than git.

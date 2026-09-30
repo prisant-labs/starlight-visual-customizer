@@ -5,7 +5,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/prisant-labs/astro-starlight-visual-customizer.git",
+    "url": "git+https://github.com/prisant-labs/starlight-visual-customizer.git",
     "directory": "app"
   },
   "scripts": {

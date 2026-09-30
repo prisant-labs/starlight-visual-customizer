@@ -134,8 +134,8 @@ Two build-time env vars, both read only in `astro.config.mjs`:
 
 | Var | Default | Meaning |
 |---|---|---|
-| `SVC_SITE_BASE` | `/` | The base path to deploy under. Include the trailing slash (e.g. `/astro-starlight-visual-customizer/`) - Astro's own `trailingSlash` config (left at its default here) then keeps that slash on `import.meta.env.BASE_URL` too. |
-| `SVC_SITE_URL` | unset | Optional: the deployed origin (e.g. `https://prisant-labs.github.io`), for canonical URLs/sitemaps only. Internal navigation never depends on it. |
+| `SVC_SITE_BASE` | `/` | The base path to deploy under. Include the trailing slash (e.g. `/starlight-visual-customizer/`) - Astro's own `trailingSlash` config (left at its default here) then keeps that slash on `import.meta.env.BASE_URL` too. |
+| `SVC_SITE_URL` | unset | Optional: the deployed origin (e.g. `https://projects.prisantlabs.com`), for canonical URLs/sitemaps only. Internal navigation never depends on it. |
 
 **Never** set a plain `BASE_URL` when building this app - it is a different, unrelated name (it
 silently turns `astro build`'s internal links absolute if it leaks in from a parent shell) that
@@ -143,7 +143,7 @@ silently turns `astro build`'s internal links absolute if it leaks in from a par
 
 ```powershell
 npm run preview:stop   # if the default-base preview from above is still running in this folder
-$env:SVC_SITE_BASE = '/astro-starlight-visual-customizer/'
+$env:SVC_SITE_BASE = '/starlight-visual-customizer/'
 npx astro build
 npx astro preview --port 4420   # SVC_SITE_BASE must stay set through this too - astro preview
                                  # re-reads astro.config.mjs, so unsetting it first serves dist/
@@ -153,13 +153,13 @@ Remove-Item Env:SVC_SITE_BASE
 
 In Git Bash (not PowerShell), prefix both the build and the preview command with
 `MSYS_NO_PATHCONV=1` - MSYS otherwise rewrites a leading-slash value like `SVC_SITE_BASE` into a
-Windows path (`/astro-starlight-visual-customizer/` becomes `C:/Program Files/Git/astro-starlight-visual-customizer/`,
+Windows path (`/starlight-visual-customizer/` becomes `C:/Program Files/Git/starlight-visual-customizer/`,
 which breaks the build), e.g.
-`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/astro-starlight-visual-customizer/ npx astro build` and, since
+`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/starlight-visual-customizer/ npx astro build` and, since
 `astro preview` re-reads `astro.config.mjs` too,
-`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/astro-starlight-visual-customizer/ npx astro preview --port 4420`.
+`MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/starlight-visual-customizer/ npx astro preview --port 4420`.
 
-Open `http://localhost:4420/astro-starlight-visual-customizer/` - it redirects to the studio at
+Open `http://localhost:4420/starlight-visual-customizer/` - it redirects to the studio at
 that same base, exactly as `/` does at the default base. Rebuild at the default base afterward
 (`npm run preview:stop` first, then plain `npm run build`, no env var) before committing `dist/` to
 anything that expects root.
@@ -174,13 +174,26 @@ a bookmark look identical at any base. Demo content's own hand-written links (`s
 are relative instead, since Starlight does not base-prefix a hand-written Markdown/frontmatter
 link the way it does its own sidebar/pagination.
 
+### The live deployment
+
+`.github/workflows/deploy.yml` (at the repo root) builds this app on every merge to `main` that
+touches `app/`, with `SVC_SITE_BASE=/starlight-visual-customizer/` and
+`SVC_SITE_URL=https://projects.prisantlabs.com`, and deploys it to GitHub Pages. The site appears
+at `https://projects.prisantlabs.com/starlight-visual-customizer/` because the org's own Pages site
+(`prisant-labs/prisant-labs.github.io`) carries the custom domain `projects.prisantlabs.com`, and
+GitHub serves every other Pages site in the org under that domain at `/<repo-name>/`. The base
+must therefore equal this repo's name: renaming the repo means changing `SVC_SITE_BASE` (and the
+workflow's `if:` guard) to match. The workflow's jobs run only in
+`prisant-labs/starlight-visual-customizer`, so a fork deploys nothing until it changes that guard
+and the two env values for its own address.
+
 ### Running the e2e suites against a sub-path build
 
 The browser suites take the app's full origin **and** base together in one env var,
 `SVC_BASE_URL`:
 
 ```powershell
-$env:SVC_BASE_URL = 'http://localhost:4420/astro-starlight-visual-customizer'
+$env:SVC_BASE_URL = 'http://localhost:4420/starlight-visual-customizer'
 npm run test:e2e
 Remove-Item Env:SVC_BASE_URL
 ```
