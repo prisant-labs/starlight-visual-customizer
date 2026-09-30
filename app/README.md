@@ -135,7 +135,7 @@ Two build-time env vars, both read only in `astro.config.mjs`:
 | Var | Default | Meaning |
 |---|---|---|
 | `SVC_SITE_BASE` | `/` | The base path to deploy under. Include the trailing slash (e.g. `/starlight-visual-customizer/`) - Astro's own `trailingSlash` config (left at its default here) then keeps that slash on `import.meta.env.BASE_URL` too. |
-| `SVC_SITE_URL` | unset | Optional: the deployed origin (e.g. `https://prisant-labs.github.io`), for canonical URLs/sitemaps only. Internal navigation never depends on it. |
+| `SVC_SITE_URL` | unset | Optional: the deployed origin (e.g. `https://projects.prisantlabs.com`), for canonical URLs/sitemaps only. Internal navigation never depends on it. |
 
 **Never** set a plain `BASE_URL` when building this app - it is a different, unrelated name (it
 silently turns `astro build`'s internal links absolute if it leaks in from a parent shell) that
@@ -173,6 +173,19 @@ a bookmark look identical at any base. Demo content's own hand-written links (`s
 `kitchen-sink.mdx`, `index.mdx`'s hero actions, a couple of `prev`/`next` frontmatter overrides)
 are relative instead, since Starlight does not base-prefix a hand-written Markdown/frontmatter
 link the way it does its own sidebar/pagination.
+
+### The live deployment
+
+`.github/workflows/deploy.yml` (at the repo root) builds this app on every merge to `main` that
+touches `app/`, with `SVC_SITE_BASE=/starlight-visual-customizer/` and
+`SVC_SITE_URL=https://projects.prisantlabs.com`, and deploys it to GitHub Pages. The site appears
+at `https://projects.prisantlabs.com/starlight-visual-customizer/` because the org's own Pages site
+(`prisant-labs/prisant-labs.github.io`) carries the custom domain `projects.prisantlabs.com`, and
+GitHub serves every other Pages site in the org under that domain at `/<repo-name>/`. The base
+must therefore equal this repo's name: renaming the repo means changing `SVC_SITE_BASE` (and the
+workflow's `if:` guard) to match. The workflow's jobs run only in
+`prisant-labs/starlight-visual-customizer`, so a fork deploys nothing until it changes that guard
+and the two env values for its own address.
 
 ### Running the e2e suites against a sub-path build
 

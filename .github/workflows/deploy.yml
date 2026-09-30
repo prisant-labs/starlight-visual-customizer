@@ -1,0 +1,50 @@
+# Builds app/ and publishes it to GitHub Pages at
+# https://projects.prisantlabs.com/starlight-visual-customizer/ - the org site
+# (prisant-labs/prisant-labs.github.io) owns that domain, and GitHub serves this repo's
+# Pages site under it at /<repo-name>/, so SVC_SITE_BASE must equal the repo name.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    # Forks copy this file; only the upstream repo deploys.
+    if: github.repository == 'prisant-labs/starlight-visual-customizer'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Install, build, and upload the site
+        uses: withastro/action@v6
+        with:
+          path: ./app
+          node-version: 22
+        env:
+          SVC_SITE_BASE: '/starlight-visual-customizer/'
+          SVC_SITE_URL: 'https://projects.prisantlabs.com'
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
