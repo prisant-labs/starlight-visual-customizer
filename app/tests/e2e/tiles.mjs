@@ -25,7 +25,7 @@
  *   node tests/e2e/tiles.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use
  * http://localhost:4700 for its dev server; under a sub-path build, the full origin plus base path,
- * e.g. http://localhost:4425/astro-starlight-visual-customizer), SVC_CHROME_PATH.
+ * e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';

@@ -16,7 +16,7 @@
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run build`) or `npm run dev:bg`.
  *   node tests/e2e/treatments.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server;
- * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/astro-starlight-visual-customizer); SVC_CHROME_PATH.
+ * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer); SVC_CHROME_PATH.
  *
  * The six alignment controls are select-treatments like any other and so are picked
  * up automatically by the loop below (no per-control code needed) - except three things a generic

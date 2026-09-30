@@ -122,12 +122,12 @@ export default defineConfig({
 				{
 					icon: 'github',
 					label: 'GitHub',
-					href: 'https://github.com/prisant-labs/astro-starlight-visual-customizer',
+					href: 'https://github.com/prisant-labs/starlight-visual-customizer',
 				},
 			],
 			editLink: {
 				baseUrl:
-					'https://github.com/prisant-labs/astro-starlight-visual-customizer/edit/main/app/',
+					'https://github.com/prisant-labs/starlight-visual-customizer/edit/main/app/',
 			},
 			lastUpdated: false,
 			pagination: true,
