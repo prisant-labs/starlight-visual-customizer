@@ -1501,7 +1501,86 @@ async function main() {
 		check('Esc turns Inspect back off', inspectPressedAfterEsc === 'false', inspectPressedAfterEsc);
 	}
 
+	// =============================================================================================
+	// Branding and project links: the product name in the top bar and the tab title, no leftover
+	// prototype tag, the GitHub link, and a real click through to the About page and back. Runs
+	// last because it navigates away from the studio.
+	// =============================================================================================
+	{
+		const REPO_URL = 'https://github.com/prisant-labs/starlight-visual-customizer';
+		const basePrefix = BASE_PATH.replace(/\/$/, '');
+		const brand = await page.evaluate(() => ({
+			name: document.querySelector('.svc-brand-name')?.textContent,
+			tag: !!document.querySelector('.svc-brand-tag'),
+			title: document.title,
+			github: (() => {
+				const a = document.getElementById('svc-github-link');
+				return a && { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), label: a.getAttribute('aria-label') };
+			})(),
+			aboutHref: document.getElementById('svc-about-link')?.getAttribute('href'),
+		}));
+		check('top bar shows the product name "Starlight Visual Customizer"', brand.name === 'Starlight Visual Customizer', brand.name);
+		check('no prototype variation tag next to the brand', brand.tag === false);
+		check('studio tab title is "Starlight Visual Customizer"', brand.title === 'Starlight Visual Customizer', brand.title);
+		check(
+			'GitHub link points at the repo, opens in a new tab, and has an accessible name',
+			brand.github?.href === REPO_URL && brand.github?.target === '_blank' && /noopener/.test(brand.github?.rel || '') && !!brand.github?.label,
+			JSON.stringify(brand.github)
+		);
+		check('About link is base-aware', brand.aboutHref === `${basePrefix}/about/`, `${brand.aboutHref} vs ${basePrefix}/about/`);
+
+		await realClick(page, await lightQuery(page, '#svc-about-link'));
+		await page.waitForURL((u) => u.pathname === `${basePrefix}/about/`, { timeout: 10000 });
+		const about = await page.evaluate(() => ({
+			h1: document.querySelector('main h1')?.textContent,
+			title: document.title,
+			external: Array.from(document.querySelectorAll('main a[href^="https://"]')).map((a) => a.getAttribute('href')),
+			openStudioHref: document.getElementById('about-open-studio')?.getAttribute('href'),
+			// Markdown-rendered links must pick up the page's accent-ink color (the page's styles are
+			// global because <Content /> renders outside the template's style scope).
+			linkColor: getComputedStyle(document.querySelector('main a[href="https://starlight.astro.build/"]')).color,
+		}));
+		check('About page renders its Markdown heading', about.h1 === 'About Starlight Visual Customizer', about.h1);
+		check('About page tab title', about.title === 'About · Starlight Visual Customizer', about.title);
+		for (const url of ['https://astro.build/', 'https://starlight.astro.build/', 'https://starlight.astro.build/guides/customization/', 'https://starlight.astro.build/resources/themes/', REPO_URL]) {
+			check(`About page links to ${url}`, about.external.includes(url));
+		}
+		check('About page Markdown links use the accent-ink color', about.linkColor === 'rgb(58, 70, 176)', about.linkColor);
+		check('About page "Open the studio" is base-aware', about.openStudioHref === `${basePrefix}/studio/`, about.openStudioHref);
+
+		await realClick(page, await lightQuery(page, '#about-open-studio'));
+		await page.waitForURL((u) => u.pathname === `${basePrefix}/studio/`, { timeout: 10000 });
+		await waitForPanelBody(page);
+		check('"Open the studio" on the About page returns to a working studio', !!(await lightQuery(page, '#svc-topbar .svc-brand')));
+	}
+
 	await page.close();
+
+	// The top bar sheds text (brand name, save status, button labels) as the window narrows, but it
+	// never overflows, and Export, About and GitHub stay on screen at any width.
+	for (const width of [1280, 820, 600, 390]) {
+		const narrow = await browser.newPage({ viewport: { width, height: 800 } });
+		trackErrors(narrow);
+		await narrow.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+		await waitForPanelBody(narrow);
+		const bar = await narrow.evaluate(() => {
+			const topbar = document.getElementById('svc-topbar');
+			const onScreen = (sel) => {
+				const el = document.querySelector(sel);
+				if (!el) return false;
+				const b = el.getBoundingClientRect();
+				return b.width > 0 && b.right <= window.innerWidth + 0.5;
+			};
+			return {
+				overflow: topbar.scrollWidth - topbar.clientWidth,
+				exportOn: onScreen('#svc-topbar-actions .svc-tb-btn-primary'),
+				aboutOn: onScreen('#svc-about-link'),
+				githubOn: onScreen('#svc-github-link'),
+			};
+		});
+		check(`top bar at ${width}px: no overflow, and Export, About and GitHub are on screen`, bar.overflow <= 0 && bar.exportOn && bar.aboutOn && bar.githubOn, JSON.stringify(bar));
+		await narrow.close();
+	}
 
 	console.log('\nBROWSER ERRORS:', errors.length ? errors.join('\n') : '(none)');
 	await browser.close();

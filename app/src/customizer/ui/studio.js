@@ -78,10 +78,16 @@ const ICONS = {
 	// `desktop`, and progressively more so, so the three read as a size progression at a glance.
 	wide: '<rect x="2" y="6" width="20" height="9" rx="1"/><path d="M9 19h6M12 15v4"/>',
 	ultrawide: '<rect x="1" y="7.5" width="22" height="6" rx="1"/><path d="M10 19h4M12 13.5v5.5"/>',
+	info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"/>',
 };
 function icon(name, size = 16) {
 	return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
 }
+// The GitHub mark is a filled shape, unlike the stroked set above. Path copied from Starlight's own
+// `github` icon (node_modules/@astrojs/starlight/dist/components-internals/Icons.js, MIT, already
+// covered by THIRD-PARTY-NOTICES.md), so the studio and the previewed site's header match.
+const GITHUB_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg>';
+const REPO_URL = 'https://github.com/prisant-labs/starlight-visual-customizer';
 
 function loadUiState() {
 	try {
@@ -149,11 +155,9 @@ export function initStudioShell() {
 		{ class: 'svc-brand-mark' },
 		'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 6.3L20.5 11.5l-6.3 2.2L12 20l-2.2-6.3L3.5 11.5l6.3-2.2z"/></svg>'
 	);
-	const brandName = h('span', { class: 'svc-brand-name' }, 'Starlight <b>Studio</b>');
-	const brandTag = h('span', { class: 'svc-brand-tag' }, 'C');
+	const brandName = h('span', { class: 'svc-brand-name' }, 'Starlight Visual Customizer');
 	brand.appendChild(brandMark);
 	brand.appendChild(brandName);
-	brand.appendChild(brandTag);
 	topbar.appendChild(brand);
 
 	topbar.appendChild(h('div', { class: 'svc-topbar-sep' }));
@@ -167,6 +171,17 @@ export function initStudioShell() {
 	topbar.appendChild(saveStatus);
 
 	topbar.appendChild(h('div', { class: 'svc-topbar-spacer' }));
+
+	// Project links: the About page (base-aware, same tab) and the source repo (new tab).
+	const links = h('nav', { id: 'svc-topbar-links', 'aria-label': 'Project' });
+	links.appendChild(
+		h('a', { class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-about-link', href: withBase('/about/'), title: 'About this project', 'aria-label': 'About this project' }, icon('info'))
+	);
+	links.appendChild(
+		h('a', { class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-github-link', href: REPO_URL, target: '_blank', rel: 'noopener', title: 'Source on GitHub', 'aria-label': 'Source on GitHub (opens in a new tab)' }, GITHUB_ICON)
+	);
+	topbar.appendChild(links);
+	topbar.appendChild(h('div', { class: 'svc-topbar-sep' }));
 
 	const actions = h('div', { id: 'svc-topbar-actions' });
 	const undoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', title: 'Undo (Ctrl/Cmd+Z)', 'aria-label': 'Undo' }, icon('undo'));
@@ -185,9 +200,10 @@ export function initStudioShell() {
 			window.alert(`Could not import state.json: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	});
-	const importBtn = h('button', { type: 'button', class: 'svc-tb-btn' }, `${icon('import')}<span>Import</span>`);
+	// Explicit names: below 720px the studio's CSS hides these two buttons' text labels.
+	const importBtn = h('button', { type: 'button', class: 'svc-tb-btn', 'aria-label': 'Import', title: 'Import a saved state.json' }, `${icon('import')}<span>Import</span>`);
 	importBtn.addEventListener('click', () => importInput.click());
-	const exportBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-primary' }, `${icon('export')}<span>Export</span>`);
+	const exportBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-primary', 'aria-label': 'Export', title: 'Export (Ctrl/Cmd+E)' }, `${icon('export')}<span>Export</span>`);
 	exportBtn.addEventListener('click', () => svc.openExport());
 	actions.appendChild(undoBtn);
 	actions.appendChild(redoBtn);
