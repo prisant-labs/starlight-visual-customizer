@@ -66,6 +66,10 @@ const studioLayoutCss = `
 	--ui-line: #dde1e8;
 	--ui-bg: #f5f6f8;
 	--ui-panel: #ffffff;
+	/* The preview canvas (studio-only, so not mirrored in styles.js). --ui-muted text on it is
+	   ~5.1:1, above the contrast walk's 4.5:1 floor for muted text; --ui-text is ~9:1. */
+	--ui-canvas: #e3e6eb;
+	--ui-canvas-edge: #cfd4dc;
 	--ui-accent: #4453c9;
 	--ui-accent-fg: #ffffff;
 	--ui-accent-tint: rgba(68, 83, 201, 0.08);
@@ -259,17 +263,19 @@ a.svc-tb-btn { text-decoration: none; }
 	padding: 0.3rem 0.875rem;
 	font-size: 0.75rem;
 	color: var(--ui-muted);
-	background: var(--ui-bg);
-	border-bottom: 1px solid var(--ui-line);
+	background: var(--ui-canvas);
 }
 #svc-breadcrumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #svc-context-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; white-space: nowrap; }
 #svc-scale-label { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ui-text); }
 
 /* ---- Stage: one or two lanes ---- */
-/* F0: #svc-stage and .svc-lane are also host ancestors of a lane <iframe> - overflow: clip. */
-#svc-stage { flex: 1 1 auto; min-height: 0; display: flex; gap: 1px; background: var(--ui-line); overflow: clip; }
-.svc-lane { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; background: var(--ui-bg); overflow: clip; }
+/* The canvas: the context line, the lanes and the gap between Split's two lanes are a mid-gray the
+   white chrome around them is not, and each previewed page floats on it with a rounded edge and a
+   two-layer shadow - so the eye can tell where the tool ends and the page begins.
+   F0: #svc-stage and .svc-lane are also host ancestors of a lane <iframe> - overflow: clip. */
+#svc-stage { flex: 1 1 auto; min-height: 0; display: flex; gap: 1px; background: var(--ui-canvas-edge); overflow: clip; }
+.svc-lane { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; background: var(--ui-canvas); overflow: clip; }
 .svc-lane[hidden] { display: none; }
 .svc-lane-head {
 	flex: 0 0 auto;
@@ -296,7 +302,9 @@ a.svc-tb-btn { text-decoration: none; }
    the x-axis (studio.js's scaleLane toggles this attribute; overflow-y stays clip unconditionally,
    so the vertical-scroll bug F0 fixed can never come back even while panning). */
 .svc-lane-wrap[data-pannable='true'] { overflow-x: auto; }
-.svc-lane-shell { position: relative; width: 100%; height: 100%; overflow: clip; background: #fff; border: 1px solid var(--ui-line); border-radius: 6px; box-shadow: 0 1px 3px rgba(27, 33, 48, 0.08); }
+/* The shadow stays inside the wrap's 0.75rem padding (the wrap clips), so the page floats without
+   the gutter growing and narrowing the preview. */
+.svc-lane-shell { position: relative; width: 100%; height: 100%; overflow: clip; background: #fff; border: 1px solid var(--ui-canvas-edge); border-radius: 8px; box-shadow: 0 1px 2px rgba(27, 33, 48, 0.08), 0 4px 12px rgba(27, 33, 48, 0.14); }
 iframe[data-svc-preview] {
 	display: block;
 	border: 0;
