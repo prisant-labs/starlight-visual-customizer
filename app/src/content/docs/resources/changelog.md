@@ -1,9 +1,9 @@
 ---
 title: Changelog
-description: Notable changes to Starlight Customizer, newest first.
+description: Notable changes to Orbit, newest first.
 banner:
   content: |
-    Starlight Customizer is in active development. Control ids listed in the reference section may still shift before v1.
+    Orbit is in active development. Control ids listed in the reference section may still shift before v1.
 lastUpdated: 2026-09-01
 prev:
   # D3a: relative, not root-absolute - see specimen.mdx's comment (Starlight's frontmatter prev/next

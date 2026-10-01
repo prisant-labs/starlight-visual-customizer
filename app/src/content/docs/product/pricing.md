@@ -1,9 +1,9 @@
 ---
 title: Pricing & Plans
-description: Starlight Customizer is a static export tool with no hosted service to pay for.
+description: Orbit is a static export tool with no hosted service to pay for.
 ---
 
-Starlight Customizer runs entirely in your browser and writes files to your own repository. There's no account, no hosted rendering service, and no per-seat license — the tool itself is free and MIT-licensed, the same as Starlight.
+Orbit runs entirely in your browser and writes files to your own repository. There's no account, no hosted rendering service, and no per-seat license — the tool itself is free and MIT-licensed, the same as Starlight.
 
 ## Free tier
 

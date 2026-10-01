@@ -1,6 +1,6 @@
 ---
 title: Frequently Asked Questions
-description: Common questions about how Starlight Customizer works.
+description: Common questions about how Orbit works.
 ---
 
 ## Does this modify my Starlight version?

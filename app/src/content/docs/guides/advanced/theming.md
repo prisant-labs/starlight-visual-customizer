@@ -1,9 +1,9 @@
 ---
 title: Theming Deep Dive
-description: How Starlight Customizer turns a handful of sliders into a full OKLCH color system.
+description: How Orbit turns a handful of sliders into a full OKLCH color system.
 ---
 
-Most theme editors let you pick a single accent color and call it a day. Starlight Customizer instead asks for a hue and a chroma, then derives an entire ramp — low, base, and high variants for both light and dark mode — using the same OKLCH color math as Starlight's own official theme designer.
+Most theme editors let you pick a single accent color and call it a day. Orbit instead asks for a hue and a chroma, then derives an entire ramp — low, base, and high variants for both light and dark mode — using the same OKLCH color math as Starlight's own official theme designer.
 
 ## Why OKLCH instead of hex
 

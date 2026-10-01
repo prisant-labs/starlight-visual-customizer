@@ -68,7 +68,7 @@ export default defineConfig({
 	base: siteBase,
 	integrations: [
 		starlight({
-			title: 'Starlight Customizer',
+			title: 'Orbit Docs',
 			head: [
 				// Prototype-stage: keep every page out of search engines until this is ready for a
 				// public launch. Remove once that decision is made.
