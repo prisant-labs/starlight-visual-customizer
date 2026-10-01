@@ -197,3 +197,55 @@ export function hexToOklchHueChroma(hex) {
 export function hexToHslHue(hex) {
 	return hsl(hex)?.h ?? 0;
 }
+
+/**
+ * The color popover's RGB and HSL modes (the format switch Chrome's native picker had) read and
+ * write whole numbers through these four helpers: RGB channels 0-255, HSL hue 0-359 degrees, and
+ * saturation and lightness 0-100 percent. Hex stays the hand-off format either way.
+ */
+/** @param {number} v @param {number} lo @param {number} hi @returns {number} */
+function clampRange(v, lo, hi) {
+	return Math.min(hi, Math.max(lo, v));
+}
+
+/**
+ * @param {string} hex
+ * @returns {{r: number, g: number, b: number} | null} `null` if `hex` does not parse.
+ */
+export function hexToRgbChannels(hex) {
+	const c = rgb(hex);
+	if (!c) return null;
+	return { r: Math.round(c.r * 255), g: Math.round(c.g * 255), b: Math.round(c.b * 255) };
+}
+
+/**
+ * @param {{r: number, g: number, b: number}} channels Each 0-255; out-of-range values are clamped.
+ * @returns {string | null} Lowercase `#rrggbb`, or `null` if any channel is not a finite number.
+ */
+export function rgbChannelsToHex({ r, g, b }) {
+	if (![r, g, b].every(Number.isFinite)) return null;
+	const [rr, gg, bb] = [r, g, b].map((v) => clampRange(Math.round(v), 0, 255) / 255);
+	return formatHex({ mode: 'rgb', r: rr, g: gg, b: bb });
+}
+
+/**
+ * @param {string} hex
+ * @returns {{h: number, s: number, l: number} | null} `h` is 0 for an achromatic color (culori
+ *   leaves its hue undefined); `null` if `hex` does not parse.
+ */
+export function hexToHslChannels(hex) {
+	const c = hsl(hex);
+	if (!c) return null;
+	return { h: Math.round(c.h ?? 0) % 360, s: Math.round(c.s * 100), l: Math.round(c.l * 100) };
+}
+
+/**
+ * @param {{h: number, s: number, l: number}} channels Hue in degrees (wrapped into 0-359),
+ *   saturation and lightness in percent (clamped to 0-100).
+ * @returns {string | null} Lowercase `#rrggbb`, or `null` if any channel is not a finite number.
+ */
+export function hslChannelsToHex({ h, s, l }) {
+	if (![h, s, l].every(Number.isFinite)) return null;
+	const hue = ((h % 360) + 360) % 360;
+	return formatHex(rgb({ mode: 'hsl', h: hue, s: clampRange(s, 0, 100) / 100, l: clampRange(l, 0, 100) / 100 }));
+}
