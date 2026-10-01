@@ -1,0 +1,44 @@
+# Checks every pull request into main: the unit tests, then a production build with the
+# same base path the deploy uses, so a PR that would break the Pages deploy fails here first.
+# The job name is what the main-branch ruleset requires, so rename both together.
+# No `paths` filter on purpose: a required check that skips a docs-only PR never reports,
+# and GitHub then blocks that PR from merging.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Unit tests and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Build under the deploy's base path
+        run: npm run build
+        env:
+          SVC_SITE_BASE: '/starlight-visual-customizer/'
+          SVC_SITE_URL: 'https://projects.prisantlabs.com'
