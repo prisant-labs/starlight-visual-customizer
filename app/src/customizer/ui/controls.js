@@ -1182,7 +1182,7 @@ export function createStudioGroupPanel(groupName, groupControls, state, handlers
 }
 
 /**
- * The preset's own LIGHT palette (`getPalettes`), which the card's swatch strip draws from.
+ * The preset's own LIGHT palette (`getPalettes`), which the card's anchor and swatch strip draw from.
  * @param {import('../core/presets.js').Preset} preset
  * @returns {import('../core/color.js').HexPalette}
  */
@@ -1208,11 +1208,10 @@ const PRESET_SWATCH_TOKENS = ['accent-low', 'accent', 'accent-high', 'gray-7', '
  * accent-high, then four grays light to dark), from the preset's light palette. Each
  * swatch gets its own thin border (`.svc-preset-swatch` in styles.js) so a very light gray still
  * reads as a distinct square against the docked studio's white card.
- * @param {import('../core/presets.js').Preset} preset
+ * @param {import('../core/color.js').HexPalette} palette The preset's light palette.
  * @returns {HTMLElement}
  */
-function buildPresetSwatchStrip(preset) {
-	const palette = getPresetLightPalette(preset);
+function buildPresetSwatchStrip(palette) {
 	const strip = document.createElement('div');
 	strip.className = 'svc-preset-swatches';
 	for (const token of PRESET_SWATCH_TOKENS) {
@@ -1242,6 +1241,14 @@ export function createPresetGallery(presetList, state, handlers) {
 		card.setAttribute('aria-pressed', String(isSelected));
 		card.title = preset.description;
 		card.addEventListener('click', () => handlers.onApplyPreset(preset.id));
+		const palette = getPresetLightPalette(preset);
+
+		// One anchor color on the card's start side: the preset's accent, the color it is known by.
+		const anchor = document.createElement('span');
+		anchor.className = 'svc-preset-anchor';
+		anchor.style.background = palette.accent;
+		anchor.setAttribute('aria-hidden', 'true');
+		card.appendChild(anchor);
 
 		// The description moved to the card's own `title` tooltip above - showing it a
 		// second time as body text was redundant, so it isn't rendered here.
@@ -1251,7 +1258,7 @@ export function createPresetGallery(presetList, state, handlers) {
 		name.className = 'svc-preset-name';
 		name.textContent = preset.label;
 		meta.appendChild(name);
-		meta.appendChild(buildPresetSwatchStrip(preset));
+		meta.appendChild(buildPresetSwatchStrip(palette));
 		card.appendChild(meta);
 
 		// E2: "the selected card uses the same strong selected treatment as the rail (accent border

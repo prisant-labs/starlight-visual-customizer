@@ -202,7 +202,8 @@ button, input, select, textarea {
 	gap: 0.5rem;
 	padding: 0.75rem 1rem;
 }
-/* Each card is the preset's name over its swatch strip, with a check when selected. */
+/* Each card is an accent anchor chip, then the preset's name over its swatch strip, with a check
+   when selected. */
 .svc-preset-card {
 	display: flex;
 	align-items: center;
@@ -220,6 +221,7 @@ button, input, select, textarea {
 }
 .svc-preset-card:hover { border-color: #6d8dfa; }
 .svc-preset-card.svc-preset-active { border-color: #6d8dfa; border-width: 2px; box-shadow: 0 0 0 1px #6d8dfa33; }
+.svc-preset-anchor { width: 2.25rem; height: 2.25rem; flex-shrink: 0; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
 .svc-preset-meta { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .svc-preset-name { font-size: 0.8125rem; font-weight: 600; display: block; }
 .svc-swatch-strip { display: flex; height: 0.9rem; border-radius: 4px; overflow: hidden; }

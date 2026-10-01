@@ -518,7 +518,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// E2: preset cards show a name and a swatch strip, no mini page preview, and a real click applies a preset
+	// E2: preset cards show an accent anchor, a name and a swatch strip (no mini page preview), and a real click applies a preset
 	// =============================================================================================
 	{
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
@@ -526,10 +526,21 @@ async function main() {
 
 		const previews = await page.evaluate(() => {
 			const cards = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-preset-card'));
-			return cards.map((c) => ({ name: c.querySelector('.svc-preset-name')?.textContent, hasMiniDoc: !!c.querySelector('.svc-preset-mini-doc') }));
+			return cards.map((c) => {
+				const anchor = c.querySelector('.svc-preset-anchor');
+				const accentSwatch = c.querySelectorAll('.svc-preset-swatch')[1];
+				return {
+					name: c.querySelector('.svc-preset-name')?.textContent,
+					hasMiniDoc: !!c.querySelector('.svc-preset-mini-doc'),
+					anchor: anchor ? getComputedStyle(anchor).backgroundColor : null,
+					accent: accentSwatch ? getComputedStyle(accentSwatch).backgroundColor : null,
+					anchorFirst: c.firstElementChild === anchor,
+				};
+			});
 		});
 		check('every preset card has a name', previews.length >= 3 && previews.every((p) => !!p.name), JSON.stringify(previews));
 		check('no preset card renders a mini page preview', previews.every((p) => !p.hasMiniDoc), JSON.stringify(previews));
+		check('every preset card leads with an anchor chip in its accent color', previews.every((p) => p.anchorFirst && !!p.anchor && p.anchor === p.accent), JSON.stringify(previews));
 		check('preset card names are distinct', new Set(previews.map((p) => p.name)).size === previews.length, JSON.stringify(previews));
 
 		// One column - every card's left edge lines up (stacked vertically, not
