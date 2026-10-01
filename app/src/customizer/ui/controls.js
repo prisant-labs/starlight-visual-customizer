@@ -5,7 +5,7 @@
  * module calls back into it. Kept framework-free (no UI library dependency).
  */
 import { controls as manifestControls, FONTS } from '../core/manifest.js';
-import { getValue } from '../core/state.js';
+import { getValue, snapToStep } from '../core/state.js';
 import { getPalettes, contrastRatio, oklchToHex, hexToOklchHueChroma, hexToHslHue } from '../core/color.js';
 import { createTileControl, TILE_CONTROL_IDS, createFontList } from './tiles/index.js';
 // The hex-first color popover (vanilla-colorful) - see
@@ -349,16 +349,19 @@ function buildColorAssistRow(control, assist, handlers, commit, inputEl, numberE
 	// plain slider drag's many `input` events already coalesce by control id - see panel.js's
 	// `coalesceKey` parameter threaded through `onChangeMany`.
 	function applyHex(normalized, { coalesceKey } = {}) {
+		// Back-solved values are raw floats (276.50971...); `onStep` puts them on each control's own
+		// slider grid, so the number box, the exported CSS and the share link show 277, not the float.
+		const onStep = (value, c) => clampNum(snapToStep(clampNum(value, c.min, c.max), c.step, c.min), c.min, c.max);
 		if (assist.kind === 'semantic') {
-			const hue = clampNum(hexToHslHue(normalized), control.min, control.max);
+			const hue = onStep(hexToHslHue(normalized), control);
 			inputEl.value = String(hue);
 			numberEl.value = String(hue);
 			commit(hue);
 		} else {
 			const { hue, chroma } = hexToOklchHueChroma(normalized);
-			const clampedHue = clampNum(hue, control.min, control.max);
+			const clampedHue = onStep(hue, control);
 			const pairedControl = manifestControlById.get(assist.pairedId);
-			const clampedChroma = pairedControl ? clampNum(chroma, pairedControl.min, pairedControl.max) : chroma;
+			const clampedChroma = pairedControl ? onStep(chroma, pairedControl) : chroma;
 			inputEl.value = String(clampedHue);
 			numberEl.value = String(clampedHue);
 			if (handlers.onChangeMany) {

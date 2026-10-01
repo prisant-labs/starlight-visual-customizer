@@ -8,6 +8,7 @@ import {
 	applyPreset,
 	encodeState,
 	decodeState,
+	snapToStep,
 } from '../../src/customizer/core/state.js';
 import { controls } from '../../src/customizer/core/manifest.js';
 import { presets } from '../../src/customizer/core/presets.js';
@@ -159,5 +160,34 @@ describe('encodeState / decodeState', () => {
 		assert.deepEqual(decoded.values, { 'layout.radius': 20, 'sidebar.activeStyle': 'tinted' });
 		assert.deepEqual(decoded.ia, [{ type: 'autogenerate', id: 'g', directory: 'guides' }]);
 		assert.equal(decoded.meta.name, 'Pre-upgrade theme');
+	});
+});
+
+describe('snapToStep', () => {
+	test('snaps a back-solved hue onto a whole-degree step', () => {
+		assert.equal(snapToStep(276.50971, 1), 277);
+		assert.equal(snapToStep(276.4999, 1), 276);
+	});
+
+	test('rounds away float noise on a fractional step', () => {
+		assert.equal(snapToStep(0.0149, 0.005), 0.015);
+		assert.equal(snapToStep(0.01243, 0.001), 0.012);
+		assert.equal(snapToStep(0.1 + 0.2, 0.1), 0.3);
+	});
+
+	test('anchors the grid at min', () => {
+		assert.equal(snapToStep(2.7, 0.5, 2), 2.5);
+		assert.equal(snapToStep(2.8, 0.5, 2), 3);
+	});
+
+	test('returns the value unchanged without a usable step', () => {
+		assert.equal(snapToStep(1.23456, undefined), 1.23456);
+		assert.equal(snapToStep(1.23456, 0), 1.23456);
+	});
+
+	test('every range control with a step snaps its own default to itself', () => {
+		for (const c of controls.filter((c) => c.type === 'range' && c.step > 0)) {
+			assert.equal(snapToStep(c.default, c.step, c.min), c.default, c.id);
+		}
 	});
 });
