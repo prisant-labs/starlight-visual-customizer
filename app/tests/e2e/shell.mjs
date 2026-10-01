@@ -1503,11 +1503,12 @@ async function main() {
 
 	// =============================================================================================
 	// Branding and project links: the product name in the top bar and the tab title, no leftover
-	// prototype tag, the GitHub link, and a real click through to the About page and back. Runs
-	// last because it navigates away from the studio.
+	// prototype tag, the labeled GitHub pill, the About dialog (real clicks and real keys), and the
+	// standalone /about/ page. Runs last because it navigates away from the studio.
 	// =============================================================================================
 	{
 		const REPO_URL = 'https://github.com/prisant-labs/starlight-visual-customizer';
+		const ABOUT_LINKS = ['https://astro.build/', 'https://starlight.astro.build/', 'https://starlight.astro.build/guides/customization/', 'https://starlight.astro.build/resources/themes/', REPO_URL];
 		const basePrefix = BASE_PATH.replace(/\/$/, '');
 		const brand = await page.evaluate(() => ({
 			name: document.querySelector('.svc-brand-name')?.textContent,
@@ -1515,22 +1516,81 @@ async function main() {
 			title: document.title,
 			github: (() => {
 				const a = document.getElementById('svc-github-link');
-				return a && { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), label: a.getAttribute('aria-label') };
+				return a && { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel'), label: a.getAttribute('aria-label'), text: a.innerText.trim() };
 			})(),
-			aboutHref: document.getElementById('svc-about-link')?.getAttribute('href'),
+			about: (() => {
+				const b = document.getElementById('svc-about-btn');
+				return b && { tag: b.tagName, popup: b.getAttribute('aria-haspopup') };
+			})(),
 		}));
 		check('top bar shows the product name "Starlight Visual Customizer"', brand.name === 'Starlight Visual Customizer', brand.name);
 		check('no prototype variation tag next to the brand', brand.tag === false);
 		check('studio tab title is "Starlight Visual Customizer"', brand.title === 'Starlight Visual Customizer', brand.title);
 		check(
-			'GitHub link points at the repo, opens in a new tab, and has an accessible name',
-			brand.github?.href === REPO_URL && brand.github?.target === '_blank' && /noopener/.test(brand.github?.rel || '') && !!brand.github?.label,
+			'GitHub pill points at the repo, opens in a new tab, has an accessible name, and reads "GitHub"',
+			brand.github?.href === REPO_URL && brand.github?.target === '_blank' && /noopener/.test(brand.github?.rel || '') && !!brand.github?.label && brand.github?.text === 'GitHub',
 			JSON.stringify(brand.github)
 		);
-		check('About link is base-aware', brand.aboutHref === `${basePrefix}/about/`, `${brand.aboutHref} vs ${basePrefix}/about/`);
+		check('About is a button that announces a dialog', brand.about?.tag === 'BUTTON' && brand.about?.popup === 'dialog', JSON.stringify(brand.about));
 
-		await realClick(page, await lightQuery(page, '#svc-about-link'));
-		await page.waitForURL((u) => u.pathname === `${basePrefix}/about/`, { timeout: 10000 });
+		const aboutState = () =>
+			page.evaluate(() => {
+				const d = document.getElementById('svc-about-dialog');
+				return { open: d.open, focus: document.activeElement?.id || document.activeElement?.className || null };
+			});
+		const openAbout = async () => {
+			await realClick(page, await lightQuery(page, '#svc-about-btn'));
+			await page.waitForFunction(() => document.getElementById('svc-about-dialog').open, null, { timeout: 5000 });
+		};
+
+		await openAbout();
+		const dialog = await page.evaluate(() => {
+			const d = document.getElementById('svc-about-dialog');
+			const box = d.getBoundingClientRect();
+			const center = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+			const links = Array.from(d.querySelectorAll('a[href^="https://"]'));
+			return {
+				modal: d.matches(':modal'),
+				h1: d.querySelector('h1')?.textContent,
+				onTop: d.contains(center),
+				focusInside: d.contains(document.activeElement),
+				external: links.map((a) => a.getAttribute('href')),
+				allNewTab: links.length > 0 && links.every((a) => a.target === '_blank' && /noopener/.test(a.rel)),
+				linkColor: getComputedStyle(d.querySelector('a[href="https://starlight.astro.build/"]')).color,
+				version: /Built for Starlight \d+\.\d+\.\d+/.test(d.textContent),
+			};
+		});
+		check('About button opens a modal dialog on top of the studio, with focus inside it', dialog.modal && dialog.onTop && dialog.focusInside, JSON.stringify(dialog));
+		check('About dialog renders the Markdown heading', dialog.h1 === 'About Starlight Visual Customizer', dialog.h1);
+		for (const url of ABOUT_LINKS) check(`About dialog links to ${url}`, dialog.external.includes(url));
+		check('About dialog external links open in a new tab', dialog.allNewTab);
+		check('About dialog links use the accent-ink color', dialog.linkColor === 'rgb(58, 70, 176)', dialog.linkColor);
+		check('About dialog shows the Starlight version', dialog.version);
+
+		// Shortcuts behind the modal stand down: a plain "i" must not switch Inspect on.
+		await page.keyboard.press('i');
+		await page.waitForTimeout(150);
+		const inspectBehind = await page.evaluate(() => document.querySelector('.svc-inspect-toggle')?.getAttribute('aria-pressed'));
+		check('"i" while the About dialog is open does not toggle Inspect', inspectBehind === 'false', inspectBehind);
+
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(150);
+		const afterEsc = await aboutState();
+		check('Escape closes the About dialog and returns focus to the About button', !afterEsc.open && afterEsc.focus === 'svc-about-btn', JSON.stringify(afterEsc));
+
+		await openAbout();
+		await page.mouse.click(8, 300); // left of the centered dialog: the backdrop
+		await page.waitForTimeout(150);
+		check('a click on the backdrop closes the About dialog', !(await aboutState()).open);
+
+		await openAbout();
+		await realClick(page, await lightQuery(page, '#svc-about-dialog .svc-about-close'));
+		await page.waitForTimeout(150);
+		const afterClose = await aboutState();
+		check('the close button closes the About dialog and returns focus', !afterClose.open && afterClose.focus === 'svc-about-btn', JSON.stringify(afterClose));
+
+		// The standalone page, for direct links: same text, base-aware way back to the studio.
+		await page.goto(`${SVC_BASE_URL}/about/`, { waitUntil: 'networkidle' });
 		const about = await page.evaluate(() => ({
 			h1: document.querySelector('main h1')?.textContent,
 			title: document.title,
@@ -1542,9 +1602,7 @@ async function main() {
 		}));
 		check('About page renders its Markdown heading', about.h1 === 'About Starlight Visual Customizer', about.h1);
 		check('About page tab title', about.title === 'About · Starlight Visual Customizer', about.title);
-		for (const url of ['https://astro.build/', 'https://starlight.astro.build/', 'https://starlight.astro.build/guides/customization/', 'https://starlight.astro.build/resources/themes/', REPO_URL]) {
-			check(`About page links to ${url}`, about.external.includes(url));
-		}
+		for (const url of ABOUT_LINKS) check(`About page links to ${url}`, about.external.includes(url));
 		check('About page Markdown links use the accent-ink color', about.linkColor === 'rgb(58, 70, 176)', about.linkColor);
 		check('About page "Open the studio" is base-aware', about.openStudioHref === `${basePrefix}/studio/`, about.openStudioHref);
 
@@ -1574,11 +1632,15 @@ async function main() {
 			return {
 				overflow: topbar.scrollWidth - topbar.clientWidth,
 				exportOn: onScreen('#svc-topbar-actions .svc-tb-btn-primary'),
-				aboutOn: onScreen('#svc-about-link'),
+				aboutOn: onScreen('#svc-about-btn'),
 				githubOn: onScreen('#svc-github-link'),
+				githubLabel: document.getElementById('svc-github-link')?.innerText.trim(),
 			};
 		});
 		check(`top bar at ${width}px: no overflow, and Export, About and GitHub are on screen`, bar.overflow <= 0 && bar.exportOn && bar.aboutOn && bar.githubOn, JSON.stringify(bar));
+		// The GitHub pill keeps its label down to 720px, then sheds it with Import and Export.
+		const wantLabel = width >= 720 ? 'GitHub' : '';
+		check(`top bar at ${width}px: GitHub pill label is ${wantLabel ? 'shown' : 'hidden'}`, bar.githubLabel === wantLabel, JSON.stringify(bar.githubLabel));
 		await narrow.close();
 	}
 

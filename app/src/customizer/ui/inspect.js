@@ -559,6 +559,9 @@ export function initInspect() {
 	// never crosses an iframe boundary to its parent.
 	// =============================================================================================
 	function handleGlobalKeydown(event) {
+		// A modal <dialog> (the studio's About) owns the keyboard while it's open: Escape must reach
+		// it to close it, and a plain "i" must not toggle Inspect behind it.
+		if (document.querySelector('dialog:modal')) return;
 		if (event.key === 'Escape') {
 			if (!active) return;
 			event.preventDefault();

@@ -15,6 +15,7 @@
 
 import { STARLIGHT_VERSION } from '../core/version.js';
 import { withBase, stripBase } from '../core/base-path.js';
+import { REPO_URL } from '../core/project.js';
 
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 // D3a: every path this file tracks internally (DEFAULT_PAGE_PATH, STUDIO_PAGES[].path, `currentPath`,
@@ -87,7 +88,6 @@ function icon(name, size = 16) {
 // `github` icon (node_modules/@astrojs/starlight/dist/components-internals/Icons.js, MIT, already
 // covered by THIRD-PARTY-NOTICES.md), so the studio and the previewed site's header match.
 const GITHUB_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"/></svg>';
-const REPO_URL = 'https://github.com/prisant-labs/starlight-visual-customizer';
 
 function loadUiState() {
 	try {
@@ -172,16 +172,30 @@ export function initStudioShell() {
 
 	topbar.appendChild(h('div', { class: 'svc-topbar-spacer' }));
 
-	// Project links: the About page (base-aware, same tab) and the source repo (new tab).
+	// Project links: About (opens the dialog studio.astro renders) and the source repo (new tab).
 	const links = h('nav', { id: 'svc-topbar-links', 'aria-label': 'Project' });
+	const aboutBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-about-btn', 'aria-haspopup': 'dialog', title: 'About this project', 'aria-label': 'About this project' }, icon('info'));
+	links.appendChild(aboutBtn);
 	links.appendChild(
-		h('a', { class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-about-link', href: withBase('/about/'), title: 'About this project', 'aria-label': 'About this project' }, icon('info'))
-	);
-	links.appendChild(
-		h('a', { class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-github-link', href: REPO_URL, target: '_blank', rel: 'noopener', title: 'Source on GitHub', 'aria-label': 'Source on GitHub (opens in a new tab)' }, GITHUB_ICON)
+		h('a', { class: 'svc-tb-btn', id: 'svc-github-link', href: REPO_URL, target: '_blank', rel: 'noopener', title: 'Source on GitHub', 'aria-label': 'Source on GitHub (opens in a new tab)' }, `${GITHUB_ICON}<span>GitHub</span>`)
 	);
 	topbar.appendChild(links);
 	topbar.appendChild(h('div', { class: 'svc-topbar-sep' }));
+
+	// The About dialog is a native modal <dialog>: the browser traps focus and closes it on Escape.
+	// This adds the close button, a click on the backdrop, focus back on the info button, and new
+	// tabs for its external links (following one in this tab would leave the studio).
+	const aboutDialog = /** @type {HTMLDialogElement} */ (document.getElementById('svc-about-dialog'));
+	for (const a of aboutDialog.querySelectorAll('a[href^="http"]')) {
+		a.setAttribute('target', '_blank');
+		a.setAttribute('rel', 'noopener');
+	}
+	aboutBtn.addEventListener('click', () => aboutDialog.showModal());
+	aboutDialog.querySelector('.svc-about-close').addEventListener('click', () => aboutDialog.close());
+	aboutDialog.addEventListener('click', (event) => {
+		if (event.target === aboutDialog) aboutDialog.close();
+	});
+	aboutDialog.addEventListener('close', () => aboutBtn.focus());
 
 	const actions = h('div', { id: 'svc-topbar-actions' });
 	const undoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', title: 'Undo (Ctrl/Cmd+Z)', 'aria-label': 'Undo' }, icon('undo'));
@@ -230,7 +244,10 @@ export function initStudioShell() {
 
 	// Ctrl/Cmd+E opens export (S14); Ctrl/Cmd+Z / Ctrl+Y / Ctrl/Cmd+Shift+Z drive undo/redo (S11) -
 	// ignored while typing (advisor trap: walk shadow-root activeElement chains, not just document's).
+	// Both shortcut handlers stand down while the About dialog is open: everything behind a modal
+	// is inert, so an undo or a panel toggle there would change the studio out of sight.
 	document.addEventListener('keydown', (event) => {
+		if (aboutDialog.open) return;
 		if (isTypingTarget()) return;
 		const mod = event.ctrlKey || event.metaKey;
 		if (!mod) return;
@@ -255,7 +272,7 @@ export function initStudioShell() {
 	// shortcuts above, a bare '\' is a real character a person could otherwise be typing).
 	document.addEventListener('keydown', (event) => {
 		if (event.key !== '\\' || event.ctrlKey || event.metaKey || event.altKey) return;
-		if (isTypingTarget()) return;
+		if (aboutDialog.open || isTypingTarget()) return;
 		event.preventDefault();
 		svc.togglePanelCollapse();
 	});

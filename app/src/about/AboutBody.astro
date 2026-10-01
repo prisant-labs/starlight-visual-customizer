@@ -1,0 +1,18 @@
+---
+/**
+ * @file The About text plus the facts line under it, shared by the studio's About dialog
+ * (studio.astro) and the standalone /about/ page (about.astro). The prose lives in `about.md`; the
+ * facts line lives here because it needs values Markdown can't hold (the Starlight version and the
+ * project's URLs). No <style>: each page styles this body with its own global rules.
+ */
+import { Content } from './about.md';
+import { STARLIGHT_VERSION } from '../customizer/core/version.js';
+import { REPO_URL, HUB_URL } from '../customizer/core/project.js';
+---
+
+<Content />
+<p class="svc-about-facts">
+	Built for Starlight {STARLIGHT_VERSION}. The source code is on{' '}
+	<a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>, and more projects are on the{' '}
+	<a href={HUB_URL}>Prisant Labs projects page</a>.
+</p>
