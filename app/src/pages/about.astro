@@ -1,0 +1,128 @@
+---
+/**
+ * @file The standalone About page (/about/), for direct links and sharing. The studio's top bar
+ * opens the same text in a dialog instead (studio.astro). The text lives in `src/about/about.md`
+ * and `src/about/AboutBody.astro`; this file only supplies the page frame, in the studio's own
+ * light chrome (`--ui-*` tokens, the same values as studio.astro), plus the base-aware links back
+ * to the studio.
+ *
+ * Deliberately NOT a Starlight content page (`src/content/docs/`): a page there joins the demo
+ * site, so the no-flash preload would paint the visitor's current theme preview over it, and it
+ * would show up in the demo site's sidebar and search.
+ */
+import { frontmatter } from '../about/about.md';
+import AboutBody from '../about/AboutBody.astro';
+import { withBase } from '../customizer/core/base-path.js';
+import { REPO_URL } from '../customizer/core/project.js';
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>About · Starlight Visual Customizer</title>
+		<meta name="description" content={frontmatter.description} />
+		<link rel="icon" href={withBase('/favicon.svg')} />
+		<!-- is:global: the Markdown body is rendered by <Content />, outside this template's style scope. -->
+		<style is:global>
+			:root {
+				--ui-ink: #1b2130;
+				--ui-text: #343b4a;
+				--ui-line: #dde1e8;
+				--ui-bg: #f5f6f8;
+				--ui-panel: #ffffff;
+				--ui-accent: #4453c9;
+				--ui-accent-fg: #ffffff;
+				/* Accent as TEXT: darkened until it clears 7:1 on white (see studio.astro). */
+				--ui-accent-ink: #3a46b0;
+				color-scheme: light;
+			}
+			* { box-sizing: border-box; }
+			body {
+				margin: 0;
+				background: var(--ui-bg);
+				color: var(--ui-text);
+				font: 16px/1.65 system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+			}
+			:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+			.bar {
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				height: 52px;
+				padding: 0 0.875rem;
+				background: var(--ui-panel);
+				border-bottom: 1px solid var(--ui-line);
+			}
+			.brand { display: flex; align-items: center; gap: 0.5rem; color: var(--ui-ink); text-decoration: none; font-weight: 700; font-size: 0.9375rem; }
+			.brand-mark {
+				width: 1.75rem;
+				height: 1.75rem;
+				border-radius: 7px;
+				background: var(--ui-ink);
+				color: #fff;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.spacer { flex: 1 1 auto; }
+			.btn {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				font-size: 0.8125rem;
+				font-weight: 600;
+				color: var(--ui-text);
+				background: var(--ui-panel);
+				border: 1px solid var(--ui-line);
+				border-radius: 6px;
+				padding: 0.4rem 0.6rem;
+				text-decoration: none;
+				white-space: nowrap;
+			}
+			.btn:hover { background: var(--ui-bg); }
+			.btn-primary { background: var(--ui-accent); border-color: var(--ui-accent); color: var(--ui-accent-fg); }
+			.btn-primary:hover { background: #38439e; border-color: #38439e; }
+			main {
+				max-width: 46rem;
+				margin: 2rem auto;
+				padding: 2rem 2.25rem;
+				background: var(--ui-panel);
+				border: 1px solid var(--ui-line);
+				border-radius: 12px;
+			}
+			main h1 { color: var(--ui-ink); font-size: 1.9rem; line-height: 1.2; margin: 0 0 1rem; }
+			main h2 { color: var(--ui-ink); font-size: 1.2rem; margin: 2rem 0 0.5rem; }
+			main a { color: var(--ui-accent-ink); font-weight: 600; }
+			main code { font-size: 0.9em; background: var(--ui-bg); border: 1px solid var(--ui-line); border-radius: 4px; padding: 0.05rem 0.3rem; }
+			main li { margin: 0.35rem 0; }
+			.svc-about-facts { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--ui-line); font-size: 0.9375rem; }
+			.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
+			@media (max-width: 600px) {
+				main { margin: 0; border-radius: 0; border-left: 0; border-right: 0; padding: 1.5rem 1rem; }
+				.brand-name { display: none; }
+			}
+		</style>
+	</head>
+	<body>
+		<header class="bar">
+			<a class="brand" href={withBase('/studio/')}>
+				<span class="brand-mark" aria-hidden="true">
+					<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 6.3L20.5 11.5l-6.3 2.2L12 20l-2.2-6.3L3.5 11.5l6.3-2.2z" /></svg>
+				</span>
+				<span class="brand-name">Starlight Visual Customizer</span>
+			</a>
+			<span class="spacer"></span>
+			<a class="btn" id="about-github-link" href={REPO_URL} target="_blank" rel="noopener">Source on GitHub</a>
+			<a class="btn btn-primary" id="about-open-studio" href={withBase('/studio/')}>Open the studio</a>
+		</header>
+		<main>
+			<AboutBody />
+			<div class="actions">
+				<a class="btn btn-primary" href={withBase('/studio/')}>Open the studio</a>
+			</div>
+		</main>
+	</body>
+</html>
