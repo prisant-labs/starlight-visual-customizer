@@ -117,7 +117,7 @@ import { fixtureSidebar } from './src/fixture-sidebar.mjs';
 export default defineConfig({
 	integrations: [
 		starlight({
-			title: 'Starlight Customizer',
+			title: 'Orbit Docs',
 			social: [
 				{
 					icon: 'github',

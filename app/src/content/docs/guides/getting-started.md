@@ -1,9 +1,9 @@
 ---
 title: Getting Started
-description: Install Starlight Customizer and open the panel on your own docs site.
+description: Install Orbit and open the panel on your own docs site.
 ---
 
-Starlight Customizer adds a single Astro component override to your existing Starlight project. There is no build plugin to configure and no new runtime dependency beyond the customizer's own pure JavaScript modules.
+Orbit adds a single Astro component override to your existing Starlight project. There is no build plugin to configure and no new runtime dependency beyond the customizer's own pure JavaScript modules.
 
 ## Install the panel
 

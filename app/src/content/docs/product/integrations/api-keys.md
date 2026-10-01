@@ -1,6 +1,6 @@
 ---
 title: API Keys
-description: Starlight Customizer has no API, so there's nothing to authenticate.
+description: Orbit has no API, so there's nothing to authenticate.
 ---
 
 Because the customizer runs client-side and writes only to `localStorage` and downloaded files, there is no server component and therefore no API surface to protect with a key. If a future hosted preset-sharing service is added, this page will document how to provision credentials for it.
