@@ -10,7 +10,7 @@ Starlight Visual Customizer is a visual theme editor for [Starlight](https://sta
 ## How it works
 
 - **Real pages, not a mockup.** The preview is an actual Starlight site running in a frame, so what you see is what Starlight renders.
-- **Your site stays yours.** The export is a `theme.css` file plus `APPLY-THEME.md`, step-by-step instructions for adding it to your project. It uses Starlight's own [custom CSS](https://starlight.astro.build/guides/css-and-tailwind/) support, so there is no plugin to install.
+- **Your site stays yours.** The export is a `theme.css` file plus `APPLY-THEME.md`, step-by-step instructions for adding it to your project. It uses Starlight's own [custom CSS](https://starlight.astro.build/guides/css-and-tailwind/) support, so there is no plugin to install. What you export is yours to use however you like, with no attribution required.
 - **Everything happens in your browser.** Your theme is saved in this browser's local storage, and nothing is uploaded. Web-font previews load from [jsDelivr](https://www.jsdelivr.com/).
 
 ## Learn more about Starlight
