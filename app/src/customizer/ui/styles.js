@@ -989,20 +989,11 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	border-radius: 50%;
 	background: var(--ui-accent);
 }
-/* S4: solid accent fill, white icon+label, plus a 3px accent bar on the rail's inner edge. The fill
-   (--ui-accent on --ui-panel/--ui-bg) measures ~5.8:1, clearing S4's 3:1 "reads at a glance" floor. */
+/* S4: solid accent fill with a white icon and label - the reverse-contrast fill alone marks the
+   selected item. The fill (--ui-accent on --ui-panel/--ui-bg) measures ~5.8:1, clearing S4's 3:1
+   "reads at a glance" floor. */
 .svc-rail-item[aria-selected='true'] { background: var(--ui-accent); color: var(--ui-accent-fg); }
 .svc-rail-item[aria-selected='true'] .svc-rail-item-label { color: var(--ui-accent-fg); }
-.svc-rail-item[aria-selected='true']::before {
-	content: '';
-	position: absolute;
-	inset-inline-end: -0.375rem;
-	top: 0.3rem;
-	bottom: 0.3rem;
-	width: 3px;
-	border-radius: 2px;
-	background: var(--ui-accent);
-}
 .svc-rail-item[aria-selected='true'] .svc-rail-item-dot { background: var(--ui-accent-fg); }
 .svc-rail-item:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
 
