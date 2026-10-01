@@ -110,7 +110,7 @@ See ["Serving under a sub-path"](app/README.md#serving-under-a-sub-path) for the
 
 | Suite | What it checks |
 |---|---|
-| `npm test` (193 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
+| `npm test` (203 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
 | `npm run test:e2e` (10 browser suites) | Every control's visual effect and target, the studio shell, Inspect, hex color entry, the structure editor and PNG screenshot export, against a running preview |
 | `npm run test:roundtrip` | Applies a real export to a freshly scaffolded Starlight site and compares its computed styles with the studio's live preview |
 
@@ -128,6 +128,10 @@ for the color picker, [fflate](https://github.com/101arrowz/fflate) for the zip 
 
 [MIT](LICENSE). Third-party licenses and attributions are in
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
+
+**Your exported themes are yours.** The MIT license covers the studio's own source code. The
+files you export (`theme.css`, `APPLY-THEME.md` and the state file) are yours to use, change and
+publish however you like, with no attribution or license notice required.
 
 Starlight Visual Customizer is an independent, open-source project by Prisant Labs. It is not
 affiliated with or endorsed by the Astro team.
