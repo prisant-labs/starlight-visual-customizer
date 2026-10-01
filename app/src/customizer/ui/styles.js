@@ -195,16 +195,14 @@ button, input, select, textarea {
 }
 
 /* ---- Presets ---- */
-/* P1 (point 2): one column, not two - two-up made each mini-doc preview cramped at panel width. */
+/* P1 (point 2): one column, not two - one card per row reads best at panel width. */
 .svc-presets-grid {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 0.5rem;
 	padding: 0.75rem 1rem;
 }
-/* P1: one-column cards go wide, so the mini-doc becomes a fixed-size thumbnail on the start side
-   (previously a full-width banner atop a 2-up card) with the name beside it, rather than a full-
-   width strip 4x wider than tall. */
+/* Each card is the preset's name over its swatch strip, with a check when selected. */
 .svc-preset-card {
 	display: flex;
 	align-items: center;
@@ -233,19 +231,6 @@ button, input, select, textarea {
    docked studio's WHITE card, where the border color is overridden below. */
 .svc-preset-swatches { display: flex; gap: 3px; flex-wrap: wrap; }
 .svc-preset-swatch { width: 0.85rem; height: 0.85rem; flex-shrink: 0; border-radius: 3px; border: 1px solid #3a3f4b; }
-
-/* The preset card's self-drawn mini page preview - see buildPresetMiniDoc in
-   controls.js for why every line but the "Aa" sample is a plain colored bar, never real text.
-   A fixed-size (not full-width) thumbnail now that the card lays out horizontally. */
-.svc-preset-mini-doc { display: flex; flex-direction: column; width: 4.6rem; height: 3.4rem; flex-shrink: 0; border-radius: 5px; overflow: hidden; }
-.svc-preset-mini-header { height: 0.4rem; flex-shrink: 0; }
-.svc-preset-mini-body { display: grid; grid-template-columns: 26% 1fr; flex: 1 1 auto; min-height: 0; }
-.svc-preset-mini-nav { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.2rem 0.18rem; }
-.svc-preset-mini-navitem { display: block; height: 0.16rem; border-radius: 2px; width: 100%; }
-.svc-preset-mini-content { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.2rem 0.3rem; min-width: 0; }
-.svc-preset-mini-heading { font-size: 0.7rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
-.svc-preset-mini-line { display: block; height: 0.12rem; border-radius: 2px; }
-.svc-preset-mini-callout { display: block; height: 0.3rem; border-radius: 1px; margin-top: 0.1rem; }
 
 .svc-preset-check {
 	position: absolute;
@@ -1145,7 +1130,6 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-preset-card { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-ink); }
 :host([data-docked='true']) .svc-preset-card:hover { border-color: var(--ui-accent); }
 :host([data-docked='true']) .svc-preset-card.svc-preset-active { border-color: var(--ui-accent); background: var(--ui-accent-tint); }
-:host([data-docked='true']) .svc-preset-mini-doc { border-bottom-color: var(--ui-line); }
 :host([data-docked='true']) .svc-preset-check { background: var(--ui-accent); color: var(--ui-accent-fg); }
 :host([data-docked='true']) .svc-preset-swatch { border-color: var(--ui-line); }
 

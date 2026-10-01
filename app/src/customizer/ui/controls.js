@@ -1181,22 +1181,8 @@ export function createStudioGroupPanel(groupName, groupControls, state, handlers
 	return { root, body, controlRows, refreshSectionDots, firstSectionName };
 }
 
-/** @param {string} category @returns {string} A generic CSS fallback family for a FONTS category. */
-function genericFontFallback(category) {
-	return category === 'serif' ? 'serif' : category === 'mono' ? 'monospace' : 'sans-serif';
-}
-
-/** @param {string} fontId A `FONTS[].id` or `'system'`. @returns {string} A CSS `font-family` value
- * (never forces a download - `system` and unknown ids fall back to a generic stack only). */
-function fontFamilyCss(fontId) {
-	if (!fontId || fontId === 'system') return 'system-ui, sans-serif';
-	const font = FONTS.find((f) => f.id === fontId);
-	return font ? `'${font.family}', ${genericFontFallback(font.category)}` : 'system-ui, sans-serif';
-}
-
 /**
- * The preset's own LIGHT palette (`getPalettes`) - shared by the mini-doc preview below and the
- * swatch strip beside it, so both are always computed from the exact same colors.
+ * The preset's own LIGHT palette (`getPalettes`), which the card's swatch strip draws from.
  * @param {import('../core/presets.js').Preset} preset
  * @returns {import('../core/color.js').HexPalette}
  */
@@ -1213,98 +1199,13 @@ function getPresetLightPalette(preset) {
 	}).light;
 }
 
-/**
- * A small, self-drawn "mini page preview" for a preset card - a header bar, a sidebar
- * with an active item styled per the preset's own `sidebar.activeStyle`, a heading in the preset's
- * own heading font, two text lines, and an accent callout, entirely in the preset's LIGHT palette
- * (`getPresetLightPalette`). Every line except the "Aa" heading sample is a plain colored bar (no
- * text) - deliberate: shell.mjs's contrast walk inspects every real text node in this shadow root
- * (preset cards aren't tile-sample previews, so they're not exempt), and a decorative bar carries no
- * text to check. The "Aa" sample uses the palette's own ink-on-page pair, which `getPalettes`
- * already tunes for readability, so it clears the walk's floor by construction.
- * @param {import('../core/presets.js').Preset} preset
- * @returns {HTMLElement}
- */
-function buildPresetMiniDoc(preset) {
-	const v = preset.values ?? {};
-	const palette = getPresetLightPalette(preset);
-	const activeStyle = v['sidebar.activeStyle'] ?? 'filled-pill';
-	const headingFamily = fontFamilyCss(v['type.font.heading']);
-
-	const doc = document.createElement('div');
-	doc.className = 'svc-preset-mini-doc';
-	doc.style.background = palette.black; // light mode: page bg
-
-	const header = document.createElement('div');
-	header.className = 'svc-preset-mini-header';
-	header.style.background = palette['gray-7'];
-	doc.appendChild(header);
-
-	const body = document.createElement('div');
-	body.className = 'svc-preset-mini-body';
-	doc.appendChild(body);
-
-	const nav = document.createElement('div');
-	nav.className = 'svc-preset-mini-nav';
-	nav.style.background = palette['gray-6'];
-	for (let i = 0; i < 3; i++) {
-		const item = document.createElement('span');
-		item.className = 'svc-preset-mini-navitem';
-		const isActive = i === 1;
-		if (isActive) {
-			if (activeStyle === 'tinted') {
-				item.style.background = palette['accent-low'];
-			} else if (activeStyle === 'left-bar') {
-				item.style.background = palette['gray-5'];
-				item.style.borderInlineStart = `2px solid ${palette.accent}`;
-			} else if (activeStyle === 'text-only') {
-				item.style.background = palette.accent;
-				item.style.opacity = '0.55';
-			} else {
-				item.style.background = palette.accent;
-				item.style.borderRadius = '999px';
-			}
-		} else {
-			item.style.background = palette['gray-5'];
-		}
-		nav.appendChild(item);
-	}
-	body.appendChild(nav);
-
-	const content = document.createElement('div');
-	content.className = 'svc-preset-mini-content';
-	content.style.background = palette.black;
-	const heading = document.createElement('span');
-	heading.className = 'svc-preset-mini-heading';
-	heading.textContent = 'Aa';
-	heading.style.fontFamily = headingFamily;
-	heading.style.color = palette.white; // light mode: ink-on-page - always high contrast by construction
-	content.appendChild(heading);
-	for (const width of ['92%', '68%']) {
-		const line = document.createElement('span');
-		line.className = 'svc-preset-mini-line';
-		line.style.width = width;
-		line.style.background = palette['gray-4'];
-		content.appendChild(line);
-	}
-	const callout = document.createElement('span');
-	callout.className = 'svc-preset-mini-callout';
-	callout.style.background = palette['accent-low'];
-	callout.style.borderInlineStart = `2px solid ${palette.accent}`;
-	content.appendChild(callout);
-	body.appendChild(content);
-
-	return doc;
-}
-
 /** The swatch strip's fixed token order: accent-low, accent, accent-high, then four grays light to
  * dark (a spread of 4 of `getPalettes`' 7 light-mode gray steps: 7/5/3/1). */
 const PRESET_SWATCH_TOKENS = ['accent-low', 'accent', 'accent-high', 'gray-7', 'gray-5', 'gray-3', 'gray-1'];
 
 /**
- * "Add back" a palette swatch strip under the preset name, beside the mini-doc preview above -
- * seven small bordered squares (accent-low/accent/accent-high, then four grays light to dark), from
- * the SAME light palette (`getPresetLightPalette`) `buildPresetMiniDoc` draws its preview from. Each
+ * A palette swatch strip under the preset name - seven small bordered squares (accent-low/accent/
+ * accent-high, then four grays light to dark), from the preset's light palette. Each
  * swatch gets its own thin border (`.svc-preset-swatch` in styles.js) so a very light gray still
  * reads as a distinct square against the docked studio's white card.
  * @param {import('../core/presets.js').Preset} preset
@@ -1342,8 +1243,6 @@ export function createPresetGallery(presetList, state, handlers) {
 		card.title = preset.description;
 		card.addEventListener('click', () => handlers.onApplyPreset(preset.id));
 
-		card.appendChild(buildPresetMiniDoc(preset));
-
 		// The description moved to the card's own `title` tooltip above - showing it a
 		// second time as body text was redundant, so it isn't rendered here.
 		const meta = document.createElement('div');
@@ -1356,8 +1255,8 @@ export function createPresetGallery(presetList, state, handlers) {
 		card.appendChild(meta);
 
 		// E2: "the selected card uses the same strong selected treatment as the rail (accent border
-		// and check)" - the rail's own solid-fill treatment would hide the mini preview, so this is
-		// the rail's accent + check without the fill, per the spec's own qualifier.
+		// and check)" - the rail's accent + check without the rail's solid fill, which would bury the
+		// card's swatch strip.
 		if (isSelected) {
 			const check = document.createElement('span');
 			check.className = 'svc-preset-check';

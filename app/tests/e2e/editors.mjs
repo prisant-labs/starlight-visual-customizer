@@ -443,7 +443,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// E2: preset cards render distinct previews, and a real click applies a preset
+	// E2: preset cards show a name and a swatch strip, no mini page preview, and a real click applies a preset
 	// =============================================================================================
 	{
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
@@ -451,14 +451,11 @@ async function main() {
 
 		const previews = await page.evaluate(() => {
 			const cards = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-preset-card'));
-			return cards.slice(0, 3).map((c) => {
-				const doc = c.querySelector('.svc-preset-mini-doc');
-				return { name: c.querySelector('.svc-preset-name')?.textContent, bg: doc ? getComputedStyle(doc).backgroundColor : null };
-			});
+			return cards.map((c) => ({ name: c.querySelector('.svc-preset-name')?.textContent, hasMiniDoc: !!c.querySelector('.svc-preset-mini-doc') }));
 		});
-		check('at least 3 preset cards render a mini-doc preview', previews.every((p) => !!p.bg), JSON.stringify(previews));
-		const distinctPresetLooks = new Set(previews.map((p) => p.bg)).size > 1 || new Set(previews.map((p) => p.name)).size === previews.length;
-		check('preset cards are distinct from each other (not all identical)', distinctPresetLooks, JSON.stringify(previews));
+		check('every preset card has a name', previews.length >= 3 && previews.every((p) => !!p.name), JSON.stringify(previews));
+		check('no preset card renders a mini page preview', previews.every((p) => !p.hasMiniDoc), JSON.stringify(previews));
+		check('preset card names are distinct', new Set(previews.map((p) => p.name)).size === previews.length, JSON.stringify(previews));
 
 		// One column - every card's left edge lines up (stacked vertically, not
 		// side by side), and the description text is gone (kept only as the card's `title` tooltip).
@@ -470,7 +467,7 @@ async function main() {
 		check('P1: preset cards stack in one column (same left edge)', layoutInfo.sameLeft, JSON.stringify(layoutInfo));
 		check('P1: the description is not rendered as body text (only as the card tooltip)', !layoutInfo.hasDescText && layoutInfo.firstCardTitle.length > 0, JSON.stringify(layoutInfo));
 
-		// Swatch strip ("add back" a palette strip under the name, beside the mini-doc preview): every
+		// Swatch strip (the palette strip under the name): every
 		// card shows 7 swatches (accent-low/accent/accent-high + 4 grays), and the strip actually
 		// differs between presets rather than 7 cards' worth of the same 7 colors.
 		const swatchInfo = await page.evaluate(() => {
