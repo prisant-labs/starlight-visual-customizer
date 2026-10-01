@@ -195,16 +195,15 @@ button, input, select, textarea {
 }
 
 /* ---- Presets ---- */
-/* P1 (point 2): one column, not two - two-up made each mini-doc preview cramped at panel width. */
+/* P1 (point 2): one column, not two - one card per row reads best at panel width. */
 .svc-presets-grid {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 0.5rem;
 	padding: 0.75rem 1rem;
 }
-/* P1: one-column cards go wide, so the mini-doc becomes a fixed-size thumbnail on the start side
-   (previously a full-width banner atop a 2-up card) with the name beside it, rather than a full-
-   width strip 4x wider than tall. */
+/* Each card is an accent anchor chip, then the preset's name over its swatch strip, with a check
+   when selected. */
 .svc-preset-card {
 	display: flex;
 	align-items: center;
@@ -222,6 +221,7 @@ button, input, select, textarea {
 }
 .svc-preset-card:hover { border-color: #6d8dfa; }
 .svc-preset-card.svc-preset-active { border-color: #6d8dfa; border-width: 2px; box-shadow: 0 0 0 1px #6d8dfa33; }
+.svc-preset-anchor { width: 2.25rem; height: 2.25rem; flex-shrink: 0; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
 .svc-preset-meta { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
 .svc-preset-name { font-size: 0.8125rem; font-weight: 600; display: block; }
 .svc-swatch-strip { display: flex; height: 0.9rem; border-radius: 4px; overflow: hidden; }
@@ -233,19 +233,6 @@ button, input, select, textarea {
    docked studio's WHITE card, where the border color is overridden below. */
 .svc-preset-swatches { display: flex; gap: 3px; flex-wrap: wrap; }
 .svc-preset-swatch { width: 0.85rem; height: 0.85rem; flex-shrink: 0; border-radius: 3px; border: 1px solid #3a3f4b; }
-
-/* The preset card's self-drawn mini page preview - see buildPresetMiniDoc in
-   controls.js for why every line but the "Aa" sample is a plain colored bar, never real text.
-   A fixed-size (not full-width) thumbnail now that the card lays out horizontally. */
-.svc-preset-mini-doc { display: flex; flex-direction: column; width: 4.6rem; height: 3.4rem; flex-shrink: 0; border-radius: 5px; overflow: hidden; }
-.svc-preset-mini-header { height: 0.4rem; flex-shrink: 0; }
-.svc-preset-mini-body { display: grid; grid-template-columns: 26% 1fr; flex: 1 1 auto; min-height: 0; }
-.svc-preset-mini-nav { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.2rem 0.18rem; }
-.svc-preset-mini-navitem { display: block; height: 0.16rem; border-radius: 2px; width: 100%; }
-.svc-preset-mini-content { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.2rem 0.3rem; min-width: 0; }
-.svc-preset-mini-heading { font-size: 0.7rem; font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
-.svc-preset-mini-line { display: block; height: 0.12rem; border-radius: 2px; }
-.svc-preset-mini-callout { display: block; height: 0.3rem; border-radius: 1px; margin-top: 0.1rem; }
 
 .svc-preset-check {
 	position: absolute;
@@ -632,8 +619,31 @@ input[type='range']:focus-visible::-moz-range-thumb { outline: 2px solid var(--s
 .svc-color-popover hex-color-picker { width: 100%; height: 160px; }
 .svc-color-popover hex-color-picker::part(saturation) { border-radius: 6px 6px 0 0; }
 .svc-color-popover hex-color-picker::part(hue) { height: 18px; margin-top: 6px; border-radius: 6px; }
-.svc-color-popover-hexrow { display: flex; align-items: center; gap: 0.4rem; }
+.svc-color-popover-hexrow { display: flex; align-items: flex-start; gap: 0.4rem; }
 .svc-color-popover-hex { flex: 1 1 auto; min-width: 0; }
+.svc-color-popover-hex[hidden] { display: none; }
+/* The format switch (HEX | RGB | HSL) and the RGB/HSL channel boxes it reveals. */
+.svc-color-format { display: flex; gap: 2px; padding: 2px; border: 1px solid #3a3f4b; border-radius: 6px; align-self: flex-start; }
+.svc-color-format-btn {
+	font: inherit;
+	font-size: 0.6875rem;
+	font-weight: 600;
+	letter-spacing: 0.03em;
+	line-height: 1;
+	padding: 0.3rem 0.55rem;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: #c9ced8;
+	cursor: pointer;
+}
+.svc-color-format-btn:hover { background: #2c303a; }
+.svc-color-format-btn[aria-pressed='true'] { background: #6d8dfa; color: #0d0f14; }
+.svc-color-channels { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.3rem; }
+.svc-color-channels[hidden] { display: none; }
+.svc-color-channel { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.svc-color-channel input { text-align: center; padding: 0.3rem 0.2rem; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.svc-color-channel span { font-size: 0.625rem; font-weight: 600; text-align: center; color: #8a90a0; }
 .svc-eyedropper-btn {
 	width: 1.75rem;
 	height: 1.75rem;
@@ -1117,6 +1127,11 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-color-popover { background: var(--ui-panel); border-color: var(--ui-line); box-shadow: 0 12px 32px rgba(27, 33, 48, 0.25); }
 :host([data-docked='true']) .svc-eyedropper-btn { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-eyedropper-btn:hover { background: var(--ui-bg); }
+:host([data-docked='true']) .svc-color-format { border-color: var(--ui-line); }
+:host([data-docked='true']) .svc-color-format-btn { color: var(--ui-text); }
+:host([data-docked='true']) .svc-color-format-btn:hover { background: var(--ui-bg); }
+:host([data-docked='true']) .svc-color-format-btn[aria-pressed='true'] { background: var(--ui-accent); color: var(--ui-accent-fg); }
+:host([data-docked='true']) .svc-color-channel span { color: var(--ui-muted); }
 /* Hex field messages. The "note" reuses --ui-muted exactly (the contrast walk's own 4.5:1
    exception for muted text); the "error" is a dedicated red verified at >=7:1 on both --ui-panel and
    --ui-bg (the walk's default floor for anything that ISN'T muted/on-accent). */
@@ -1145,7 +1160,6 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-preset-card { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-ink); }
 :host([data-docked='true']) .svc-preset-card:hover { border-color: var(--ui-accent); }
 :host([data-docked='true']) .svc-preset-card.svc-preset-active { border-color: var(--ui-accent); background: var(--ui-accent-tint); }
-:host([data-docked='true']) .svc-preset-mini-doc { border-bottom-color: var(--ui-line); }
 :host([data-docked='true']) .svc-preset-check { background: var(--ui-accent); color: var(--ui-accent-fg); }
 :host([data-docked='true']) .svc-preset-swatch { border-color: var(--ui-line); }
 

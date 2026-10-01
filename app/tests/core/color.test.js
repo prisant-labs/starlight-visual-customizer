@@ -1,7 +1,17 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getPalettes, oklchToHex, contrastRatio, CONTRAST_AA, CONTRAST_AAA } from '../../src/customizer/core/color.js';
+import {
+	getPalettes,
+	oklchToHex,
+	contrastRatio,
+	CONTRAST_AA,
+	CONTRAST_AAA,
+	hexToRgbChannels,
+	rgbChannelsToHex,
+	hexToHslChannels,
+	hslChannelsToHex,
+} from '../../src/customizer/core/color.js';
 
 describe('oklchToHex', () => {
 	test('produces a 6-digit lowercase hex color', () => {
@@ -54,5 +64,35 @@ describe('getPalettes', () => {
 		const g = parseInt(hex.slice(3, 5), 16);
 		const b = parseInt(hex.slice(5, 7), 16);
 		assert.ok(Math.abs(r - g) <= 1 && Math.abs(g - b) <= 1, `expected grayscale, got ${hex}`);
+	});
+});
+
+describe('color popover channels (RGB and HSL modes)', () => {
+	test('hex and RGB channels round-trip exactly', () => {
+		assert.deepEqual(hexToRgbChannels('#08090f'), { r: 8, g: 9, b: 15 });
+		assert.equal(rgbChannelsToHex({ r: 8, g: 9, b: 15 }), '#08090f');
+		assert.equal(rgbChannelsToHex({ r: 68, g: 83, b: 201 }), '#4453c9');
+	});
+
+	test('RGB channels clamp and round', () => {
+		assert.equal(rgbChannelsToHex({ r: 300, g: -5, b: 127.6 }), '#ff0080');
+	});
+
+	test('hex to HSL gives whole numbers, with hue 0 for grays', () => {
+		assert.deepEqual(hexToHslChannels('#ff0000'), { h: 0, s: 100, l: 50 });
+		assert.deepEqual(hexToHslChannels('#808080'), { h: 0, s: 0, l: 50 });
+	});
+
+	test('HSL channels to hex, wrapping hue and clamping percentages', () => {
+		assert.equal(hslChannelsToHex({ h: 0, s: 100, l: 50 }), '#ff0000');
+		assert.equal(hslChannelsToHex({ h: 360, s: 100, l: 50 }), '#ff0000');
+		assert.equal(hslChannelsToHex({ h: 120, s: 150, l: 50 }), '#00ff00');
+	});
+
+	test('non-numeric channels and unparseable hex return null', () => {
+		assert.equal(rgbChannelsToHex({ r: NaN, g: 0, b: 0 }), null);
+		assert.equal(hslChannelsToHex({ h: 10, s: undefined, l: 50 }), null);
+		assert.equal(hexToRgbChannels('not a color'), null);
+		assert.equal(hexToHslChannels('not a color'), null);
 	});
 });

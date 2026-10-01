@@ -206,6 +206,12 @@ async function main() {
 		const hueAfterType = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().values['color.accent.hue']);
 		const chromaAfterType = await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState().values['color.accent.chroma']);
 		check('the hex commit actually changed hue and/or chroma (not a no-op)', hueAfterType !== baselineHue || chromaAfterType !== baselineChroma, `${baselineHue}/${baselineChroma} -> ${hueAfterType}/${chromaAfterType}`);
+		// A back-solve lands on each control's own step (hue 1, accent chroma 0.005), not a raw float.
+		const onSteps = (hueAfterType === undefined || Number.isInteger(hueAfterType)) &&
+			(chromaAfterType === undefined || Math.abs(chromaAfterType * 200 - Math.round(chromaAfterType * 200)) < 1e-9);
+		check('the hex commit stores hue and chroma on their slider steps', onSteps, `${hueAfterType}/${chromaAfterType}`);
+		const hueBoxText = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector("[data-control-id='color.accent.hue'] input[type='number']").value);
+		check('the accent hue box shows a whole number after the hex commit', /^\d+$/.test(hueBoxText), hueBoxText);
 		const hexAfterType = await waitForStableComputed(
 			() => page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector("[data-control-id='color.accent.hue'] .svc-color-hex").value),
 			(v) => /^#[0-9a-f]{6}$/.test(v) && v !== baselineHex
@@ -443,7 +449,76 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// E2: preset cards render distinct previews, and a real click applies a preset
+	// Color popover formats: HEX by default, RGB and HSL on request, the last choice remembered
+	// =============================================================================================
+	{
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors', { scroll: false }));
+		await page.waitForTimeout(200);
+		const popoverState = () =>
+			page.evaluate(() => {
+				const pop = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-color-popover')).find((p) => !p.hidden);
+				if (!pop) return null;
+				return {
+					pressed: pop.querySelector('.svc-color-format-btn[aria-pressed="true"]')?.dataset.format,
+					hexVisible: !pop.querySelector('.svc-color-popover-hex').hidden,
+					rgbVisible: !pop.querySelector('.svc-color-channels[data-format="rgb"]').hidden,
+					hex: pop.querySelector('.svc-color-popover-hex').value,
+					rgb: Array.from(pop.querySelectorAll('.svc-color-channels[data-format="rgb"] input')).map((i) => i.value),
+					hsl: Array.from(pop.querySelectorAll('.svc-color-channels[data-format="hsl"] input')).map((i) => i.value),
+				};
+			});
+		const hexToInts = (hex) => [1, 3, 5].map((i) => String(parseInt(hex.slice(i, i + 2), 16)));
+
+		await realClick(page, await shadowQuery(page, "[data-control-id='color.accent.hue'] .svc-color-picker"));
+		await page.waitForTimeout(250);
+		const initial = await popoverState();
+		check('the color popover opens in HEX by default', initial?.pressed === 'hex' && initial.hexVisible && !initial.rgbVisible, JSON.stringify(initial));
+
+		await realClick(page, await shadowQuery(page, '.svc-color-popover:not([hidden]) .svc-color-format-btn[data-format="rgb"]'));
+		await page.waitForTimeout(150);
+		const inRgb = await popoverState();
+		check(
+			'RGB shows three whole-number boxes that match the hex',
+			inRgb?.pressed === 'rgb' && inRgb.rgbVisible && !inRgb.hexVisible && JSON.stringify(inRgb.rgb) === JSON.stringify(hexToInts(inRgb.hex)),
+			JSON.stringify(inRgb)
+		);
+		const focusedChannel = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.activeElement?.dataset?.channel);
+		check('switching to RGB focuses the red box', focusedChannel === 'r', String(focusedChannel));
+
+		const stateBeforeRgb = await page.evaluate(() => JSON.stringify(document.querySelector('sl-customizer').__svc.getState().values));
+		await retypeFocused(page, '200');
+		await page.keyboard.press('Enter');
+		await page.waitForTimeout(300);
+		const afterRgb = await popoverState();
+		const stateAfterRgb = await page.evaluate(() => JSON.stringify(document.querySelector('sl-customizer').__svc.getState().values));
+		check('an RGB edit commits a new accent', stateAfterRgb !== stateBeforeRgb && afterRgb?.rgb[0] === '200', `${afterRgb?.rgb} ${stateAfterRgb}`);
+		check('the popover hex follows the RGB edit', afterRgb?.hex?.startsWith('#c8'), String(afterRgb?.hex));
+
+		await realClick(page, await shadowQuery(page, '.svc-color-popover:not([hidden]) .svc-color-format-btn[data-format="hsl"]'));
+		await page.waitForTimeout(150);
+		const inHsl = await popoverState();
+		check('HSL shows three whole-number boxes', inHsl?.pressed === 'hsl' && inHsl.hsl.length === 3 && inHsl.hsl.every((v) => /^\d+$/.test(v)), JSON.stringify(inHsl));
+
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(150);
+		await realClick(page, await shadowQuery(page, "[data-control-id='color.accent.hue'] .svc-color-picker"));
+		await page.waitForTimeout(250);
+		const reopened = await popoverState();
+		const stored = await page.evaluate(() => localStorage.getItem('svc-color-format'));
+		check('the popover reopens in the last format picked, remembered per browser', reopened?.pressed === 'hsl' && stored === 'hsl', `${reopened?.pressed} / ${stored}`);
+
+		// Leave HEX selected and the RGB edit undone, so later sections start from the usual state.
+		await realClick(page, await shadowQuery(page, '.svc-color-popover:not([hidden]) .svc-color-format-btn[data-format="hex"]'));
+		await page.keyboard.press('Escape');
+		await page.waitForTimeout(150);
+		await page.evaluate(() => document.querySelector('sl-customizer').__svc.undo());
+		await page.waitForTimeout(200);
+		const stateAfterUndo = await page.evaluate(() => JSON.stringify(document.querySelector('sl-customizer').__svc.getState().values));
+		check('one undo reverts the RGB edit', stateAfterUndo === stateBeforeRgb, stateAfterUndo);
+	}
+
+	// =============================================================================================
+	// E2: preset cards show an accent anchor, a name and a swatch strip (no mini page preview), and a real click applies a preset
 	// =============================================================================================
 	{
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
@@ -451,14 +526,22 @@ async function main() {
 
 		const previews = await page.evaluate(() => {
 			const cards = Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-preset-card'));
-			return cards.slice(0, 3).map((c) => {
-				const doc = c.querySelector('.svc-preset-mini-doc');
-				return { name: c.querySelector('.svc-preset-name')?.textContent, bg: doc ? getComputedStyle(doc).backgroundColor : null };
+			return cards.map((c) => {
+				const anchor = c.querySelector('.svc-preset-anchor');
+				const accentSwatch = c.querySelectorAll('.svc-preset-swatch')[1];
+				return {
+					name: c.querySelector('.svc-preset-name')?.textContent,
+					hasMiniDoc: !!c.querySelector('.svc-preset-mini-doc'),
+					anchor: anchor ? getComputedStyle(anchor).backgroundColor : null,
+					accent: accentSwatch ? getComputedStyle(accentSwatch).backgroundColor : null,
+					anchorFirst: c.firstElementChild === anchor,
+				};
 			});
 		});
-		check('at least 3 preset cards render a mini-doc preview', previews.every((p) => !!p.bg), JSON.stringify(previews));
-		const distinctPresetLooks = new Set(previews.map((p) => p.bg)).size > 1 || new Set(previews.map((p) => p.name)).size === previews.length;
-		check('preset cards are distinct from each other (not all identical)', distinctPresetLooks, JSON.stringify(previews));
+		check('every preset card has a name', previews.length >= 3 && previews.every((p) => !!p.name), JSON.stringify(previews));
+		check('no preset card renders a mini page preview', previews.every((p) => !p.hasMiniDoc), JSON.stringify(previews));
+		check('every preset card leads with an anchor chip in its accent color', previews.every((p) => p.anchorFirst && !!p.anchor && p.anchor === p.accent), JSON.stringify(previews));
+		check('preset card names are distinct', new Set(previews.map((p) => p.name)).size === previews.length, JSON.stringify(previews));
 
 		// One column - every card's left edge lines up (stacked vertically, not
 		// side by side), and the description text is gone (kept only as the card's `title` tooltip).
@@ -470,7 +553,7 @@ async function main() {
 		check('P1: preset cards stack in one column (same left edge)', layoutInfo.sameLeft, JSON.stringify(layoutInfo));
 		check('P1: the description is not rendered as body text (only as the card tooltip)', !layoutInfo.hasDescText && layoutInfo.firstCardTitle.length > 0, JSON.stringify(layoutInfo));
 
-		// Swatch strip ("add back" a palette strip under the name, beside the mini-doc preview): every
+		// Swatch strip (the palette strip under the name): every
 		// card shows 7 swatches (accent-low/accent/accent-high + 4 grays), and the strip actually
 		// differs between presets rather than 7 cards' worth of the same 7 colors.
 		const swatchInfo = await page.evaluate(() => {
