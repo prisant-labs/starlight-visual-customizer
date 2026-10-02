@@ -5,8 +5,8 @@
 // TOC rail behave exactly as they would for a real visitor at that width (a CSS-only dock was
 // tried first and found to lie about layout at in-between window widths).
 //
-// This file owns the studio's LIGHT-DOM shell only - top bar, toolbar, context line, the
-// preview stage (one or two lanes), and the status bar. The rail (icon list, one group visible at a
+// This file owns the studio's LIGHT-DOM shell only - top bar, toolbar, context line, and the
+// preview stage (one or two lanes). There is no bottom status bar. The rail (icon list, one group visible at a
 // time) and the panel column's contents (group header, sections, controls) live inside
 // `<sl-customizer>`'s shadow root (panel.js/styles.js/controls.js) - the rail is a `tablist` and
 // the column its `tabpanel`, and `aria-controls` id references don't cross a shadow boundary, so
@@ -43,6 +43,11 @@ import starlightPropsCss from '../../node_modules/@astrojs/starlight/dist/style/
 import { withBase } from '../customizer/core/base-path.js';
 // The About dialog's text, rendered at build time (studio.js only opens and closes it).
 import AboutBody from '../about/AboutBody.astro';
+// "Studio sizing": the steps and storage names come from the same module the rail control uses, so
+// the no-flash head script below cannot drift from it.
+// It applies the same cap as `effectiveSizing`: no size above 100% in a window under 900px.
+import { SIZING_STEPS, SIZING_STORAGE_KEY, SIZING_CSS_VAR, SIZING_NARROW_BELOW } from '../customizer/core/sizing.js';
+const sizingScript = `(function () { try { var z = parseFloat(localStorage.getItem(${JSON.stringify(SIZING_STORAGE_KEY)})); if (${JSON.stringify(SIZING_STEPS)}.indexOf(z) === -1) return; if (window.innerWidth < ${SIZING_NARROW_BELOW} && z > 1) z = 1; document.documentElement.style.setProperty(${JSON.stringify(SIZING_CSS_VAR)}, String(z)); } catch (e) {} })();`;
 
 // The studio's own layout CSS is ALSO written as a plain string and inlined via `set:html` (below)
 // rather than a native Astro `<style>` block - this dev server's Astro/Vite pairing emits a second,
@@ -79,6 +84,12 @@ const studioLayoutCss = `
 	   clears 7:1 (measured ~7.8:1) - used for the selected page tab's text. Kept identical to
 	   styles.js's copy of this same token. */
 	--ui-accent-ink: #3a46b0;
+	/* Status text: the contrast check on the context line (green when every pair passes, amber
+	   otherwise) and the top bar's save-failure text. Measured: green 4.91:1 and amber 5.06:1 on
+	   --ui-canvas, amber 6.33:1 on --ui-panel - all above WCAG AA's 4.5:1, which is the floor the
+	   contrast walk (tests/e2e/shell.mjs) applies to these two colors as status text. */
+	--ui-ok: #17703a;
+	--ui-warn: #8a5300;
 	color-scheme: light;
 }
 html, body {
@@ -141,7 +152,11 @@ body {
 }
 #svc-theme-name:hover { border-color: var(--ui-line); }
 #svc-theme-name:focus-visible { border-color: var(--ui-accent); outline: none; background: var(--ui-panel); }
-#svc-save-status { font-size: 0.75rem; color: var(--ui-muted); white-space: nowrap; }
+/* Hidden (the [hidden] attribute) while saving works; shown only with the failure text. */
+#svc-save-status { font-size: 0.75rem; font-weight: 600; color: var(--ui-warn); white-space: nowrap; }
+.svc-save-short { display: none; }
+#svc-topbar-history { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+#svc-change-count { font-size: 0.8125rem; font-weight: 600; color: var(--ui-ink); white-space: nowrap; font-variant-numeric: tabular-nums; padding: 0 0.25rem; }
 .svc-topbar-spacer { flex: 1 1 auto; min-width: 0.5rem; }
 #svc-topbar-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
 #svc-topbar-links { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
@@ -168,6 +183,13 @@ a.svc-tb-btn { text-decoration: none; }
 .svc-tb-btn-primary:hover:not(:disabled) { background: #38439e; border-color: #38439e; }
 .svc-tb-btn svg { width: 1rem; height: 1rem; display: block; }
 #svc-drawer-toggle { display: none; }
+
+/* ---- "Studio sizing": CSS zoom on the chrome only - the top bar, the page toolbar, the context
+   line, and <sl-customizer> (rail, panel and its dialogs). #svc-stage and the preview frames are
+   never zoomed, so the previewed pages render at their real size and simply gain room. The value
+   comes from the rail control (ui/studio-sizing.js) and, before the first paint, from the head
+   script. ---- */
+#svc-topbar, #svc-toolbar, #svc-context-line, sl-customizer { zoom: var(--svc-chrome-zoom, 1); }
 
 /* ---- Body row: rail + panel column (both inside <sl-customizer>) beside the workarea ---- */
 /* F0: both are host ancestors of the lane <iframe>s further down the tree - overflow: clip, not
@@ -268,6 +290,24 @@ a.svc-tb-btn { text-decoration: none; }
 #svc-breadcrumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #svc-context-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.6rem; white-space: nowrap; }
 #svc-scale-label { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ui-text); }
+/* The contrast check: plain colored text with an icon, not a pill. Still a button (it opens the
+   contrast table), so hover underlines the label. */
+.svc-contrast-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font-size: 0.75rem;
+	font-weight: 700;
+	color: var(--ui-ok);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.svc-contrast-status.svc-contrast-warn { color: var(--ui-warn); }
+.svc-contrast-status:hover span { text-decoration: underline; text-underline-offset: 2px; }
+.svc-contrast-status svg { width: 0.8125rem; height: 0.8125rem; display: block; }
 
 /* ---- Stage: one or two lanes ---- */
 /* The canvas: the context line, the lanes and the gap between Split's two lanes are a mid-gray the
@@ -312,48 +352,23 @@ iframe[data-svc-preview] {
 	transform-origin: top left;
 }
 
-/* ---- S12: status bar ---- */
-#svc-statusbar {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	height: 28px;
-	padding: 0 0.875rem;
-	font-size: 0.6875rem;
-	color: var(--ui-muted);
-	background: var(--ui-panel);
-	border-top: 1px solid var(--ui-line);
-}
-#svc-status-left { flex: 0 0 auto; font-weight: 600; color: var(--ui-text); }
-#svc-status-mid {
-	flex: 1 1 auto;
-	text-align: center;
-	background: transparent;
-	border: 0;
-	color: inherit;
-	font: inherit;
-	cursor: pointer;
-	padding: 0;
-}
-#svc-status-mid:hover { color: var(--ui-ink); }
-#svc-status-mid.svc-status-warn { color: var(--ui-fail, #a3251c); font-weight: 700; }
-#svc-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
-.svc-legend-chip { border: 1px solid var(--ui-line); border-radius: 4px; padding: 0.05rem 0.35rem; font-weight: 600; }
-
 /* ---- Below 900px (S1): the panel column becomes a drawer, toggled from the top bar. ---- */
 @media (max-width: 899px) {
 	#svc-drawer-toggle { display: inline-flex; }
 	/* The top bar keeps every control on one row at any width by shedding text, never controls:
-	   first the brand name (the mark stays) and the save status, then the button labels and the
-	   separators, then some of the theme name's width. Measured from 360 to 1920. */
-	.svc-brand-name, #svc-save-status { display: none; }
+	   first the brand name (the mark stays), then the change count, the button labels and the
+	   separators, then some of the theme name's width. Measured from 360 to 1920. The save-failure
+	   text is never shed (it is the only sign that changes are not being kept); below 720px it
+	   shortens to "Not saved". */
+	.svc-brand-name { display: none; }
 }
 @media (max-width: 719px) {
 	#svc-topbar { gap: 0.4rem; padding: 0 0.5rem; }
 	#svc-topbar-links .svc-tb-btn span, #svc-topbar-actions .svc-tb-btn span { display: none; }
 	#svc-topbar-links .svc-tb-btn, #svc-topbar-actions .svc-tb-btn { padding: 0.4rem; }
 	.svc-topbar-sep { display: none; }
+	#svc-change-count, .svc-save-long { display: none; }
+	.svc-save-short { display: inline; }
 }
 @media (max-width: 479px) {
 	#svc-theme-name { min-width: 0; width: 6.5rem; }
@@ -460,6 +475,7 @@ iframe[data-svc-preview] {
 				} catch (e) {}
 			})();
 		</script>
+		<script is:inline set:html={sizingScript}></script>
 		<style set:html={starlightPropsCss}></style>
 		<!-- Design doc item A: the host document never scrolls - exactly two kinds of scroll region
 		     exist anywhere in the studio: each lane's own previewed page, and the panel column's
@@ -496,7 +512,6 @@ iframe[data-svc-preview] {
 				</div>
 			</div>
 		</div>
-		<div id="svc-statusbar"></div>
 		<!-- About: opened by the top bar's info button (studio.js). Also at /about/ as its own page. -->
 		<dialog id="svc-about-dialog" aria-label="About Starlight Visual Customizer">
 			<button type="button" class="svc-tb-btn svc-tb-btn-icon svc-about-close" aria-label="Close About">

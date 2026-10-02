@@ -30,6 +30,7 @@
  */
 import 'vanilla-colorful/hex-color-picker.js';
 import { hexToRgbChannels, rgbChannelsToHex, hexToHslChannels, hslChannelsToHex } from '../core/color.js';
+import { getChromeZoom } from './studio-sizing.js';
 
 let uidCounter = 0;
 
@@ -331,20 +332,23 @@ export function createColorPopover({ label, normalizeHex, onChange }) {
 	}
 
 	/** Viewport-relative placement (see the file header): measured from the button's own
-	 * `getBoundingClientRect()`, then flipped/clamped once the popover's real size is known. */
+	 * `getBoundingClientRect()`, then flipped/clamped once the popover's real size is known. Every
+	 * comparison happens in on-screen pixels; only the assigned values are divided by the studio's
+	 * chrome zoom ("Studio sizing"), because the zoomed panel multiplies them back when drawing. */
 	function positionPopover() {
+		const zoom = getChromeZoom();
 		const rect = button.getBoundingClientRect();
 		const margin = 6;
-		popover.style.top = `${rect.bottom + margin}px`;
-		popover.style.left = `${rect.left}px`;
+		popover.style.top = `${(rect.bottom + margin) / zoom}px`;
+		popover.style.left = `${rect.left / zoom}px`;
 		requestAnimationFrame(() => {
 			if (!isOpen) return;
 			const popRect = popover.getBoundingClientRect();
 			if (popRect.bottom > window.innerHeight) {
-				popover.style.top = `${Math.max(margin, rect.top - popRect.height - margin)}px`;
+				popover.style.top = `${Math.max(margin, rect.top - popRect.height - margin) / zoom}px`;
 			}
 			if (popRect.right > window.innerWidth) {
-				popover.style.left = `${Math.max(margin, window.innerWidth - popRect.width - margin)}px`;
+				popover.style.left = `${Math.max(margin, window.innerWidth - popRect.width - margin) / zoom}px`;
 			}
 		});
 	}

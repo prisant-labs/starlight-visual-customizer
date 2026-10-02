@@ -21,6 +21,7 @@
  * scrolls the target's own nearest scrollable ancestors, which for a frame-internal element is the
  * frame's own document, never the host page.
  */
+import { getChromeZoom } from './studio-sizing.js';
 
 const FADE_MS = 1200;
 
@@ -275,9 +276,13 @@ export function createTargetHighlighter(shadowRoot, hooks = {}) {
 		// getBoundingClientRect() - is already in host-viewport pixels). No `data-svc-scale` (overlay
 		// mode, or Fit at 100%) means `s = 1`, a no-op multiply.
 		const scale = frameEl ? Number.parseFloat(frameEl.dataset.svcScale || '1') || 1 : 1;
-		overlay.style.transform = `translate(${frameRect.left + rect.left * scale}px, ${frameRect.top + rect.top * scale}px)`;
-		overlay.style.width = `${rect.width * scale}px`;
-		overlay.style.height = `${rect.height * scale}px`;
+		// The overlay lives in the panel's shadow root, which "Studio sizing" zooms; the frame does
+		// not. Everything above is in on-screen pixels, so divide by the chrome zoom before assigning
+		// (studio-sizing.js explains why). Outside the studio the zoom is 1.
+		const zoom = getChromeZoom();
+		overlay.style.transform = `translate(${(frameRect.left + rect.left * scale) / zoom}px, ${(frameRect.top + rect.top * scale) / zoom}px)`;
+		overlay.style.width = `${(rect.width * scale) / zoom}px`;
+		overlay.style.height = `${(rect.height * scale) / zoom}px`;
 	}
 
 	function schedulePosition() {

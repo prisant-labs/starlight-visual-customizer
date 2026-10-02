@@ -831,8 +831,11 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 }
 .svc-dialog-backdrop[hidden] { display: none; }
 .svc-dialog {
-	width: min(640px, calc(100vw - 2rem));
-	max-height: min(80vh, 720px);
+	/* Viewport units divided by "Studio sizing"'s chrome zoom (studio.astro zooms <sl-customizer>,
+	   which multiplies these lengths back), so the dialog still fits the real viewport. The custom
+	   property is unset outside the studio, so the division is by 1 there. */
+	width: min(640px, calc(100vw / var(--svc-chrome-zoom, 1) - 2rem));
+	max-height: min(calc(80vh / var(--svc-chrome-zoom, 1)), 720px);
 	display: flex;
 	flex-direction: column;
 	background: #1a1c22;
@@ -954,10 +957,50 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	padding: 0.5rem 0;
 	background: var(--ui-panel);
 	border-inline-end: 1px solid var(--ui-line);
 }
+/* The tablist inside the rail; the "Studio sizing" control follows it, outside the tablist. */
+.svc-rail-tabs { display: flex; flex-direction: column; align-items: stretch; padding: 0.5rem 0; }
+/* "Studio sizing": pinned to the bottom of the rail - margin-top:auto when the rail has room,
+   sticky when its items overflow and it scrolls. Text uses --ui-ink (7:1 floor); disabled buttons
+   use --ui-muted, not opacity, so the contrast walk reads their real color (see studio.astro). */
+.svc-rail-sizing {
+	position: sticky;
+	bottom: 0;
+	margin-top: auto;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.4rem 0.2rem 0.45rem;
+	background: var(--ui-panel);
+	border-top: 1px solid var(--ui-line);
+}
+.svc-rail-sizing-row { display: flex; align-items: center; gap: 0.15rem; }
+.svc-rail-sizing-btn {
+	width: 1rem;
+	height: 1rem;
+	padding: 0;
+	border: 1px solid var(--ui-line);
+	border-radius: 4px;
+	background: transparent;
+	color: var(--ui-ink);
+	font: inherit;
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+.svc-rail-sizing-btn:hover:not(:disabled) { background: var(--ui-accent-tint); }
+.svc-rail-sizing-btn:disabled { color: var(--ui-muted); cursor: not-allowed; }
+.svc-rail-sizing-btn:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 1px; }
+.svc-rail-sizing-value { min-width: 1.75rem; text-align: center; font-size: 0.625rem; font-weight: 700; color: var(--ui-ink); font-variant-numeric: tabular-nums; }
+.svc-rail-sizing-label { font-size: 0.5625rem; font-weight: 600; line-height: 1; color: var(--ui-ink); white-space: nowrap; }
 .svc-rail-sep { height: 1px; margin: 0.4rem 0.75rem; background: var(--ui-line); flex-shrink: 0; }
 .svc-rail-item {
 	position: relative;
@@ -1161,7 +1204,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-font-radio { accent-color: var(--ui-accent); }
 :host([data-docked='true']) .svc-font-row-name { color: var(--ui-ink); }
 
-/* ---- Contrast readout + status bar's contrast dialog, restyled light ---- */
+/* ---- Contrast readout + the contrast-warnings dialog, restyled light ---- */
 :host([data-docked='true']) .svc-contrast { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-contrast h4 { color: var(--ui-muted); }
 :host([data-docked='true']) .svc-pass { background: transparent; color: var(--ui-pass); padding: 0; font-weight: 700; }
@@ -1200,7 +1243,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-structure-toolbar .svc-ia-btn { color: var(--ui-ink); }
 :host([data-docked='true']) .svc-structure-toolbar .svc-ia-btn:disabled { color: var(--ui-muted); background: var(--ui-bg); border-color: var(--ui-line); opacity: 1; }
 
-/* ---- Contrast warnings dialog (status bar, S12) ---- */
+/* ---- Contrast warnings dialog (opened from the context line's contrast check) ---- */
 .svc-contrast-dialog-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .svc-contrast-dialog-table th, .svc-contrast-dialog-table td { text-align: start; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--ui-line); vertical-align: middle; }
 .svc-contrast-dialog-swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; border: 1px solid var(--ui-line); vertical-align: middle; margin-inline-end: 0.25rem; }
@@ -1232,7 +1275,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-export-extra { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-export-extra-label { color: var(--ui-muted); }
 :host([data-docked='true']) .svc-export-hint { color: var(--ui-muted); }
-.svc-dialog[data-shape='files'] { height: min(80vh, 640px); }
+.svc-dialog[data-shape='files'] { height: min(calc(80vh / var(--svc-chrome-zoom, 1)), 640px); }
 .svc-files-row { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: row; }
 .svc-file-list {
 	flex: 0 0 180px;
@@ -1278,7 +1321,9 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 		position: fixed;
 		inset-block: 0;
 		inset-inline-start: 72px;
-		width: min(340px, calc(100vw - 72px));
+		/* 100vw divided by the chrome zoom, as for .svc-dialog above, so the drawer ends at the
+		   viewport's real right edge at any "Studio sizing". */
+		width: min(340px, calc(100vw / var(--svc-chrome-zoom, 1) - 72px));
 		z-index: 2147483000;
 		box-shadow: 4px 0 24px rgba(27, 33, 48, 0.25);
 	}

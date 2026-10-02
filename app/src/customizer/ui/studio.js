@@ -1,6 +1,7 @@
 /**
- * @file Studio light-DOM shell: top bar, toolbar, context line,
- * the preview stage - one or two lanes, scaling, Split - and the status bar.
+ * @file Studio light-DOM shell: top bar, toolbar, context line (with the contrast check), and
+ * the preview stage - one or two lanes, scaling, Split. There is no bottom status bar any more: its
+ * change count moved to the top bar and its contrast summary to the context line.
  * Everything here lives in the studio's OWN document (never a shadow root) and talks to panel.js
  * through the controller it sets on `<sl-customizer>`, `host.__svc` (see panel.js's file header for
  * the full surface: getState/subscribe/undo/redo/canUndo/canRedo/setName/getName/getSaveStatus/
@@ -93,6 +94,7 @@ const ICONS = {
 	wide: '<rect x="2" y="6" width="20" height="9" rx="1"/><path d="M9 19h6M12 15v4"/>',
 	ultrawide: '<rect x="1" y="7.5" width="22" height="6" rx="1"/><path d="M10 19h4M12 13.5v5.5"/>',
 	info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"/>',
+	check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
 };
 function icon(name, size = 16) {
 	return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -180,8 +182,25 @@ export function initStudioShell() {
 	nameInput.addEventListener('change', () => svc.setName(nameInput.value));
 	topbar.appendChild(nameInput);
 
-	const saveStatus = h('span', { id: 'svc-save-status' });
+	// Shown only when saving fails (`persistState` in panel.js could not write to storage). A
+	// successful save needs no message, so the element stays hidden in the normal state. The long
+	// and short texts let narrow windows keep the warning without overflowing the bar.
+	const saveStatus = h('span', { id: 'svc-save-status', role: 'status', hidden: 'hidden' }, '<span class="svc-save-long">Not saved (storage blocked)</span><span class="svc-save-short">Not saved</span>');
 	topbar.appendChild(saveStatus);
+
+	// T2b: undo, redo and the change count sit left of the spacer, in that order. The count comes
+	// last, so a change in its digit count never shifts undo and redo. It is plain text, not a
+	// pill, because it is not clickable.
+	const undoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-undo', title: 'Undo (Ctrl/Cmd+Z)', 'aria-label': 'Undo' }, icon('undo'));
+	const redoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', id: 'svc-redo', title: 'Redo (Ctrl/Cmd+Shift+Z)', 'aria-label': 'Redo' }, icon('redo'));
+	undoBtn.addEventListener('click', () => svc.undo());
+	redoBtn.addEventListener('click', () => svc.redo());
+	const historyGroup = h('div', { id: 'svc-topbar-history' });
+	historyGroup.appendChild(undoBtn);
+	historyGroup.appendChild(redoBtn);
+	topbar.appendChild(historyGroup);
+	const changeCount = h('span', { id: 'svc-change-count' });
+	topbar.appendChild(changeCount);
 
 	topbar.appendChild(h('div', { class: 'svc-topbar-spacer' }));
 
@@ -211,10 +230,6 @@ export function initStudioShell() {
 	aboutDialog.addEventListener('close', () => aboutBtn.focus());
 
 	const actions = h('div', { id: 'svc-topbar-actions' });
-	const undoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', title: 'Undo (Ctrl/Cmd+Z)', 'aria-label': 'Undo' }, icon('undo'));
-	const redoBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-icon', title: 'Redo (Ctrl/Cmd+Shift+Z)', 'aria-label': 'Redo' }, icon('redo'));
-	undoBtn.addEventListener('click', () => svc.undo());
-	redoBtn.addEventListener('click', () => svc.redo());
 	const importInput = h('input', { type: 'file', accept: 'application/json,.json', hidden: 'hidden' });
 	importInput.addEventListener('change', async () => {
 		const file = importInput.files?.[0];
@@ -232,8 +247,6 @@ export function initStudioShell() {
 	importBtn.addEventListener('click', () => importInput.click());
 	const exportBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-primary', 'aria-label': 'Export', title: 'Export (Ctrl/Cmd+E)' }, `${icon('export')}<span>Export</span>`);
 	exportBtn.addEventListener('click', () => svc.openExport());
-	actions.appendChild(undoBtn);
-	actions.appendChild(redoBtn);
 	actions.appendChild(importBtn);
 	actions.appendChild(importInput);
 	actions.appendChild(exportBtn);
@@ -242,14 +255,10 @@ export function initStudioShell() {
 	function refreshTopbar() {
 		undoBtn.disabled = !svc.canUndo();
 		redoBtn.disabled = !svc.canRedo();
-		const status = svc.getSaveStatus();
-		if (status.ok) {
-			saveStatus.textContent = 'Saved locally';
-			saveStatus.title = new Date(status.at).toLocaleTimeString();
-		} else {
-			saveStatus.textContent = 'Not saved (storage blocked)';
-			saveStatus.title = '';
-		}
+		saveStatus.hidden = svc.getSaveStatus().ok;
+		const n = svc.getChangeCount();
+		changeCount.textContent = `${n} change${n === 1 ? '' : 's'}`;
+		changeCount.title = `${n} change${n === 1 ? '' : 's'} from Starlight default`;
 		if (document.activeElement !== nameInput) nameInput.value = svc.getName();
 	}
 	svc.subscribe(refreshTopbar);
@@ -669,42 +678,31 @@ export function initStudioShell() {
 	const contextLine = document.getElementById('svc-context-line');
 	const breadcrumbEl = h('span', { id: 'svc-breadcrumb' });
 	const contextRight = h('span', { id: 'svc-context-right' });
-	contextRight.innerHTML = `<span>Real Starlight ${STARLIGHT_VERSION} build · CSS live</span>`;
+	// The contrast check, as green or amber text at the start of the context line (it replaced the
+	// bottom status bar's contrast summary). It stays a button: a click opens the contrast table
+	// dialog, which lives in panel.js's shadow root (it reuses the export dialog's `.svc-dialog*`
+	// CSS, which only applies inside that shadow root - see panel.js's comment).
+	const contrastStatus = h('button', { type: 'button', id: 'svc-contrast-status', class: 'svc-contrast-status', 'aria-haspopup': 'dialog' });
+	contrastStatus.addEventListener('click', () => svc.openContrastDialog());
+	contextRight.appendChild(contrastStatus);
+	contextRight.appendChild(h('span', {}, `Real Starlight ${STARLIGHT_VERSION} build · CSS live`));
 	const scaleLabelEl = h('span', { id: 'svc-scale-label' });
 	contextRight.appendChild(scaleLabelEl);
 	contextLine.appendChild(breadcrumbEl);
 	contextLine.appendChild(contextRight);
 
-	// ===============================================================================================
-	// Status bar (S12)
-	// ===============================================================================================
-	const statusbar = document.getElementById('svc-statusbar');
-	const statusLeft = h('span', { id: 'svc-status-left' });
-	const statusMid = h('button', { type: 'button', id: 'svc-status-mid' });
-	const statusRight = h('span', { id: 'svc-status-right' });
-	statusRight.innerHTML = `<span>Starlight ${STARLIGHT_VERSION}</span><span class="svc-legend-chip">CSS · live</span><span class="svc-legend-chip">Config · on export</span>`;
-	statusbar.appendChild(statusLeft);
-	statusbar.appendChild(statusMid);
-	statusbar.appendChild(statusRight);
-
-	// S12: the dialog itself lives in panel.js's shadow root (it reuses the export dialog's
-	// `.svc-dialog*` CSS, which only applies inside that shadow root - see panel.js's comment).
-	statusMid.addEventListener('click', () => svc.openContrastDialog());
-
-	function refreshStatusBar() {
-		const n = svc.getChangeCount();
-		statusLeft.textContent = `${n} change${n === 1 ? '' : 's'} from Starlight default`;
+	function refreshContrastStatus() {
 		const report = svc.getContrastReport();
-		if (report.allPass) {
-			statusMid.textContent = 'Text pairs meet AA (light + dark)';
-			statusMid.classList.remove('svc-status-warn');
-		} else {
-			const warnCount = report.rows.filter((r) => !r.pass).length;
-			statusMid.textContent = `${warnCount} contrast warning${warnCount === 1 ? '' : 's'}`;
-			statusMid.classList.add('svc-status-warn');
-		}
+		const warnCount = report.allPass ? 0 : report.rows.filter((r) => !r.pass).length;
+		const label = warnCount === 0 ? 'Contrast AA' : `${warnCount} contrast warning${warnCount === 1 ? '' : 's'}`;
+		contrastStatus.innerHTML = `${icon(warnCount === 0 ? 'check' : 'alert', 13)}<span>${label}</span>`;
+		contrastStatus.classList.toggle('svc-contrast-warn', warnCount > 0);
+		contrastStatus.title =
+			warnCount === 0
+				? 'Text pairs meet WCAG AA in light and dark. Click for the full table.'
+				: 'Some text pairs fall below WCAG AA. Click for the full table.';
 	}
-	svc.subscribe(refreshStatusBar);
+	svc.subscribe(refreshContrastStatus);
 
 	// ===============================================================================================
 	// Initial state
@@ -737,7 +735,7 @@ export function initStudioShell() {
 		frameEls.light.src = withBase(currentPath);
 	}
 	applyMode();
-	refreshStatusBar();
+	refreshContrastStatus();
 
 	// Below 900px the panel column is a drawer (S1) - closed by default there so the rail+stage are
 	// the initial view; at/above 900px it's always shown (data-drawer-open is irrelevant there - the
