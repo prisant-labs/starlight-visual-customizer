@@ -30,7 +30,8 @@ pages, in light mode and dark mode.
 - **Preview at real sizes.** Device widths run from a 390-pixel phone to a 2560-pixel ultra-wide
   screen.
 - **Undo anything, and share the result.** Every change is one undo step. A share link carries
-  the whole theme in its URL.
+  the whole theme and the page you were viewing in its URL. Opening one never silently replaces
+  a theme you saved: the studio asks first.
 
 <table>
   <tr>
