@@ -59,6 +59,8 @@ import { createExportDialog } from './export.js';
 import { createTargetHighlighter } from './target-highlight.js';
 import { setFrameEls, getPageDoc, getPageWin, getFrameEl, isStudio } from './page-doc.js';
 import { withBase, stripBase } from '../core/base-path.js';
+import { nextSizing, formatSizing, effectiveSizing, SIZING_STEPS, SIZING_NARROW_BELOW, DEFAULT_SIZING } from '../core/sizing.js';
+import { loadSizing, saveSizing, setChromeZoom } from './studio-sizing.js';
 
 useMode(modeRgb); // registers the rgb color model with culori/fn's shared registry (idempotent)
 
@@ -894,12 +896,18 @@ function initCustomizer(host) {
 		// =========================================================================================
 		// Studio mode (S1-S15): rail + panel column.
 		// =========================================================================================
+		// The rail is a column: the group tabs (a tablist), then the "Studio sizing" control pinned to
+		// its bottom. The control sits outside the tablist on purpose - a tablist may only contain
+		// tabs - so `.svc-rail-tabs`, not `.svc-rail`, carries the tablist role and the arrow keys.
 		const rail = document.createElement('div');
 		rail.className = 'svc-rail';
-		rail.setAttribute('role', 'tablist');
-		rail.setAttribute('aria-orientation', 'vertical');
-		rail.setAttribute('aria-label', 'Customizer groups');
 		shadow.appendChild(rail);
+		const railTabs = document.createElement('div');
+		railTabs.className = 'svc-rail-tabs';
+		railTabs.setAttribute('role', 'tablist');
+		railTabs.setAttribute('aria-orientation', 'vertical');
+		railTabs.setAttribute('aria-label', 'Customizer groups');
+		rail.appendChild(railTabs);
 
 		// =============================================================================================
 		// Panel-collapse state. An earlier build let clicking the already-selected rail item collapse
@@ -979,17 +987,17 @@ function initCustomizer(host) {
 				applyPanelFilter('');
 				openGroup(groupName);
 			});
-			rail.appendChild(btn);
+			railTabs.appendChild(btn);
 			railItems.set(groupName, btn);
 
 			if (RAIL_SEPARATOR_AFTER.has(groupName)) {
 				const sep = document.createElement('div');
 				sep.className = 'svc-rail-sep';
-				rail.appendChild(sep);
+				railTabs.appendChild(sep);
 			}
 		}
 		// S4 keyboard contract: the rail is a tablist (Up/Down/Home/End move + activate).
-		rail.addEventListener('keydown', (event) => {
+		railTabs.addEventListener('keydown', (event) => {
 			const order = RAIL_GROUPS;
 			const currentIndex = order.indexOf(activeGroupName);
 			let nextIndex = null;
@@ -1004,6 +1012,69 @@ function initCustomizer(host) {
 			openGroup(order[nextIndex]);
 			railItems.get(order[nextIndex])?.focus();
 		});
+
+		// "Studio sizing": minus, the percentage, plus, and a small label, pinned to the bottom of the
+		// rail. It zooms the studio's own chrome, never the preview (studio-sizing.js, core/sizing.js).
+		// studio.astro's head script already applied the stored size before the first paint.
+		const sizing = document.createElement('div');
+		sizing.className = 'svc-rail-sizing';
+		sizing.setAttribute('role', 'group');
+		sizing.setAttribute('aria-label', 'Studio sizing');
+		const sizingRow = document.createElement('div');
+		sizingRow.className = 'svc-rail-sizing-row';
+		const sizingDown = document.createElement('button');
+		sizingDown.type = 'button';
+		sizingDown.className = 'svc-rail-sizing-btn';
+		sizingDown.textContent = '\u2212';
+		sizingDown.setAttribute('aria-label', 'Smaller studio');
+		sizingDown.title = 'Smaller studio';
+		const sizingValue = document.createElement('output');
+		sizingValue.className = 'svc-rail-sizing-value';
+		sizingValue.setAttribute('aria-live', 'polite');
+		const sizingUp = document.createElement('button');
+		sizingUp.type = 'button';
+		sizingUp.className = 'svc-rail-sizing-btn';
+		sizingUp.textContent = '+';
+		sizingUp.setAttribute('aria-label', 'Larger studio');
+		sizingUp.title = 'Larger studio';
+		const sizingLabel = document.createElement('span');
+		sizingLabel.className = 'svc-rail-sizing-label';
+		sizingLabel.textContent = 'Studio sizing';
+		sizingRow.append(sizingDown, sizingValue, sizingUp);
+		sizing.append(sizingRow, sizingLabel);
+		rail.appendChild(sizing);
+		// The chosen size is stored; the size shown and applied is the effective one, which caps
+		// sizes above 100% while the window is narrower than 900px (core/sizing.js explains why).
+		let chosenSizing = loadSizing();
+		function renderSizing() {
+			const narrow = window.innerWidth < SIZING_NARROW_BELOW;
+			const shown = effectiveSizing(chosenSizing, window.innerWidth);
+			setChromeZoom(shown);
+			sizingValue.textContent = formatSizing(shown);
+			sizingDown.disabled = shown === SIZING_STEPS[0];
+			const capped = narrow && shown >= DEFAULT_SIZING;
+			sizingUp.disabled = capped || shown === SIZING_STEPS[SIZING_STEPS.length - 1];
+			sizingUp.title = capped ? `Larger sizes need a window at least ${SIZING_NARROW_BELOW}px wide` : 'Larger studio';
+		}
+		/** @param {number} direction */
+		function stepSizing(direction) {
+			const shown = effectiveSizing(chosenSizing, window.innerWidth);
+			const next = effectiveSizing(nextSizing(shown, direction), window.innerWidth);
+			if (next === shown) return;
+			chosenSizing = next;
+			saveSizing(next);
+			renderSizing();
+		}
+		sizingDown.addEventListener('click', () => stepSizing(-1));
+		sizingUp.addEventListener('click', () => stepSizing(1));
+		let sizingWasNarrow = window.innerWidth < SIZING_NARROW_BELOW;
+		window.addEventListener('resize', () => {
+			const narrow = window.innerWidth < SIZING_NARROW_BELOW;
+			if (narrow === sizingWasNarrow) return;
+			sizingWasNarrow = narrow;
+			renderSizing();
+		});
+		renderSizing();
 
 		const panelCol = document.createElement('div');
 		panelCol.className = 'svc-panel-col';

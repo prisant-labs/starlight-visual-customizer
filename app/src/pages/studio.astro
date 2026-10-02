@@ -43,6 +43,11 @@ import starlightPropsCss from '../../node_modules/@astrojs/starlight/dist/style/
 import { withBase } from '../customizer/core/base-path.js';
 // The About dialog's text, rendered at build time (studio.js only opens and closes it).
 import AboutBody from '../about/AboutBody.astro';
+// "Studio sizing": the steps and storage names come from the same module the rail control uses, so
+// the no-flash head script below cannot drift from it.
+// It applies the same cap as `effectiveSizing`: no size above 100% in a window under 900px.
+import { SIZING_STEPS, SIZING_STORAGE_KEY, SIZING_CSS_VAR, SIZING_NARROW_BELOW } from '../customizer/core/sizing.js';
+const sizingScript = `(function () { try { var z = parseFloat(localStorage.getItem(${JSON.stringify(SIZING_STORAGE_KEY)})); if (${JSON.stringify(SIZING_STEPS)}.indexOf(z) === -1) return; if (window.innerWidth < ${SIZING_NARROW_BELOW} && z > 1) z = 1; document.documentElement.style.setProperty(${JSON.stringify(SIZING_CSS_VAR)}, String(z)); } catch (e) {} })();`;
 
 // The studio's own layout CSS is ALSO written as a plain string and inlined via `set:html` (below)
 // rather than a native Astro `<style>` block - this dev server's Astro/Vite pairing emits a second,
@@ -178,6 +183,13 @@ a.svc-tb-btn { text-decoration: none; }
 .svc-tb-btn-primary:hover:not(:disabled) { background: #38439e; border-color: #38439e; }
 .svc-tb-btn svg { width: 1rem; height: 1rem; display: block; }
 #svc-drawer-toggle { display: none; }
+
+/* ---- "Studio sizing": CSS zoom on the chrome only - the top bar, the page toolbar, the context
+   line, and <sl-customizer> (rail, panel and its dialogs). #svc-stage and the preview frames are
+   never zoomed, so the previewed pages render at their real size and simply gain room. The value
+   comes from the rail control (ui/studio-sizing.js) and, before the first paint, from the head
+   script. ---- */
+#svc-topbar, #svc-toolbar, #svc-context-line, sl-customizer { zoom: var(--svc-chrome-zoom, 1); }
 
 /* ---- Body row: rail + panel column (both inside <sl-customizer>) beside the workarea ---- */
 /* F0: both are host ancestors of the lane <iframe>s further down the tree - overflow: clip, not
@@ -463,6 +475,7 @@ iframe[data-svc-preview] {
 				} catch (e) {}
 			})();
 		</script>
+		<script is:inline set:html={sizingScript}></script>
 		<style set:html={starlightPropsCss}></style>
 		<!-- Design doc item A: the host document never scrolls - exactly two kinds of scroll region
 		     exist anywhere in the studio: each lane's own previewed page, and the panel column's

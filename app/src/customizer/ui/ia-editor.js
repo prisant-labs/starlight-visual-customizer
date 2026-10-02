@@ -17,6 +17,7 @@
  */
 import { iaFromStarlightConfig, parseSidebarSource, iaFromFileListing } from '../core/ia.js';
 import { fixtureSidebar } from '../../fixture-sidebar.mjs';
+import { getChromeZoom } from './studio-sizing.js';
 
 const BADGE_VARIANTS = ['default', 'note', 'tip', 'caution', 'danger', 'success'];
 
@@ -607,11 +608,14 @@ function createStudioTreeEditor(initialState, callbacks) {
 			dropLineEl.className = 'svc-structure-drop-line';
 			treeContainer.appendChild(dropLineEl);
 		}
+		// Measured in on-screen pixels; divided by "Studio sizing"'s chrome zoom before assigning,
+		// because the zoomed panel multiplies the line's own lengths back (see studio-sizing.js).
+		const zoom = getChromeZoom();
 		const containerRect = treeContainer.getBoundingClientRect();
 		const rowRect = targetRowEl.getBoundingClientRect();
-		dropLineEl.style.top = `${(edge === 'before' ? rowRect.top : rowRect.bottom) - containerRect.top}px`;
-		dropLineEl.style.left = `${rowRect.left - containerRect.left}px`;
-		dropLineEl.style.width = `${rowRect.width}px`;
+		dropLineEl.style.top = `${((edge === 'before' ? rowRect.top : rowRect.bottom) - containerRect.top) / zoom}px`;
+		dropLineEl.style.left = `${(rowRect.left - containerRect.left) / zoom}px`;
+		dropLineEl.style.width = `${rowRect.width / zoom}px`;
 		dropLineEl.style.display = 'block';
 	}
 	function hideDropLine() {
