@@ -816,6 +816,18 @@ async function main() {
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
 
+		// The share-link dialog, both shapes (share.mjs covers when each one opens; this only checks
+		// that their text is readable). Escape keeps the theme, so the suite's state is unchanged.
+		for (const kind of ['conflict', 'damaged']) {
+			await page.evaluate((k) => document.querySelector('sl-customizer').__svc.openShareLinkDialog(k), kind);
+			await page.waitForTimeout(200);
+			const shareWalk = await runContrastWalk();
+			console.log(`contrast walk (share-link dialog, ${kind}): ${shareWalk.total} text nodes checked; minimum ratio ${shareWalk.minRatio.toFixed(2)}:1 (${JSON.stringify(shareWalk.minRow)})`);
+			check(`every chrome text node meets its contrast floor (share-link dialog, ${kind})`, shareWalk.failCount === 0, JSON.stringify(shareWalk.rows));
+			await page.keyboard.press('Escape');
+			await page.waitForTimeout(150);
+		}
+
 		// The baseline walk above ran while Presets was active (the hit-
 		// test audit loop leaves it there) - Colors' hex fields and Structure's tree/form are only in
 		// the DOM while THEIR OWN group is active, so they need their own walk pass each.
