@@ -1,7 +1,9 @@
 /**
  * @file Applies "Studio sizing" (see `core/sizing.js`). studio.astro's CSS zooms the chrome by the
- * custom property set here, and its head script sets the stored value before the first paint, so
- * this module only reacts to the rail control (panel.js) and keeps storage in step.
+ * custom property `setChromeZoom` sets, and its head script sets it before the first paint. The
+ * rail control in panel.js decides what to apply: it stores the CHOSEN size (`saveSizing`) and sets
+ * the EFFECTIVE one (`effectiveSizing`, which caps sizes above 100% in a narrow window), so the
+ * property always holds the zoom actually on screen.
  *
  * `getChromeZoom()` is for code that places something by measured screen position inside the
  * zoomed chrome. Under CSS `zoom`, `getBoundingClientRect()` reports on-screen pixels, but `top`,

@@ -348,6 +348,17 @@ async function main() {
 			return t.scrollWidth - t.clientWidth;
 		});
 		check('at 820px and 90% the top bar does not overflow', overflow <= 0, String(overflow));
+		await realClick(page, '#svc-drawer-toggle', { light: true });
+		await page.waitForTimeout(300);
+		const drawer = await page.evaluate(() => {
+			const root = document.querySelector('sl-customizer').shadowRoot;
+			const col = root.querySelector('.svc-panel-col').getBoundingClientRect();
+			const rail = root.querySelector('.svc-rail').getBoundingClientRect();
+			return { colLeft: col.left, colRight: col.right, colWidth: col.width, railRight: rail.right, vw: window.innerWidth };
+		});
+		// 340px wide at 90% is 306px on screen; it fits well inside 820px, so it must not stretch.
+		check('at 820px and 90% the drawer opens beside the rail at its scaled width', near(drawer.colLeft, drawer.railRight, 1) && near(drawer.colWidth, 340 * 0.9, 1.5) && drawer.colRight <= drawer.vw + 0.5, JSON.stringify(drawer));
+		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'sizing-drawer-90-820.png') });
 		await context.close();
 	}
 
