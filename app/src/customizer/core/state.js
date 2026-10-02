@@ -166,13 +166,24 @@ export function encodeState(state) {
  *   back to `defaultState()` rather than throwing.
  */
 export function decodeState(str) {
+	return tryDecodeState(str) ?? defaultState();
+}
+
+/**
+ * Strict sibling of `decodeState`, for callers that must tell a broken encoding apart from a real
+ * theme - a share link cut off in transit decodes to `null` here, where `decodeState` would hand
+ * back the defaults and the caller would save them over the visitor's own theme.
+ * @param {string} str
+ * @returns {ThemeState | null} `null` when `str` is not base64url of a JSON object.
+ */
+export function tryDecodeState(str) {
 	try {
 		const base64 = str.replace(/-/g, '+').replace(/_/g, '/').padEnd(str.length + ((4 - (str.length % 4)) % 4), '=');
 		const binary = atob(base64);
 		const bytes = new Uint8Array(binary.length);
 		for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 		const payload = JSON.parse(new TextDecoder().decode(bytes));
-		if (!payload || typeof payload !== 'object') return defaultState();
+		if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
 		return {
 			v: 1,
 			starlight: STARLIGHT_VERSION,
@@ -185,8 +196,20 @@ export function decodeState(str) {
 			meta: { name: (payload.meta && typeof payload.meta.name === 'string' && payload.meta.name) || DEFAULT_THEME_NAME },
 		};
 	} catch {
-		return defaultState();
+		return null;
 	}
+}
+
+/**
+ * True when two states describe the same theme: preset, values, sidebar structure and name.
+ * `v` and `starlight` are ignored (decode re-stamps both), and key order inside `values` never
+ * matters.
+ * @param {ThemeState} a
+ * @param {ThemeState} b
+ * @returns {boolean}
+ */
+export function sameTheme(a, b) {
+	return a.preset === b.preset && deepEqual(a.values, b.values) && deepEqual(a.ia, b.ia) && getName(a) === getName(b);
 }
 
 /**
