@@ -1165,8 +1165,8 @@ async function main() {
 		await page.waitForTimeout(400);
 		const lightPath = normalizePath(stripBase(new URL((await getFrame(page, 'light')).url()).pathname, BASE_PATH));
 		const darkPath = normalizePath(stripBase(new URL((await getFrame(page, 'dark')).url()).pathname, BASE_PATH));
-		check('Split: the page switcher navigates the light lane', lightPath === '/guides/kitchen-sink/', lightPath);
-		check('Split: the page switcher navigates the dark lane too', darkPath === '/guides/kitchen-sink/', darkPath);
+		check('Split: the page switcher navigates the light lane', lightPath === '/demo/guides/kitchen-sink/', lightPath);
+		check('Split: the page switcher navigates the dark lane too', darkPath === '/demo/guides/kitchen-sink/', darkPath);
 
 		// Back to Style guide, then out of Split for the remaining sections.
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Style guide'));
@@ -1332,7 +1332,7 @@ async function main() {
 
 	// =============================================================================================
 	// Footer, from a FRESH navigation, on a page with NO
-	// pagination of its own (Landing) - forces the "navigate to /specimen/ first, then scroll" path
+	// pagination of its own (Landing) - forces the "navigate to /demo/specimen/ first, then scroll" path
 	// on a document that is, by construction, brand new - exactly the "just-loaded page still
 	// settling" scenario the Footer-on-Style-guide check above (already-loaded, no navigation) cannot
 	// exercise at all.
@@ -1374,8 +1374,8 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// S10: a TOC rail click from Landing (no TOC there) falls back to navigating to /specimen/, then
-	// scrolls - "a TOC click from Landing switches to Style guide".
+	// S10: a TOC rail click from Landing (no TOC there) falls back to navigating to /demo/specimen/,
+	// then scrolls - "a TOC click from Landing switches to Style guide".
 	// =============================================================================================
 	{
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Landing'));
@@ -1396,7 +1396,7 @@ async function main() {
 		await page.waitForTimeout(400);
 		frame = await getFrame(page, 'light');
 		const path_ = normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH));
-		check('a TOC rail click from Landing switches the frame to /specimen/', path_ === '/specimen/', path_);
+		check('a TOC rail click from Landing switches the frame to /demo/specimen/', path_ === '/demo/specimen/', path_);
 	}
 
 	// =============================================================================================

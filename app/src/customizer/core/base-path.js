@@ -4,7 +4,7 @@
  * Astro's resolved base (`import.meta.env.BASE_URL`, set from `astro.config.mjs`'s `base`, itself
  * read from the `SVC_SITE_BASE` env var at build time - see astro.config.mjs's own comment).
  *
- * Every place in the customizer that turns a root-relative, BASE-FREE path (e.g. `/specimen/`,
+ * Every place in the customizer that turns a root-relative, BASE-FREE path (e.g. `/demo/specimen/`,
  * `/studio/`) into something the browser actually navigates to (an `<a href>`, an `<iframe src>`,
  * `location.href`) must go through `withBase()`. Every place that reads an ACTUAL browser path back
  * (`location.pathname`, a frame's `contentWindow.location.pathname`) and needs to compare or store
@@ -50,12 +50,12 @@ function normalizeBase(base) {
 /**
  * Prefixes a root-relative, base-free path with the configured base, for anything that will
  * actually be navigated to (`<a href>`, `<iframe src>`, `location.href`/`.src`).
- * @param {string} path A root-relative path, e.g. `/specimen/` or `/studio/`. A value that isn't
+ * @param {string} path A root-relative path, e.g. `/demo/specimen/` or `/studio/`. A value that isn't
  *   root-relative (an external URL, a bare `#...` fragment, `?...`) is returned unchanged - there is
  *   nothing to prefix.
  * @param {string} [base] Defaults to the real `import.meta.env.BASE_URL`; pass an explicit value in
  *   tests.
- * @returns {string} e.g. `/specimen/` at the default `/` base, `/my-repo/specimen/` at base
+ * @returns {string} e.g. `/demo/specimen/` at the default `/` base, `/my-repo/demo/specimen/` at base
  *   `/my-repo` or `/my-repo/`.
  */
 export function withBase(path, base = DEFAULT_BASE) {

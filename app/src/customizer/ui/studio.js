@@ -16,6 +16,7 @@
 import { STARLIGHT_VERSION } from '../core/version.js';
 import { withBase, stripBase } from '../core/base-path.js';
 import { REPO_URL } from '../core/project.js';
+import { DEMO_DIR } from '../../demo-site.mjs';
 
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 // D3a: every path this file tracks internally (DEFAULT_PAGE_PATH, STUDIO_PAGES[].path, `currentPath`,
@@ -23,20 +24,32 @@ const SESSIONSTORAGE_UI_KEY = 'svc-ui';
 // `core/base-path.js`'s file header. `withBase()`/`stripBase()` convert at exactly two boundaries
 // below: setting a frame's `src`/`location.href` (needs the base), and reading a frame's real
 // `location.pathname` back (needs the base stripped off before it's compared/stored).
-const DEFAULT_PAGE_PATH = '/specimen/';
+const DEFAULT_PAGE_PATH = '/demo/specimen/';
 
 /** Four tabs - Style guide,
  * Document (was "Long doc"; tab label only - the file is still `guides/kitchen-sink.mdx`), Landing,
  * 404. The three dropped pages (Article, Short doc, Reference) all share Document's `template: doc`
  * layout, so they added length/frontmatter variety but no new template; they stay in the demo site,
  * reachable via its own sidebar, where the switcher shows its existing "Other: /path/" state (see
- * `markCurrentPage` below). Order is the toolbar's left-to-right order. */
+ * `markCurrentPage` below). Order is the toolbar's left-to-right order. Every demo page lives under
+ * `/demo/` (see `src/demo-site.mjs`); only Starlight's 404 page stays at the site level. */
 const STUDIO_PAGES = [
-	{ id: 'specimen', label: 'Style guide', path: '/specimen/', icon: 'doc' },
-	{ id: 'longdoc', label: 'Document', path: '/guides/kitchen-sink/', icon: 'doc' },
-	{ id: 'landing', label: 'Landing', path: '/', icon: 'home' },
+	{ id: 'specimen', label: 'Style guide', path: '/demo/specimen/', icon: 'doc' },
+	{ id: 'longdoc', label: 'Document', path: '/demo/guides/kitchen-sink/', icon: 'doc' },
+	{ id: 'landing', label: 'Landing', path: '/demo/', icon: 'home' },
 	{ id: '404', label: '404', path: '/404/', icon: 'alert' },
 ];
+
+/**
+ * Maps a page path saved before the demo moved under `/demo/` (an old `?page=/specimen/` link, or
+ * a `sessionStorage` entry) onto its new home, so those links keep opening the same page. Paths
+ * already under `/demo/`, and the site-level `/404/`, pass through unchanged.
+ * @param {string} path A base-free path. @returns {string}
+ */
+function toDemoPath(path) {
+	if (path === '/404/' || path === `/${DEMO_DIR}` || path.startsWith(`/${DEMO_DIR}/`)) return path;
+	return `/${DEMO_DIR}${path}`;
+}
 export { STUDIO_PAGES };
 
 /** Fit (fills the lane, always scale 1, no transform) plus fixed natural widths.
@@ -647,7 +660,7 @@ export function initStudioShell() {
 		}
 		otherLabel.hidden = !!matched;
 		if (!matched) otherLabel.textContent = `Other: ${path}`;
-		newTabLink.href = `${withBase(path)}?view`;
+		newTabLink.href = withBase(path);
 	}
 
 	// ===============================================================================================
@@ -699,10 +712,10 @@ export function initStudioShell() {
 	function loadInitialPagePath() {
 		try {
 			const fromUrl = new URL(location.href).searchParams.get('page');
-			if (fromUrl && fromUrl.startsWith('/')) return fromUrl;
+			if (fromUrl && fromUrl.startsWith('/')) return toDemoPath(fromUrl);
 		} catch {}
 		const fromSession = loadUiState().studioPage;
-		if (typeof fromSession === 'string' && fromSession.startsWith('/')) return fromSession;
+		if (typeof fromSession === 'string' && fromSession.startsWith('/')) return toDemoPath(fromSession);
 		return DEFAULT_PAGE_PATH;
 	}
 	function updateUrl(path) {

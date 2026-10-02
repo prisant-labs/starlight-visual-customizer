@@ -23,7 +23,9 @@ npm run build           # build the site into dist/
 npm run preview:bg      # serve dist/ in the background on http://localhost:4420
 ```
 
-Open <http://localhost:4420/studio/> - the studio (see below), showing the Style guide page (`/specimen/`) by default. A top-level visit to `/` redirects here automatically.
+Open <http://localhost:4420/studio/> - the studio (see below), showing the Style guide page (`/demo/specimen/`) by default. The site root `/` forwards here for now (`src/pages/index.astro`), keeping any query string and `#svc=` theme hash; a product page will replace it before launch.
+
+**Where things live.** The studio is at `/studio/` and the About page at `/about/`. Every page of the demo site ("Orbit Docs") lives under `/demo/`, because its content sits in `src/content/docs/demo/`. Starlight's built-in 404 page stays at `/404/`. The Starlight sidebar gets its `demo/` prefix in `astro.config.mjs` through `src/demo-site.mjs`, while `src/fixture-sidebar.mjs` stays prefix-free, because the Structure editor exports that tree into users' own sites. `src/route-data.js` points the demo's header title link at `/demo/` instead of the site root.
 
 **Stop it:** `npm run preview:stop`
 
@@ -82,14 +84,14 @@ The toolbar's four tabs are **pages of the demo site**, chosen because each exer
 
 | Tab | URL | Template | What makes it different |
 |---|---|---|---|
-| **Style guide** (the file is `specimen.mdx`) | `/specimen/` | `doc` | One short instance of every themeable element: type scale, links, inline code, lists, callouts, a table, code blocks, tabs, steps, file tree, cards, link buttons, badges. Also has a `banner`, custom `prev`/`next`, and a TOC set to levels 2 to 4. The default, because it shows the most controls at once |
-| **Document** (the file is `guides/kitchen-sink.mdx`) | `/guides/kitchen-sink/` | `doc` | The same kinds of content at full length: about 300 lines and 36 headings down to h4. Tests a deep table of contents, scrolling, and long-form reading. Also carries `lastUpdated`, so the footer shows a "last updated" line |
-| **Landing** | `/` | **`splash`** | A `splash` page (the other is 404): no sidebars, no TOC, a `hero` (title, tagline, image, action buttons). This is where the hero controls show |
+| **Style guide** (the file is `demo/specimen.mdx`) | `/demo/specimen/` | `doc` | One short instance of every themeable element: type scale, links, inline code, lists, callouts, a table, code blocks, tabs, steps, file tree, cards, link buttons, badges. Also has a `banner`, custom `prev`/`next`, and a TOC set to levels 2 to 4. The default, because it shows the most controls at once |
+| **Document** (the file is `demo/guides/kitchen-sink.mdx`) | `/demo/guides/kitchen-sink/` | `doc` | The same kinds of content at full length: about 300 lines and 36 headings down to h4. Tests a deep table of contents, scrolling, and long-form reading. Also carries `lastUpdated`, so the footer shows a "last updated" line |
+| **Landing** (the file is `demo/index.mdx`) | `/demo/` | **`splash`** | A `splash` page (the other is 404): no sidebars, no TOC, a `hero` (title, tagline, image, action buttons). This is where the hero controls show |
 | **404** | `/404/` | `splash` | Starlight's built-in not-found page (a `splash` page with a hero), since the demo site has no custom `404.md` |
 
 Only **Landing** and **404** use the `splash` template; **Style guide** and **Document** use `doc`.
 
-**Article** (`/resources/changelog/`), **Short doc** (`/guides/getting-started/`) and **Reference** (`/reference/manifest/`) aren't in the switcher - all three share Document's `template: doc` layout, so they add length/frontmatter/sidebar variety but no new page shape to check a theme against. They're still in the demo site, reachable through its own sidebar; visiting one shows the switcher's existing "Other: /path/" state.
+**Article** (`/demo/resources/changelog/`), **Short doc** (`/demo/guides/getting-started/`) and **Reference** (`/demo/reference/manifest/`) aren't in the switcher - all three share Document's `template: doc` layout, so they add length/frontmatter/sidebar variety but no new page shape to check a theme against. They're still in the demo site, reachable through its own sidebar; visiting one shows the switcher's existing "Other: /path/" state.
 
 ### Inspect (click an element to reach its controls)
 
@@ -168,7 +170,7 @@ which breaks the build), e.g.
 `astro preview` re-reads `astro.config.mjs` too,
 `MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/starlight-visual-customizer/ npx astro preview --port 4420`.
 
-Open `http://localhost:4420/starlight-visual-customizer/` - it redirects to the studio at
+Open `http://localhost:4420/starlight-visual-customizer/` - it forwards to the studio at
 that same base, exactly as `/` does at the default base. Rebuild at the default base afterward
 (`npm run preview:stop` first, then plain `npm run build`, no env var) before committing `dist/` to
 anything that expects root.

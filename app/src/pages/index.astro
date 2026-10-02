@@ -1,0 +1,33 @@
+---
+/**
+ * @file The site root (/). For now it forwards every visit to the studio at /studio/. A product
+ * page will replace it before launch; until then, opening the site still lands in the studio, as it
+ * did before the demo site moved under /demo/.
+ *
+ * The forward keeps the query string and the hash. A theme shared in a link travels in the hash
+ * (`#svc=...`), and a meta refresh alone would drop it, so the redirect is a script and the meta
+ * refresh only backs it up when scripts are off. Old links to the root that carry a shared theme
+ * therefore still open that theme in the studio.
+ */
+import { withBase } from '../customizer/core/base-path.js';
+
+const studioUrl = withBase('/studio/');
+const forwardScript = `location.replace(${JSON.stringify(studioUrl)} + location.search + location.hash);`;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Starlight Visual Customizer</title>
+		<link rel="canonical" href={studioUrl} />
+		<link rel="icon" href={withBase('/favicon.svg')} />
+		<script is:inline set:html={forwardScript}></script>
+		<noscript><meta http-equiv="refresh" content={`0; url=${studioUrl}`} /></noscript>
+	</head>
+	<body>
+		<p><a href={studioUrl}>Open the Starlight Visual Customizer studio</a></p>
+	</body>
+</html>

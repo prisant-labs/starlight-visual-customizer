@@ -14,7 +14,7 @@ export const BASE_ORIGIN = process.env.SVC_BASE_URL || 'http://localhost:4420';
 export const FRESH_ORIGIN = 'http://localhost:4431';
 export const VIEWPORT = { width: 1440, height: 1000 };
 
-const PAGE_PATHS = { specimen: '/specimen/', 'kitchen-sink': '/guides/kitchen-sink/' };
+const PAGE_PATHS = { specimen: '/demo/specimen/', 'kitchen-sink': '/demo/guides/kitchen-sink/' };
 
 /** @returns {Promise<import('playwright-core').Browser>} */
 export async function launch() {
@@ -32,7 +32,7 @@ export async function launch() {
  * @param {string} encodedState
  */
 export async function seedAppState(page, encodedState) {
-	await page.goto(`${BASE_ORIGIN}/specimen/?svc-overlay#svc=${encodedState}`, { waitUntil: 'load' });
+	await page.goto(`${BASE_ORIGIN}/demo/specimen/?svc-overlay#svc=${encodedState}`, { waitUntil: 'load' });
 	await page.waitForFunction((expected) => localStorage.getItem('svc-state') === expected, encodedState, { timeout: 15000 });
 	await page.waitForFunction(() => {
 		const css = localStorage.getItem('svc-css');
@@ -42,7 +42,7 @@ export async function seedAppState(page, encodedState) {
 
 /** Clears the app's customizer localStorage keys so a fresh context truly shows stock Starlight. */
 export async function clearAppState(page) {
-	await page.goto(`${BASE_ORIGIN}/specimen/`, { waitUntil: 'load' });
+	await page.goto(`${BASE_ORIGIN}/demo/specimen/`, { waitUntil: 'load' });
 	await page.evaluate(() => {
 		try {
 			localStorage.removeItem('svc-state');

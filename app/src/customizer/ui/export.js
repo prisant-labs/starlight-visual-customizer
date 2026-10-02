@@ -20,6 +20,7 @@ import { emitApplyTheme } from '../core/emit-apply.js';
 import { encodeState, getName } from '../core/state.js';
 import { isStudio, getPageDoc, getPageWin } from './page-doc.js';
 import { stripBase } from '../core/base-path.js';
+import { DEMO_DIR } from '../../demo-site.mjs';
 
 /** @param {number} bytes @returns {string} e.g. "1.2 KB" - the studio's file-list sizing display. */
 function formatSize(bytes) {
@@ -78,11 +79,15 @@ function slugifyThemeName(name) {
 	return s || 'starlight-theme';
 }
 
-/** @param {string} pathname e.g. "/specimen/" @returns {string} e.g. "specimen"; "/" -> "landing" */
+/** @param {string} pathname e.g. "/demo/specimen/" @returns {string} e.g. "specimen"; the demo's
+ * home page ("/demo/") and the site root ("/") -> "landing" */
 function pageSlugFromPath(pathname) {
-	// Base-free first, so a site served under a sub-path still names its root page "landing".
+	// Base-free first, so a site served under a sub-path still names its home page "landing". The
+	// demo folder is dropped too, so file names stay the same as before the demo moved under /demo/.
 	const trimmed = stripBase(String(pathname || '/')).replace(/^\/+|\/+$/g, '');
-	return trimmed ? trimmed.split('/').pop() : 'landing';
+	const parts = trimmed.split('/').filter(Boolean);
+	if (parts[0] === DEMO_DIR) parts.shift();
+	return parts.length ? parts[parts.length - 1] : 'landing';
 }
 
 /**
