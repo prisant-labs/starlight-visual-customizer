@@ -1,18 +1,63 @@
 ---
 /**
- * @file The site root (/). For now it forwards every visit to the studio at /studio/. A product
- * page will replace it before launch; until then, opening the site still lands in the studio, as it
- * did before the demo site moved under /demo/.
+ * @file The site root (/): the product page. It explains the tool, shows the studio in four
+ * presets behind a row of tabs, and links to the studio at /studio/ and to the source repo. Design
+ * "D, studio with theme tabs" from the 2026-10-01 front-door review (option E: product page at the
+ * root, studio at /studio/, demo site under /demo/).
  *
- * The forward keeps the query string and the hash. A theme shared in a link travels in the hash
- * (`#svc=...`), and a meta refresh alone would drop it, so the redirect is a script and the meta
- * refresh only backs it up when scripts are off. Old links to the root that carry a shared theme
- * therefore still open that theme in the studio.
+ * A theme shared in a link travels in the hash (`#svc=...`). Root links that carry one still open
+ * that theme: the inline head script forwards them to the studio before the page paints. Every
+ * other visit renders the page.
+ *
+ * Deliberately standalone, not a Starlight page, for the same reason as /about/: a page in
+ * `src/content/docs/` would join the demo site and pick up the visitor's theme preview.
+ *
+ * The preset chips, the preset count and the tab dots are computed at build time from `presets.js`
+ * through `getPresetLightPalette`, the same function the studio's preset cards use, so they stay
+ * true when a preset changes. The four screenshots are not: recapture them in
+ * `src/assets/home/` when the studio's look changes.
+ *
+ * Text uses the system font stack on purpose. The design mockup loaded Inter from Google Fonts,
+ * and the About page tells visitors that the only third-party requests are web-font previews from
+ * jsDelivr.
  */
+import { Image } from 'astro:assets';
 import { withBase } from '../customizer/core/base-path.js';
+import { REPO_URL, HUB_URL } from '../customizer/core/project.js';
+import { presets } from '../customizer/core/presets.js';
+import { getPresetLightPalette } from '../customizer/core/color.js';
+import studioDefault from '../assets/home/studio-default.png';
+import studioEditorial from '../assets/home/studio-editorial.png';
+import studioOcean from '../assets/home/studio-ocean.png';
+import studioNebulaDark from '../assets/home/studio-nebula-dark.png';
 
 const studioUrl = withBase('/studio/');
-const forwardScript = `location.replace(${JSON.stringify(studioUrl)} + location.search + location.hash);`;
+const aboutUrl = withBase('/about/');
+const forwardScript = `if (location.hash.indexOf('#svc=') === 0) location.replace(${JSON.stringify(studioUrl)} + location.search + location.hash);`;
+
+/** @param {string} id */
+function presetById(id) {
+	const preset = presets.find((p) => p.id === id);
+	if (!preset) throw new Error(`index.astro: no preset with id "${id}" in presets.js`);
+	return preset;
+}
+
+// One tab per screenshot. "Starlight default" comes first, so the page opens on the stock look.
+const tabs = [
+	{ preset: presetById('starlight-default'), image: studioDefault, dark: false },
+	{ preset: presetById('editorial-serif'), image: studioEditorial, dark: false },
+	{ preset: presetById('ocean'), image: studioOcean, dark: false },
+	{ preset: presetById('nebula'), image: studioNebulaDark, dark: true },
+].map((tab) => ({
+	...tab,
+	label: tab.dark ? `${tab.preset.label}, dark` : tab.preset.label,
+	accent: getPresetLightPalette(tab.preset).accent,
+	alt: `The studio with the ${tab.preset.label} preset applied to the preview${tab.dark ? ', in dark mode' : ''}`,
+}));
+
+const chips = presets.map((preset) => ({ label: preset.label, accent: getPresetLightPalette(preset).accent }));
+const COUNT_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+const presetCount = COUNT_WORDS[presets.length] ?? String(presets.length);
 ---
 
 <!doctype html>
@@ -22,12 +67,180 @@ const forwardScript = `location.replace(${JSON.stringify(studioUrl)} + location.
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<title>Starlight Visual Customizer</title>
-		<link rel="canonical" href={studioUrl} />
+		<meta name="description" content="A visual theme editor for Starlight. Pick a preset, tune colors, type and layout on real Starlight pages, and export one CSS file." />
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#15161d" />
 		<link rel="icon" href={withBase('/favicon.svg')} />
 		<script is:inline set:html={forwardScript}></script>
-		<noscript><meta http-equiv="refresh" content={`0; url=${studioUrl}`} /></noscript>
+		<style>
+			:root {
+				--bg: #15161d;
+				--bg-raise: #1d1e27;
+				--line: #2d2f3c;
+				--ink: #f4f5fb;
+				--ink-soft: #c3c6d4;
+				--ink-muted: #8c90a3;
+				--indigo: #171779;
+				--violet: #7e39fc;
+				--violet-soft: #c9b6ff;
+				--cyan: #27ddfc;
+				color-scheme: dark;
+			}
+			* { box-sizing: border-box; }
+			html { -webkit-text-size-adjust: 100%; }
+			body {
+				margin: 0;
+				background:
+					radial-gradient(1000px 520px at 50% 0%, rgba(126, 57, 252, 0.28), transparent 70%),
+					radial-gradient(700px 500px at 0% 10%, rgba(23, 23, 121, 0.5), transparent 70%),
+					var(--bg);
+				color: var(--ink);
+				font: 400 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+			}
+			a { color: inherit; }
+			:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }
+			.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+			header { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 68px; }
+			.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-weight: 600; }
+			.brand img { width: 32px; height: 32px; }
+			nav { display: flex; align-items: center; gap: 22px; font-size: 0.95rem; color: var(--ink-soft); }
+			nav a { text-decoration: none; }
+			nav a:hover { color: var(--ink); }
+			.gh { display: inline-flex; width: 22px; height: 22px; }
+
+			.hero { text-align: center; padding: 64px 0 40px; }
+			h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.07; letter-spacing: -0.028em; font-weight: 650; margin: 0 auto 20px; max-width: 18ch; text-wrap: balance; }
+			h1 .grad { background: linear-gradient(90deg, var(--violet-soft), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+			.lede { font-size: 1.22rem; color: var(--ink-soft); max-width: 44ch; margin: 0 auto 30px; }
+			.actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 14px 28px; }
+			.btn-primary { display: inline-flex; align-items: center; gap: 10px; padding: 15px 26px; border-radius: 999px; background: var(--violet-soft); color: #170b3b; font-weight: 600; text-decoration: none; }
+			.btn-primary:hover { background: #d8caff; }
+			.btn-plain { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-weight: 500; }
+			.btn-plain:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+			.tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 34px 0 14px; }
+			.tabs button { font: inherit; font-size: 0.9rem; font-weight: 500; color: var(--ink-soft); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+			.tabs button:hover { color: var(--ink); }
+			.tabs button i { width: 10px; height: 10px; border-radius: 50%; }
+			.tabs button[aria-pressed='true'] { color: var(--ink); border-color: rgba(201, 182, 255, 0.7); background: rgba(126, 57, 252, 0.18); }
+			.shot { margin: 0 0 90px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg-raise); box-shadow: 0 40px 100px -40px rgba(126, 57, 252, 0.55); }
+			.shot-bar { display: flex; gap: 7px; padding: 11px 14px; border-bottom: 1px solid var(--line); }
+			.shot-bar span { width: 11px; height: 11px; border-radius: 50%; background: #3a3c4b; }
+			.shot img { display: block; width: 100%; height: auto; }
+			.shot img[hidden] { display: none; }
+
+			.three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 80px; }
+			.card { background: var(--bg-raise); border: 1px solid var(--line); padding: 26px 28px; }
+			.card h2 { font-size: 1.15rem; font-weight: 600; margin: 0 0 8px; }
+			.card p { margin: 0; color: var(--ink-soft); font-size: 0.98rem; }
+			code { font: 0.9em ui-monospace, SFMono-Regular, Consolas, monospace; background: #2a2b37; padding: 1px 6px; border-radius: 4px; }
+
+			.strip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 26px; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 90px; background: linear-gradient(90deg, rgba(126, 57, 252, 0.1), transparent); }
+			.strip h2 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+			.strip p { margin: 2px 0 0; color: var(--ink-muted); font-size: 0.92rem; }
+			.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+			.chip { width: 26px; height: 26px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.18); }
+
+			footer { border-top: 1px solid var(--line); padding: 28px 0 40px; color: var(--ink-muted); font-size: 0.88rem; }
+			footer .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+			footer a { color: var(--ink-soft); }
+			@media (max-width: 860px) {
+				nav .hide-sm { display: none; }
+				.hero { padding-top: 36px; }
+				.three { grid-template-columns: 1fr; }
+			}
+			@media (max-width: 520px) {
+				.wrap { padding: 0 16px; }
+				.brand { font-size: 0.95rem; }
+			}
+		</style>
 	</head>
 	<body>
-		<p><a href={studioUrl}>Open the Starlight Visual Customizer studio</a></p>
+		<div class="wrap">
+			<header>
+				<a class="brand" href={withBase('/')}><img src={withBase('/logo.svg')} alt="" width="32" height="32" />Starlight Visual Customizer</a>
+				<nav>
+					<a class="hide-sm" href={studioUrl}>Studio</a>
+					<a class="hide-sm" href={aboutUrl}>About</a>
+					<a class="gh" href={REPO_URL} aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.83-.26.83-.57L9 21.07c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.08-.74.09-.73.09-.73 1.2.09 1.83 1.24 1.83 1.24 1.08 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22l-.01 3.29c0 .31.2.69.82.57A12 12 0 0 0 12 .3Z"></path></svg></a>
+				</nav>
+			</header>
+
+			<main>
+				<section class="hero">
+					<h1>Design your Starlight theme <span class="grad">on real pages</span></h1>
+					<p class="lede">Tune colors, type, layout and components while a real Starlight site updates beside you, in light and dark. Then export one CSS file.</p>
+					<div class="actions">
+						<a class="btn-primary" href={studioUrl}>
+							Open the studio
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+						</a>
+						<a class="btn-plain" href={REPO_URL}>
+							View on GitHub
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>
+						</a>
+					</div>
+				</section>
+
+				<div class="tabs" role="group" aria-label="Show the studio in a preset">
+					{tabs.map((tab, i) => (
+						<button type="button" aria-pressed={i === 0 ? 'true' : 'false'} aria-controls={`svc-shot-${i}`} data-shot={i}>
+							<i style={`background:${tab.accent}`}></i>{tab.label}
+						</button>
+					))}
+				</div>
+				<figure class="shot">
+					<div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+					{tabs.map((tab, i) => (
+						<Image
+							src={tab.image}
+							alt={tab.alt}
+							id={`svc-shot-${i}`}
+							widths={[800, 1200, 1600]}
+							sizes="(min-width: 1240px) 1192px, calc(100vw - 48px)"
+							loading="eager"
+							fetchpriority={i === 0 ? 'high' : 'low'}
+							hidden={i !== 0}
+						/>
+					))}
+				</figure>
+
+				<section class="three">
+					<div class="card"><h2>Real pages, not a mockup</h2><p>The preview is an actual Starlight build in a frame. Check a style guide, a long document, a landing page and the 404 page.</p></div>
+					<div class="card"><h2>An export that is yours</h2><p><code>theme.css</code> and <code>APPLY-THEME.md</code> use Starlight's own custom CSS support. No plugin, and no attribution required.</p></div>
+					<div class="card"><h2>Contrast checked as you go</h2><p>The main text pairs are checked against WCAG AA in both color modes, and failures are flagged right away.</p></div>
+				</section>
+
+				<section class="strip">
+					<div><h2>{presetCount} presets to start from</h2><p>From the stock Starlight look to an editorial serif. Every value stays editable.</p></div>
+					<div class="chips" aria-hidden="true">
+						{chips.map((chip) => <span class="chip" title={chip.label} style={`background:${chip.accent}`}></span>)}
+					</div>
+				</section>
+			</main>
+		</div>
+
+		<footer>
+			<div class="wrap row">
+				<span>An independent, open-source project by <a href={HUB_URL}>Prisant Labs</a>. Not affiliated with or endorsed by the Astro team.</span>
+				<span><a href={aboutUrl}>About</a> · <a href={REPO_URL}>GitHub</a> · MIT license</span>
+			</div>
+		</footer>
+
+		<script>
+			// The tabs swap which screenshot shows. All four load up front (loading="eager"), so a
+			// switch never waits on the network.
+			const buttons = document.querySelectorAll<HTMLButtonElement>('.tabs button[data-shot]');
+			for (const button of buttons) {
+				button.addEventListener('click', () => {
+					for (const other of buttons) {
+						const selected = other === button;
+						other.setAttribute('aria-pressed', String(selected));
+						const shot = document.getElementById(`svc-shot-${other.dataset.shot}`);
+						if (shot) shot.hidden = !selected;
+					}
+				});
+			}
+		</script>
 	</body>
 </html>

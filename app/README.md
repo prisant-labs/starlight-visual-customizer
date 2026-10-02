@@ -23,9 +23,9 @@ npm run build           # build the site into dist/
 npm run preview:bg      # serve dist/ in the background on http://localhost:4420
 ```
 
-Open <http://localhost:4420/studio/> - the studio (see below), showing the Style guide page (`/demo/specimen/`) by default. The site root `/` forwards here for now (`src/pages/index.astro`), keeping any query string and `#svc=` theme hash; a product page will replace it before launch.
+Open <http://localhost:4420/> for the product page, or <http://localhost:4420/studio/> for the studio itself (see below), which shows the Style guide page (`/demo/specimen/`) by default.
 
-**Where things live.** The studio is at `/studio/` and the About page at `/about/`. Every page of the demo site ("Orbit Docs") lives under `/demo/`, because its content sits in `src/content/docs/demo/`. Starlight's built-in 404 page stays at `/404/`. The Starlight sidebar gets its `demo/` prefix in `astro.config.mjs` through `src/demo-site.mjs`, while `src/fixture-sidebar.mjs` stays prefix-free, because the Structure editor exports that tree into users' own sites. `src/route-data.js` points the demo's header title link at `/demo/` instead of the site root.
+**Where things live.** The product page is at `/`, the studio at `/studio/`, and the About page at `/about/`. Every page of the demo site ("Orbit Docs") lives under `/demo/`, because its content sits in `src/content/docs/demo/`. Starlight's built-in 404 page stays at `/404/`. The Starlight sidebar gets its `demo/` prefix in `astro.config.mjs` through `src/demo-site.mjs`, while `src/fixture-sidebar.mjs` stays prefix-free, because the Structure editor exports that tree into users' own sites. `src/route-data.js` points the demo's header title link at `/demo/` instead of the site root.
 
 **Stop it:** `npm run preview:stop`
 
@@ -41,6 +41,12 @@ The customizer's main entry point: a full-viewport app shell, chrome always ligh
 - **Status bar** - "N changes from Starlight default" (left), a contrast summary that opens a table dialog on click (middle - computed for both light and dark from the palette actually in effect, not DOM probes of one mode), and version/legend chips (right).
 
 Below 900px wide the panel column becomes a drawer over the workarea, toggled from the top bar; the rail stays visible.
+
+## The product page (`/`)
+
+`src/pages/index.astro` explains the tool and links to the studio, the About page, and the repo. Four tabs swap a screenshot of the studio between presets, and a strip below shows one color chip per preset. The chips, the preset count in the strip's heading, and the tab dots are computed at build time from `core/presets.js` through `getPresetLightPalette` in `core/color.js`, the function the studio's preset cards use, so they follow any preset change. The screenshots do not: they are PNG files in `src/assets/home/`, which Astro converts to WebP at three widths, so recapture them when the studio's look changes. The logo is `public/logo.svg`, a work-in-progress mark that the branding work may replace.
+
+A root link that carries a shared theme (`/#svc=...`) still opens it: an inline script in the page's head forwards such a link to `/studio/`, with its query string and hash, before the page paints. The page uses the system font stack rather than a hosted web font, because the About page tells visitors that the only third-party requests are web-font previews from jsDelivr. It keeps `noindex` until launch, like every other page.
 
 ### About (dialog and `/about/`)
 
@@ -170,8 +176,8 @@ which breaks the build), e.g.
 `astro preview` re-reads `astro.config.mjs` too,
 `MSYS_NO_PATHCONV=1 SVC_SITE_BASE=/starlight-visual-customizer/ npx astro preview --port 4420`.
 
-Open `http://localhost:4420/starlight-visual-customizer/` - it forwards to the studio at
-that same base, exactly as `/` does at the default base. Rebuild at the default base afterward
+Open `http://localhost:4420/starlight-visual-customizer/` - the product page, whose links point at
+the studio and the About page under that same base, exactly as `/` does at the default base. Rebuild at the default base afterward
 (`npm run preview:stop` first, then plain `npm run build`, no env var) before committing `dist/` to
 anything that expects root.
 
@@ -223,23 +229,24 @@ whatever value it was carrying for the e2e suites' sub-path run above.
 
 | Command | What it covers | Needs a running server |
 |---|---|---|
-| `npm test` | 203 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state, and `snapToStep`), color (including the color popover's RGB/HSL conversions), sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, `core/base-path.js`'s `withBase`/`stripBase` (both trailing-slash shapes of `import.meta.env.BASE_URL` - see "Serving under a sub-path" above), and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
-| `npm run test:e2e` | 10 browser suites, real mouse/keyboard throughout (see below) | Yes, the **production preview on 4420** by default |
+| `npm test` | 211 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state, and `snapToStep`), color (including the color popover's RGB/HSL conversions and each preset's own light palette), sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, `core/base-path.js`'s `withBase`/`stripBase` (both trailing-slash shapes of `import.meta.env.BASE_URL` - see "Serving under a sub-path" above), `src/demo-site.mjs`'s `demo/` prefix helpers (including a guard that `src/fixture-sidebar.mjs` stays prefix-free), and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
+| `npm run test:e2e` | 11 browser suites, real mouse/keyboard throughout (see below) | Yes, the **production preview on 4420** by default |
 | `npm run test:roundtrip` | Applies an exported `theme.css` + `APPLY-THEME.md` to a real, freshly-scaffolded Starlight site and compares it against the live preview - proves the export/preview promise holds outside the studio, not just inside it (see `tests/roundtrip/README.md`) | Yes, the app's own production preview (`SVC_BASE_URL`, default 4420, a root-only origin with no base suffix - see "Serving under a sub-path" above); it starts/stops its own fresh-site preview on 4431 |
 
-The 10 e2e suites, run one at a time in this order (`smoke && ui-round2 && treatments && targets && tiles && studio && shell && inspect && editors && screenshot`):
+The 11 e2e suites, run one at a time in this order (`home && smoke && ui-round2 && treatments && targets && tiles && studio && shell && inspect && editors && screenshot`):
 
 | Suite | Covers | Checks |
 |---|---|---|
+| `home.mjs` | The product page at `/`: it renders instead of forwarding, keeps `noindex`, has base-aware links that reach a working studio, swaps screenshots on a real tab click, shows one chip per preset in `presets.js` order, has no horizontal scroll at 375px, and forwards a root link carrying `#svc=` (with `?page=`) to the studio, which applies the shared theme | 23 |
 | `smoke.mjs` | Panel mounts; a control and a preset visibly recolor the page; an IA rename persists | 11 |
 | `ui-round2.mjs` | No-flash preload CSS; the filter; the overlay's Navigation tree; panel UI state persisting across navigation; "follow on page" | 22 |
 | `treatments.mjs` | Every treatment control's computed-style effect, light + dark | 129 |
 | `targets.mjs` | Every control's `target` selector resolves on a real page | 78 |
 | `tiles.mjs` | Every tiled control's grid/rows layout and per-option visual distinctness; that every tile is one column at the panel's real width, and that no tile leaves more than ~12px of empty space below its last content | 264 |
-| `studio.mjs` | Frame targeting, in-frame navigation, page switcher, device widths, follow-on-page, light/dark, tiles, export, and that re-clicking the already-selected rail item never collapses the panel (the collapse button and `\` still do) | 59 |
+| `studio.mjs` | Frame targeting, in-frame navigation, page switcher, device widths, follow-on-page, light/dark, tiles, export, and that re-clicking the already-selected rail item never collapses the panel (the collapse button and `\` still do) | 60 |
 | `shell.mjs` | The rail (including a dedicated regression check for the re-click behavior above), a full contrast walk (chrome text, panel, dialogs, Colors' hex fields, the popover, the Structure tree/form and its enlarged toolbar), the hit-test audit, undo/redo, group reset, status bar, Split, scaling, the narrow-width drawer, a pixel check that every range thumb is centered on its track, that every section/card starts open with working collapse/expand and Expand all/Collapse all, the top bar's branding and GitHub pill, the About dialog (opened and closed by real clicks and keys, shortcuts standing down behind it) and the `/about/` page, and no top-bar overflow at four widths | 141 |
 | `inspect.mjs` | Toggle by button and `I`; hover outlines; click-to-select scope + panel state; the Elements list; Split lanes; `Esc` | 32 |
-| `editors.mjs` | Hex entry (including an undo-after-blur regression repro, for an accent slider and a role override), hex-field freshness after undo/redo/preset/group-reset/reset-all/import, preset card previews (one column, no body-text description), the structure tree's drag-and-drop and toolbar, `APPLY-THEME.md` reflecting a reorder, the site title, the hex-first color popover (open, hex-field commit, a real hue-bar drag coalescing into one undo step, Escape/outside-click close), a Structure-undo regression repro (preset + reorder + Undo/Redo, a rename, its no-op guard under a long pause, a toolbar move/indent/delete, an edit after Undo), and the drag insertion marker's geometry (before/after/into-group, Escape-cancel) | 116 |
+| `editors.mjs` | Hex entry (including an undo-after-blur regression repro, for an accent slider and a role override), hex-field freshness after undo/redo/preset/group-reset/reset-all/import, preset card previews (one column, no body-text description), the structure tree's drag-and-drop and toolbar, `APPLY-THEME.md` reflecting a reorder, the site title, the hex-first color popover (open, hex-field commit, a real hue-bar drag coalescing into one undo step, Escape/outside-click close), a Structure-undo regression repro (preset + reorder + Undo/Redo, a rename, its no-op guard under a long pause, a toolbar move/indent/delete, an edit after Undo), and the drag insertion marker's geometry (before/after/into-group, Escape-cancel) | 128 |
 | `screenshot.mjs` | The Export dialog's PNG screenshot capture (Full page and Visible area, light and dark), decoded and diffed pixel-by-pixel against the live page | 54 |
 
 Against the dev server instead:

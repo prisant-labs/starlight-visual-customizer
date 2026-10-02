@@ -6,7 +6,7 @@
  */
 import { controls as manifestControls, FONTS } from '../core/manifest.js';
 import { getValue, snapToStep } from '../core/state.js';
-import { getPalettes, contrastRatio, oklchToHex, hexToOklchHueChroma, hexToHslHue } from '../core/color.js';
+import { getPresetLightPalette, contrastRatio, oklchToHex, hexToOklchHueChroma, hexToHslHue } from '../core/color.js';
 import { createTileControl, TILE_CONTROL_IDS, createFontList } from './tiles/index.js';
 // The hex-first color popover (vanilla-colorful) - see
 // color-picker.js's file header for why it is imported ONLY from here.
@@ -1179,24 +1179,6 @@ export function createStudioGroupPanel(groupName, groupControls, state, handlers
 	const { controlRows, refreshSectionDots, firstSectionName } = buildGroupSectionsInto(body, groupName, groupControls, state, handlers, opts);
 
 	return { root, body, controlRows, refreshSectionDots, firstSectionName };
-}
-
-/**
- * The preset's own LIGHT palette (`getPalettes`), which the card's anchor and swatch strip draw from.
- * @param {import('../core/presets.js').Preset} preset
- * @returns {import('../core/color.js').HexPalette}
- */
-function getPresetLightPalette(preset) {
-	const v = preset.values ?? {};
-	const accentHue = v['color.accent.hue'] ?? 269;
-	const accentChroma = v['color.accent.chroma'] ?? 0.27;
-	const grayHue = v['color.gray.hue'] ?? 270;
-	const grayChroma = v['color.gray.chroma'] ?? 0.016;
-	return getPalettes({
-		accent: { hue: accentHue, chroma: accentChroma },
-		gray: { hue: grayHue, chroma: grayChroma },
-		minimumContrast: v['color.contrastFloor'] === 'aaa' ? 7 : 4.5,
-	}).light;
 }
 
 /** The swatch strip's fixed token order: accent-low, accent, accent-high, then four grays light to

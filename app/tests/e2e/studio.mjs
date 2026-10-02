@@ -153,11 +153,8 @@ async function main() {
 		const noPreloadInFrame = await frame.evaluate(() => !document.getElementById('svc-preload'));
 		check('no #svc-preload remains in the frame after attach', noPreloadInFrame);
 
-		// The site root is now a small Astro page that forwards to /studio/ with `location.replace`,
-		// carrying the query string and hash along - there is no longer a `?view` escape hatch.
-		await page.goto(`${SVC_BASE_URL}/`, { waitUntil: 'networkidle' });
-		await page.waitForTimeout(300);
-		check('/ forwards to /studio/', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/studio/', page.url());
+		// The site root is the product page; home.mjs covers it, including the forward of a root link
+		// that carries a shared theme (`#svc=...`) to the studio.
 
 		// An old-style link to a page from before the demo moved under /demo/ (any path not under
 		// /demo/ and not /404/) still works: the studio loads it under /demo/ instead. Deliberately

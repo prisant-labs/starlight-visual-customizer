@@ -163,6 +163,26 @@ export function getPalettes(config) {
 }
 
 /**
+ * A preset's own LIGHT palette (`getPalettes`). The studio's preset cards draw their anchor and
+ * swatch strip from it, and the product page (`src/pages/index.astro`) draws its preset chips from
+ * it at build time, so both show the same color for each preset.
+ * @param {{values?: Record<string, any>}} preset A preset from `presets.js`.
+ * @returns {HexPalette}
+ */
+export function getPresetLightPalette(preset) {
+	const v = preset.values ?? {};
+	const accentHue = v['color.accent.hue'] ?? 269;
+	const accentChroma = v['color.accent.chroma'] ?? 0.27;
+	const grayHue = v['color.gray.hue'] ?? 270;
+	const grayChroma = v['color.gray.chroma'] ?? 0.016;
+	return getPalettes({
+		accent: { hue: accentHue, chroma: accentChroma },
+		gray: { hue: grayHue, chroma: grayChroma },
+		minimumContrast: v['color.contrastFloor'] === 'aaa' ? 7 : 4.5,
+	}).light;
+}
+
+/**
  * WCAG contrast ratio between two hex colors (for the panel's live contrast readout).
  * @param {string} hexA
  * @param {string} hexB

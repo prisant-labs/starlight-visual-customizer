@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
 	getPalettes,
+	getPresetLightPalette,
 	oklchToHex,
 	contrastRatio,
 	CONTRAST_AA,
@@ -64,6 +65,20 @@ describe('getPalettes', () => {
 		const g = parseInt(hex.slice(3, 5), 16);
 		const b = parseInt(hex.slice(5, 7), 16);
 		assert.ok(Math.abs(r - g) <= 1 && Math.abs(g - b) <= 1, `expected grayscale, got ${hex}`);
+	});
+});
+
+describe('getPresetLightPalette', () => {
+	test('a preset with no values gets the default light palette', () => {
+		const expected = getPalettes({ accent: { hue: 269, chroma: 0.27 }, gray: { hue: 270, chroma: 0.016 }, minimumContrast: CONTRAST_AA }).light;
+		assert.deepEqual(getPresetLightPalette({ values: {} }), expected);
+		assert.deepEqual(getPresetLightPalette({}), expected);
+	});
+
+	test("a preset's own accent hue and chroma change its accent", () => {
+		const base = getPresetLightPalette({ values: {} });
+		const ocean = getPresetLightPalette({ values: { 'color.accent.hue': 240, 'color.accent.chroma': 0.27 } });
+		assert.notEqual(ocean.accent, base.accent);
 	});
 });
 
