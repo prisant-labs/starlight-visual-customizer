@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="246 228 800 800" role="img" aria-labelledby="title description">
   <title id="title">Starlight Visual Customizer logo</title>
-  <desc id="description">Two overlapping document pages with a folded corner, and a four-point spark cut out of both. Work-in-progress mark; the branding exploration may replace it.</desc>
+  <desc id="description">Two overlapping document pages with a folded corner, and a four-point spark cut out of both.</desc>
   <defs>
     <linearGradient id="back-gradient" gradientUnits="userSpaceOnUse" x1="330" y1="290" x2="730" y2="849"><stop offset="0" stop-color="#171779"/><stop offset="1" stop-color="#191B80"/></linearGradient>
     <linearGradient id="front-gradient" gradientUnits="userSpaceOnUse" x1="600" y1="411" x2="980" y2="967"><stop offset="0" stop-color="#7E39FC"/><stop offset="1" stop-color="#7734F8"/></linearGradient>
