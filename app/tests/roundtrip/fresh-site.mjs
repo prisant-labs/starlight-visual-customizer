@@ -100,8 +100,9 @@ function freshSitePackageJson(versions) {
 
 /**
  * The fresh site's `astro.config.mjs`: mirrors the app's own Starlight options (see
- * `app/astro.config.mjs`) MINUS every bit of customizer wiring - no `head` no-flash-preload /
- * redirect-to-studio scripts, no `components: { Footer: ... }` override (the app's own Footer
+ * `app/astro.config.mjs`) MINUS every bit of customizer wiring - no `head` no-flash-preload
+ * script, no `routeMiddleware` (it only re-points the site-title link at `/demo/`, which no surface
+ * checks), no `components: { Footer: ... }` override (the app's own Footer
  * override only adds the `<sl-customizer>` mount point and its script; the fallback default
  * `Footer.astro` it wraps is exactly what this config gets by leaving `components` unset). Every
  * OTHER option is copied verbatim and deliberately - this is the "real config" a themed export is
@@ -113,6 +114,7 @@ const FRESH_ASTRO_CONFIG = `// @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { fixtureSidebar } from './src/fixture-sidebar.mjs';
+import { demoSidebar } from './src/demo-site.mjs';
 
 export default defineConfig({
 	integrations: [
@@ -133,7 +135,7 @@ export default defineConfig({
 			pagination: true,
 			tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 4 },
 			credits: true,
-			sidebar: fixtureSidebar,
+			sidebar: demoSidebar(fixtureSidebar),
 		}),
 	],
 });
@@ -144,6 +146,7 @@ const CONTENT_COPIES = [
 	['src/content.config.ts', 'src/content.config.ts'],
 	['tsconfig.json', 'tsconfig.json'],
 	['src/fixture-sidebar.mjs', 'src/fixture-sidebar.mjs'],
+	['src/demo-site.mjs', 'src/demo-site.mjs'],
 	['src/content/docs', 'src/content/docs'],
 	['src/assets/houston.webp', 'src/assets/houston.webp'],
 	['public/favicon.svg', 'public/favicon.svg'],

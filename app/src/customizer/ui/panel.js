@@ -1257,9 +1257,9 @@ function initCustomizer(host) {
 			};
 			frameEl.addEventListener('load', onLoad);
 			try {
-				frameEl.contentWindow.location.href = withBase('/specimen/');
+				frameEl.contentWindow.location.href = withBase('/demo/specimen/');
 			} catch {
-				frameEl.src = withBase('/specimen/');
+				frameEl.src = withBase('/demo/specimen/');
 			}
 		}
 

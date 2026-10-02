@@ -47,11 +47,11 @@ const EXECUTABLE_PATH =
 // `svc-overlay`: a direct top-level visit no longer mounts
 // a panel at all (a small "Open in Studio" pill instead) - this suite drives the panel's own shadow
 // root directly, so it needs the escape-hatch flag to keep mounting it.
-const KITCHEN_SINK = `${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`;
-// `?view` (studio design doc, item E): astro.config.mjs's `/` -> `/studio/` redirect only fires
-// top-level with no `?view` in the URL - without it, this direct `page.goto('/')` would land on
-// `/studio/` instead of the splash page these hero-tile checks need. `&svc-overlay` (F1, above).
-const HOME = `${SVC_BASE_URL}/?view&svc-overlay`;
+const KITCHEN_SINK = `${SVC_BASE_URL}/demo/guides/kitchen-sink/?svc-overlay`;
+// The demo site's splash page lives at `/demo/` (the site root `/` is only a tiny forwarder to
+// `/studio/` with no hero markup of its own), so these hero-tile checks load `/demo/` directly.
+// `&svc-overlay` (F1, above).
+const HOME = `${SVC_BASE_URL}/demo/?svc-overlay`;
 const DEFAULT_VIEWPORT = { width: 1280, height: 900 };
 const DESKTOP_VIEWPORT = { width: 1440, height: 900 };
 const MOBILE_VIEWPORT = { width: 390, height: 844 };
@@ -832,7 +832,7 @@ async function main() {
 
 		// "Contrast" is still collapsed from the manual toggle above (P4: never reopened since) -
 		// verify that CHOICE (not the default) survives a full-page navigation.
-		await page.goto(`${SVC_BASE_URL}/guides/getting-started/?svc-overlay`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/demo/guides/getting-started/?svc-overlay`, { waitUntil: 'networkidle' });
 		await page.waitForFunction(() => {
 			const host = document.querySelector('sl-customizer');
 			return !!(host && host.shadowRoot && host.shadowRoot.querySelector('.svc-panel'));
@@ -1281,12 +1281,12 @@ async function main() {
 	// `k1-specimen-defaults-{light,dark}.png`: the bare page (no tile interaction) so a reviewer has
 	// a stock baseline to compare every `k1-<control>-<option>.png` below against.
 	// `k1-<control>-<option>.png`: one screenshot per non-default option of each of the four new
-	// tile-bearing choice controls, on /specimen/ (where every one of them has a real target).
+	// tile-bearing choice controls, on /demo/specimen/ (where every one of them has a real target).
 	// State is set directly (same `setValue`/`encodeState` mechanism `treatments.mjs` trusts)
 	// rather than by clicking through the panel: the panel is a floating overlay that can occlude
 	// the very element being screenshotted, and its group/section might be collapsed - neither
 	// matters to what these screenshots need to show (the PAGE's own reaction to the control).
-	const SPECIMEN = `${SVC_BASE_URL}/specimen/?svc-overlay`;
+	const SPECIMEN = `${SVC_BASE_URL}/demo/specimen/?svc-overlay`;
 	const K_SCREENSHOT_VIEWPORT = { width: 1440, height: 900 };
 
 	/** @param {import('playwright-core').Page} page @param {string} url @param {any} state @param {'dark'|'light'} theme */
@@ -1318,7 +1318,7 @@ async function main() {
 	 * fixed-position overlay that would otherwise occlude part of the clip on a page this narrow).
 	 * `badgeStyle`'s own manifest `target` (`.sl-badge`, deliberately broad so targets.mjs/scroll-to
 	 * accept ANY badge) resolves via `document.querySelector` to the FIRST one in document order,
-	 * which on /specimen/ is a sidebar nav badge ("Updated" on the Changelog link) rather than the
+	 * which on /demo/specimen/ is a sidebar nav badge ("Updated" on the Changelog link) rather than the
 	 * "Default/Note/Tip/..." row in the page body - a real badge, but not a representative one for a
 	 * screenshot. `SCREENSHOT_CLIP` overrides the selector (and clips around the matched element's
 	 * PARENT, to also catch its sibling badges on the same line) for that one control only. */

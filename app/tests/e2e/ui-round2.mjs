@@ -77,7 +77,7 @@ async function run(browser) {
 	{
 		const page = await browser.newPage();
 		page.on('pageerror', (err) => console.log('[browser page error]', err.message));
-		await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+		await page.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 		await readyCustomizer(page);
 		const colorBeforePreset = await page.evaluate(() => {
 			const a = document.querySelector('.sl-markdown-content a');
@@ -136,7 +136,7 @@ async function run(browser) {
 	page.on('console', (msg) => {
 		if (msg.type() === 'error') console.log('[browser console error]', msg.text());
 	});
-	await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+	await page.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 	await readyCustomizer(page);
 
 	// ---- 2. filter regression: a filtered-out row is actually display:none (the shared [hidden]
@@ -252,7 +252,7 @@ async function run(browser) {
 	check('Typography added to persisted openGroups before navigating', (uiStateBefore.openGroups || []).includes('Typography'));
 	check('scrollTop (120) persisted before navigating', uiStateBefore.scrollTop === 120);
 
-	await page.goto(`${SVC_BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'load' });
+	await page.goto(`${SVC_BASE_URL}/demo/guides/getting-started/${OVERLAY}`, { waitUntil: 'load' });
 	await readyCustomizer(page);
 	const afterNav = await page.evaluate(() => {
 		const host = document.querySelector('sl-customizer');
@@ -267,7 +267,7 @@ async function run(browser) {
 	// assert the page scrolls to that control's `target` and the panel's own overlay lands on it.
 	// (No `/src/...` imports: those paths exist on the dev server only, not in a production build.)
 	{
-		await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
+		await page.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'load' });
 		await readyCustomizer(page);
 		await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');

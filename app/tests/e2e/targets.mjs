@@ -1,13 +1,13 @@
 // @ts-check
 /**
  * @file Verifies every control's `target` field contract: "Must match at least one element on
- * `/guides/kitchen-sink/` or (hero) `/`." For every row in `manifest.js`'s `controls`, this loads
+ * `/demo/guides/kitchen-sink/` or (hero) `/demo/`." For every row in `manifest.js`'s `controls`, this loads
  * both pages at a desktop viewport (wide enough that TOC-rail/header-grid/two-column controls -
  * gated behind Starlight's own 50rem/72rem breakpoints - actually render) and asserts
  * `document.querySelectorAll(target)` matches at least one *visible* element (non-zero bounding
  * box, not `display:none`/`visibility:hidden`) on at least one of the two pages. A control is not
  * required to be visible on both - hero-only controls (`content.heroAlign`) only ever match on
- * `/`, and a handful of "Page options" rows are legitimately hidden by the *default* preview
+ * `/demo/`, and a handful of "Page options" rows are legitimately hidden by the *default* preview
  * state (e.g. `page.credits` defaults off, so `footer .kudos` is `display:none` until toggled -
  * those rows use a selector list with a container fallback, see manifest.js).
  *
@@ -23,16 +23,14 @@ const EXECUTABLE_PATH =
 	process.env.SVC_CHROME_PATH ||
 	chromium.executablePath();
 
-// `?view` (studio design doc, item E) on the home page: astro.config.mjs's `/` -> `/studio/`
-// redirect only fires top-level with no `?view` in the URL - without it, this direct `page.goto`
-// would land on `/studio/` instead of the splash page hero-only targets need.
-// `/specimen/` added because several controls' targets
-// (Card/LinkButton/Badge, blockquote) are proven there explicitly, though most also happen to be
-// visible on kitchen-sink too.
+// The demo site's splash page now lives at `/demo/` - the site root `/` is just a tiny forwarder to
+// `/studio/` and has no hero markup of its own - so the hero-only targets load `/demo/` directly.
+// `/demo/specimen/` is added because several controls' targets (Card/LinkButton/Badge, blockquote)
+// are proven there explicitly, though most also happen to be visible on kitchen-sink too.
 // `svc-overlay`: a direct top-level visit no longer mounts a panel at all -
 // this suite reads raw page markup only (never the panel/shadow root), so it doesn't strictly need
 // the panel mounted, but keeping the flag here matches every other engine suite's URLs.
-const PAGES = [`${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`, `${SVC_BASE_URL}/?view&svc-overlay`, `${SVC_BASE_URL}/specimen/?svc-overlay`];
+const PAGES = [`${SVC_BASE_URL}/demo/guides/kitchen-sink/?svc-overlay`, `${SVC_BASE_URL}/demo/?svc-overlay`, `${SVC_BASE_URL}/demo/specimen/?svc-overlay`];
 
 const { controls } = await import('../../src/customizer/core/manifest.js');
 

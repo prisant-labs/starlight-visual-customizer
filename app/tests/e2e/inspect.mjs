@@ -143,7 +143,7 @@ async function main() {
 
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 	trackErrors(page);
-	await page.goto(`${SVC_BASE_URL}/studio/?page=specimen`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/studio/?page=/demo/specimen/`, { waitUntil: 'networkidle' });
 	await waitForPanelBody(page);
 	await page.waitForTimeout(300);
 
@@ -197,7 +197,7 @@ async function main() {
 
 		const frame = await getFrame(page, 'light');
 		const activeLink = await frameQuery(frame, 'nav.sidebar a[aria-current="page"]');
-		check('the active sidebar link exists on /specimen/', !!activeLink);
+		check('the active sidebar link exists on /demo/specimen/', !!activeLink);
 		await realMove(page, activeLink);
 
 		const hoverState = await waitForComputed(
@@ -266,7 +266,7 @@ async function main() {
 	{
 		const frame = await getFrame(page, 'light');
 		const h2 = await frameQuery(frame, '.sl-markdown-content h2');
-		check('an h2 exists on /specimen/', !!h2);
+		check('an h2 exists on /demo/specimen/', !!h2);
 		await realClick(page, h2);
 		const typographySelected = await waitForComputed(
 			() => page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-rail-item[data-group="Typography"]')?.getAttribute('aria-selected')),
@@ -289,7 +289,7 @@ async function main() {
 			);
 			check('clicking a code block selects the Code rail item', codeSelected === 'true', codeSelected);
 		} else {
-			check('a code block exists on /specimen/ to click', false, 'not found - skipped');
+			check('a code block exists on /demo/specimen/ to click', false, 'not found - skipped');
 		}
 
 		const callout = await frameQuery(frame, '.sl-markdown-content .starlight-aside, .sl-markdown-content aside');
@@ -303,7 +303,7 @@ async function main() {
 			const chipTitle = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-inspect-chip-title')?.textContent || '');
 			check('the chip names the Callouts section for a callout', chipTitle.includes('Callouts'), chipTitle);
 		} else {
-			check('a callout exists on /specimen/ to click', false, 'not found - skipped');
+			check('a callout exists on /demo/specimen/ to click', false, 'not found - skipped');
 		}
 	}
 

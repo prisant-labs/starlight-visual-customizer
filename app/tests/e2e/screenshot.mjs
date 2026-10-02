@@ -5,7 +5,7 @@
  * SCROLLED Document page (kitchen-sink) - the case that was blank in the left sidebar and right
  * "On this page" TOC before this fix (see `export.js`'s doc comment on `capturePageScreenshot` for
  * the root-cause writeup). Complements `editors.mjs`'s own coarser screenshot check, which exercises
- * "Style guide" (`/specimen/`) - a page with a fixed header but NO Starlight sidebar/right-TOC, so it
+ * "Style guide" (`/demo/specimen/`) - a page with a fixed header but NO Starlight sidebar/right-TOC, so it
  * never could have caught this bug; this suite targets kitchen-sink specifically because it has both.
  *
  * Needs a running server; start one first: `npm run build` then
@@ -600,7 +600,7 @@ async function main() {
 			if (msg.type() === 'error') errors.push(`[console error] ${msg.text()}`);
 		});
 
-		await page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/studio/?page=/demo/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		await page.waitForTimeout(300);
 

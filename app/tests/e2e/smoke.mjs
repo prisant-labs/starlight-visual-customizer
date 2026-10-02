@@ -53,7 +53,7 @@ async function main() {
 		if (msg.type() === 'error') console.log('[browser console error]', msg.text());
 	});
 
-	await page.goto(`${SVC_BASE_URL}/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/${OVERLAY}`, { waitUntil: 'networkidle' });
 
 	// ---- 1. panel exists in the shadow root ----------------------------------------------
 	const panelExists = await page.evaluate(() => {
@@ -140,7 +140,7 @@ async function main() {
 	);
 
 	// ---- 5. state persists across a full-page navigation ---------------------------------
-	await page.goto(`${SVC_BASE_URL}/guides/getting-started/${OVERLAY}`, { waitUntil: 'networkidle' });
+	await page.goto(`${SVC_BASE_URL}/demo/guides/getting-started/${OVERLAY}`, { waitUntil: 'networkidle' });
 	await page.waitForTimeout(250);
 	const persisted = await page.evaluate(() => {
 		const link = Array.from(document.querySelectorAll('.sidebar-content a')).find(

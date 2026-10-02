@@ -134,7 +134,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 1. Entry points (design doc item E) - unchanged from B.
+	// 1. Entry points (design doc item E), and the demo site's move under `/demo/`.
 	// =============================================================================================
 	{
 		const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -145,7 +145,7 @@ async function main() {
 		await page.waitForTimeout(300);
 
 		const frame = await getFrame(page);
-		check('studio shows /specimen/ in the frame by default', normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH)) === '/specimen/', frame.url());
+		check('studio shows /demo/specimen/ in the frame by default', normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH)) === '/demo/specimen/', frame.url());
 
 		const frameHasNoPanel = await frame.evaluate(() => !document.querySelector('sl-customizer')?.shadowRoot);
 		check('the frame never mounts its own panel', frameHasNoPanel);
@@ -153,13 +153,35 @@ async function main() {
 		const noPreloadInFrame = await frame.evaluate(() => !document.getElementById('svc-preload'));
 		check('no #svc-preload remains in the frame after attach', noPreloadInFrame);
 
+		// The site root is now a small Astro page that forwards to /studio/ with `location.replace`,
+		// carrying the query string and hash along - there is no longer a `?view` escape hatch.
 		await page.goto(`${SVC_BASE_URL}/`, { waitUntil: 'networkidle' });
 		await page.waitForTimeout(300);
-		check('/ redirects to /studio/', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/studio/', page.url());
+		check('/ forwards to /studio/', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/studio/', page.url());
 
-		await page.goto(`${SVC_BASE_URL}/?view`, { waitUntil: 'networkidle' });
+		// An old-style link to a page from before the demo moved under /demo/ (any path not under
+		// /demo/ and not /404/) still works: the studio loads it under /demo/ instead. Deliberately
+		// NOT /specimen/ here - that's also the default page (and, by this point, the studio's own
+		// persisted sessionStorage page from the visits above), so a check against it would pass even
+		// if the old-style rewrite were a no-op. /guides/kitchen-sink/ differs from both fallbacks.
+		await page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await waitForPanelBody(page);
+		const oldStyleFrame = await getFrame(page);
+		await oldStyleFrame.waitForLoadState('networkidle').catch(() => {});
 		await page.waitForTimeout(300);
-		check('/?view does not redirect', normalizePath(stripBase(new URL(page.url()).pathname, BASE_PATH)) === '/', page.url());
+		const oldStylePath = normalizePath(stripBase(new URL(oldStyleFrame.url()).pathname, BASE_PATH));
+		check('an old-style ?page=/guides/kitchen-sink/ link loads the studio with the preview showing /demo/guides/kitchen-sink/', oldStylePath === '/demo/guides/kitchen-sink/', oldStylePath);
+
+		// /demo/ is the demo site's splash page ("Landing" in the studio's own switcher).
+		await page.goto(`${SVC_BASE_URL}/demo/`, { waitUntil: 'networkidle' });
+		const demoTitle = await page.title();
+		check('/demo/ serves the splash page, titled "Welcome | Orbit Docs"', demoTitle === 'Welcome | Orbit Docs', demoTitle);
+
+		// Starlight's own header site-title link points at the base-aware /demo/, not /.
+		await page.goto(`${SVC_BASE_URL}/demo/specimen/`, { waitUntil: 'networkidle' });
+		const siteTitleHref = await page.evaluate(() => document.querySelector('a.site-title')?.getAttribute('href') ?? null);
+		const siteTitlePath = normalizePath(stripBase(new URL(siteTitleHref, page.url()).pathname, BASE_PATH));
+		check('the site-title link on /demo/specimen/ resolves to the base-aware /demo/', siteTitlePath === '/demo/', siteTitlePath);
 
 		await page.close();
 	}
@@ -305,8 +327,8 @@ async function main() {
 		// Tab-consolidation follow-up: Article, Short doc and Reference were dropped from the switcher
 		// (they share Document's `template: doc` layout) but stay in the demo site, reachable through
 		// its own sidebar - exercise that directly by clicking through to Article's old page
-		// (/resources/changelog/) via a REAL sidebar link click inside the frame, landing back on the
-		// switcher's existing "Other" state rather than a page.evaluate() href assignment.
+		// (/demo/resources/changelog/) via a REAL sidebar link click inside the frame, landing back on
+		// the switcher's existing "Other" state rather than a page.evaluate() href assignment.
 		await clickPageTab(page, 'Style guide');
 		await frame.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
 		await page.waitForTimeout(300);
@@ -326,20 +348,20 @@ async function main() {
 		});
 		check(
 			'reaching a page dropped from the switcher via a real sidebar link click shows "Other"',
-			otherInfo.otherHidden === false && otherInfo.otherText.includes('/resources/changelog/'),
+			otherInfo.otherHidden === false && otherInfo.otherText.includes('/demo/resources/changelog/'),
 			JSON.stringify(otherInfo)
 		);
 		check('no switcher segment is marked current for an unlisted page', !otherInfo.anyActive);
 	}
 
 	{
-		await page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await page.goto(`${SVC_BASE_URL}/studio/?page=/demo/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		frame = await getFrame(page);
 		await frame.waitForLoadState('networkidle').catch(() => {});
 		await page.waitForTimeout(300);
 		const restoredPath = normalizePath(stripBase(new URL(frame.url()).pathname, BASE_PATH));
-		check('?page= restores the frame after reload', restoredPath === '/guides/kitchen-sink/', restoredPath);
+		check('?page= restores the frame after reload', restoredPath === '/demo/guides/kitchen-sink/', restoredPath);
 	}
 
 	// =============================================================================================
@@ -518,7 +540,7 @@ async function main() {
 	{
 		const outsidePage = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 		trackErrors(outsidePage);
-		await outsidePage.goto(`${SVC_BASE_URL}/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await outsidePage.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		const noFlag = await outsidePage.evaluate(() => ({
 			hasShadowRoot: !!document.querySelector('sl-customizer')?.shadowRoot,
 			pill: document.getElementById('svc-open-in-studio-pill')?.getAttribute('href') ?? null,
@@ -526,7 +548,7 @@ async function main() {
 		check('a plain page visit mounts no panel', !noFlag.hasShadowRoot, JSON.stringify(noFlag));
 		check(
 			'the "Open in Studio" pill exists and links to /studio/?page=...',
-			noFlag.pill === `${withBase('/studio/', BASE_PATH)}?page=%2Fguides%2Fkitchen-sink%2F`,
+			noFlag.pill === `${withBase('/studio/', BASE_PATH)}?page=%2Fdemo%2Fguides%2Fkitchen-sink%2F`,
 			String(noFlag.pill)
 		);
 
@@ -552,7 +574,7 @@ async function main() {
 			outsidePage.url()
 		);
 
-		await outsidePage.goto(`${SVC_BASE_URL}/guides/kitchen-sink/?svc-overlay`, { waitUntil: 'networkidle' });
+		await outsidePage.goto(`${SVC_BASE_URL}/demo/guides/kitchen-sink/?svc-overlay`, { waitUntil: 'networkidle' });
 		const withFlag = await outsidePage.evaluate(() => ({
 			hasDrawer: !!document.querySelector('sl-customizer')?.shadowRoot?.querySelector('.svc-drawer, .svc-fab'),
 			pillExists: !!document.getElementById('svc-open-in-studio-pill'),
@@ -688,7 +710,7 @@ async function main() {
 	{
 		const f0page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 		trackErrors(f0page);
-		await f0page.goto(`${SVC_BASE_URL}/studio/?page=/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
+		await f0page.goto(`${SVC_BASE_URL}/studio/?page=/demo/guides/kitchen-sink/`, { waitUntil: 'networkidle' });
 		await waitForPanelBody(f0page);
 		await f0page.waitForTimeout(150);
 		await clickDevice(f0page, '1440px');

@@ -2,6 +2,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { fixtureSidebar } from './src/fixture-sidebar.mjs';
+import { demoSidebar } from './src/demo-site.mjs';
 
 // Sub-path support: the base to deploy under, e.g. `/starlight-visual-customizer/` for
 // a GitHub Pages project site at `https://<user>.github.io/<repo>/`. Defaults to `/` (today's
@@ -18,19 +19,6 @@ const siteBase = process.env.SVC_SITE_BASE || '/';
 // through `site`). Left unset (Astro's own default) unless provided.
 const siteUrl = process.env.SVC_SITE_URL || undefined;
 
-// Astro's own base-path normalization (trailingSlash left at its default, "ignore" - see
-// configuration-reference.mdx): `import.meta.env.BASE_URL` keeps a trailing slash only if `base`
-// itself has one, and never appends one that wasn't there. The two head scripts below are plain
-// STRINGS templated at config time (this file runs in Node, before any module import exists to
-// share `base-path.js`'s runtime helper with) - `baseNoTrailingSlash` mirrors that same helper's
-// `normalizeBase` exactly: `/` collapses to `''` so joining below never doubles a slash, and any
-// other base keeps its content minus a trailing slash.
-const baseNoTrailingSlash = siteBase === '/' ? '' : siteBase.replace(/\/$/, '');
-// The site's own root, base-aware: `/` at the default base, `/starlight-visual-customizer/`
-// under that sub-path - exactly what a top-level visit to the deployed root looks like either way.
-const rootPath = `${baseNoTrailingSlash}/`;
-const studioPath = `${baseNoTrailingSlash}/studio/`;
-
 // No-flash preload: a tiny, synchronous, blocking inline script. Starlight renders `head` entries
 // as the very first children of `<head>` (see
 // `node_modules/@astrojs/starlight/dist/components/Page.astro`, before `<ThemeProvider />` and
@@ -42,25 +30,6 @@ const studioPath = `${baseNoTrailingSlash}/studio/`;
 // break page load. (A `#svc=` share-link load still briefly shows the *stored* theme before
 // `panel.js` swaps to the hash-encoded one - acceptable, the hash case is rare and momentary.)
 const noFlashPreloadScript = `(function(){try{var c=localStorage.getItem('svc-css');if(c){var s=document.createElement('style');s.id='svc-preload';s.textContent=c;document.head.appendChild(s);}}catch(e){}})();`;
-
-// Studio entry point: a top-level visit to `/` redirects to `/studio/`, so opening the site lands
-// in the docked studio showing the specimen page by default. Guarded so the frame and "open in new
-// tab" links never redirect:
-//  - `window.self !== window.top` - true for ANY iframe embedding, not just studio.astro's preview
-//    frame specifically; there's no legitimate reason `/` should redirect when embedded in
-//    anything, and the broader check is simpler than matching `data-svc-preview` from here.
-//  - `pathname !== '/'` - only the bare splash route redirects; every other direct top-level visit
-//    (e.g. `/guides/kitchen-sink/`) keeps today's overlay panel, unchanged. Under a sub-path, "the
-//    bare splash route" is `rootPath` (the base itself, with its trailing slash), not literal `/` -
-//    templated in below rather than read at runtime, since this script runs before first paint and
-//    can't afford to wait on any module import.
-//  - `?view` - the escape hatch: the studio's own "open in new tab" links and the panel's "Undock"
-//    control append it when they need `/` to render normally at the top level.
-// `location.replace` (not `.href =`) so the momentary visit to `/` doesn't leave a back-button trap
-// that just redirects again. Runs in the SAME blocking `head` script slot as the no-flash preload
-// above, before first paint - Starlight renders `head` entries as the very first children of
-// `<head>` (see that script's own comment), so this can't itself cause a flash of the wrong page.
-const redirectToStudioScript = `(function(){try{if(window.self!==window.top)return;if(location.pathname!=='${rootPath}')return;if(new URLSearchParams(location.search).has('view'))return;location.replace('${studioPath}');}catch(e){}})();`;
 
 // https://astro.build/config
 export default defineConfig({
@@ -74,8 +43,10 @@ export default defineConfig({
 				// public launch. Remove once that decision is made.
 				{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } },
 				{ tag: 'script', content: noFlashPreloadScript },
-				{ tag: 'script', content: redirectToStudioScript },
 			],
+			// Points the header's site-title link at the demo's own home page (`/demo/`) rather than
+			// the site root, which belongs to the product page and the studio, not to the demo.
+			routeMiddleware: './src/route-data.js',
 			social: [
 				{
 					icon: 'github',
@@ -96,7 +67,9 @@ export default defineConfig({
 				Footer: './src/components/CustomizerFooter.astro',
 			},
 			credits: true,
-			sidebar: fixtureSidebar,
+			// Every demo page lives under `src/content/docs/demo/`, so the slugs gain a `demo/` prefix
+			// here. `fixtureSidebar` itself stays prefix-free; see `src/demo-site.mjs`.
+			sidebar: demoSidebar(fixtureSidebar),
 		}),
 	],
 });

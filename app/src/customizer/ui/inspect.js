@@ -97,7 +97,7 @@ function docMatchCount(doc, target) {
  * fewest other elements on the page its own target matches) is more specific - a broad, shared
  * target like accent hue's (matches every link on the page) loses to a narrow one like an
  * active-item style (matches only the current item). Verified empirically against four
- * representative elements on `/specimen/` (active sidebar link -> Sidebar, an h2 -> Typography, a
+ * representative elements on `/demo/specimen/` (active sidebar link -> Sidebar, an h2 -> Typography, a
  * code block -> Code, a callout -> Content) before writing this, not guessed.
  * @param {import('../core/manifest.js').Control[]} scope @param {Document} doc
  * @returns {string}

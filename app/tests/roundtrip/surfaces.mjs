@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * @file ~40 key surfaces checked on both `/specimen/` and `/guides/kitchen-sink/`, light + dark.
+ * @file ~40 key surfaces checked on both `/demo/specimen/` and `/demo/guides/kitchen-sink/`, light + dark.
  * Selectors are taken verbatim from `src/customizer/core/manifest.js`'s own `target` fields (and
  * `treatments.js` probes) wherever a control governs that surface, so the comparison probes the
  * exact same DOM hooks the customizer itself claims to control. A `pages` filter restricts a
