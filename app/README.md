@@ -245,7 +245,7 @@ The 13 e2e suites, run one at a time in this order (`home && smoke && ui-round2 
 
 | Suite | Covers | Checks |
 |---|---|---|
-| `home.mjs` | The product page at `/`: it renders instead of forwarding, keeps `noindex`, makes no third-party request and loads its self-hosted Inter font, has base-aware links that reach a working studio, swaps screenshots on a real tab click, shows one chip per preset in `presets.js` order, has no horizontal scroll at 375px, and forwards a root link carrying `#svc=` (with `?page=`) to the studio, which applies the shared theme | 25 |
+| `home.mjs` | The product page at `/`: it renders instead of forwarding, keeps `noindex`, makes no third-party request and loads its self-hosted Inter font, has base-aware links that reach a working studio, swaps screenshots on a real tab click, shows one chip per preset in `presets.js` order, carries the social preview card tags (L-01: `og:image` as an absolute TOOL_URL-based URL, `twitter:card`) and the local preview actually serves `og.png` as `image/png`, has no horizontal scroll at 375px, and forwards a root link carrying `#svc=` (with `?page=`) to the studio, which applies the shared theme | 29 |
 | `smoke.mjs` | Panel mounts; a control and a preset visibly recolor the page; an IA rename persists | 11 |
 | `ui-round2.mjs` | No-flash preload CSS; the filter; the overlay's Navigation tree; panel UI state persisting across navigation; "follow on page" | 22 |
 | `treatments.mjs` | Every treatment control's computed-style effect, light + dark | 129 |
