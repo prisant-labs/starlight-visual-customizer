@@ -110,8 +110,8 @@ async function main() {
 		check('the self-hosted Inter font loads', interLoaded);
 		const title = await page.title();
 		check('the page title is "Starlight Visual Customizer"', title === 'Starlight Visual Customizer', title);
-		const robots = await page.getAttribute('meta[name="robots"]', 'content');
-		check('the page keeps noindex until launch', robots === 'noindex', String(robots));
+		const robots = await page.evaluate(() => document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? null);
+		check('the page carries no robots meta', robots === null, String(robots));
 
 		// L-01 (social preview card): the product page's og:image is an absolute URL built from
 		// TOOL_URL, not a relative one - Discord, Reddit and Slack all need it absolute - and

@@ -106,7 +106,7 @@ real click blurs a focused field, and a scripted click does not.
 
 **`home.mjs`** checks the product page at `/`:
 
-- It renders instead of forwarding, and it keeps `noindex`.
+- It renders instead of forwarding, and it carries no robots meta.
 - It makes no third-party request, and it loads its self-hosted Inter font.
 - Its links respect the base path and reach a working studio.
 - A real tab click swaps the screenshots.
