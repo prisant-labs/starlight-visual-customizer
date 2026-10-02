@@ -54,7 +54,10 @@ The prose lives in `src/about/about.md`; edit that file to change it. `src/about
 - **The About dialog** - the top bar's info button opens it in the studio as a native modal `<dialog>` (`src/pages/studio.astro`). Escape, the close button, and a click on the backdrop close it; its external links open in a new tab; the studio's keyboard shortcuts (and Inspect's `I`/Escape) stand down while it is open.
 - **The `/about/` page** - the same text as a standalone page, for direct links and sharing (`src/pages/about.astro`), with base-aware "Open the studio" links. It is deliberately not a Starlight content page: a page in `src/content/docs/` would join the demo site, pick up the visitor's current theme preview through the no-flash preload, and appear in the demo site's sidebar and search.
 
-The repo and hub URLs live in one module, `src/customizer/core/project.js`.
+The repo and hub URLs live in one module, `src/customizer/core/project.js`, which also exports
+`TOOL_URL` (the product page) - both `emit-css.js`'s `theme.css` header and `emit-apply.js`'s
+`APPLY-THEME.md` closing line link back to it, so every adopter's repo carries a path back to the
+tool.
 
 ### Export and import
 

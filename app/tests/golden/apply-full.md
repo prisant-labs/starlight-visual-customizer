@@ -96,3 +96,5 @@ Files touched by these steps (revert with `git checkout -- <file>` or `git diff`
 - `astro.config.mjs` (or `.ts`): `customCss` entry, config options, and `sidebar`
 - `package.json` / `package-lock.json`: Fontsource packages added via `npm i` (run `npm uninstall <pkg>` for each to fully roll back)
 - Frontmatter in 1 content file under `src/content/docs/` (listed in the sidebar step above)
+
+Generated with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/

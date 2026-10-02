@@ -34,6 +34,7 @@ import { getValue } from './state.js';
 import { getPalettes } from './color.js';
 import { treatments, globalRadiusHooks } from './treatments.js';
 import { STARLIGHT_VERSION } from './version.js';
+import { TOOL_URL } from './project.js';
 
 /** @type {Map<string, import('./manifest.js').Control>} */
 const controlsById = new Map(controls.map((c) => [c.id, c]));
@@ -727,7 +728,7 @@ function buildPreviewApprox(state) {
  *   produces byte-identical output.
  */
 export function emitCss(state, { forPreview = false } = {}) {
-	const header = `/*\n * Starlight Visual Customizer\n * Target: Starlight ${STARLIGHT_VERSION} (@astrojs/starlight)\n * Load via the \`customCss\` option in astro.config.mjs.\n * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.\n */`;
+	const header = `/*\n * Starlight Visual Customizer\n * Target: Starlight ${STARLIGHT_VERSION} (@astrojs/starlight)\n * Load via the \`customCss\` option in astro.config.mjs.\n * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.\n * Made with the Starlight Visual Customizer: ${TOOL_URL}\n */`;
 
 	const { block: rootBlock, palette } = buildRootTokens(state);
 	const typographyMedia = buildTypographyMediaBlock(state);
