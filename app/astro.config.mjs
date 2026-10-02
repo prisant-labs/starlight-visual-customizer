@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import { fixtureSidebar } from './src/fixture-sidebar.mjs';
 import { demoSidebar } from './src/demo-site.mjs';
+import { TOOL_URL } from './src/customizer/core/project.js';
 
 // Sub-path support: the base to deploy under, e.g. `/starlight-visual-customizer/` for
 // a GitHub Pages project site at `https://<user>.github.io/<repo>/`. Defaults to `/` (today's
@@ -43,6 +44,12 @@ export default defineConfig({
 				// public launch. Remove once that decision is made.
 				{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } },
 				{ tag: 'script', content: noFlashPreloadScript },
+				// L-01 (social preview card): applies to every demo page too, so a link to any of
+				// them also renders a large image card. og:title/og:description/og:url are left to
+				// Starlight's own per-page <title>/<meta description>/canonical, which already vary
+				// correctly by page; only the image and the card type need adding here.
+				{ tag: 'meta', attrs: { property: 'og:image', content: `${TOOL_URL}og.png` } },
+				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
 			],
 			// Points the header's site-title link at the demo's own home page (`/demo/`) rather than
 			// the site root, which belongs to the product page and the studio, not to the demo.
