@@ -22,16 +22,19 @@ export async function launch() {
 }
 
 /**
- * Seeds the app's live-preview localStorage exactly the way a real user reaches that state: load
- * the overlay-flagged page with the state encoded in the `#svc=` hash (`panel.js`'s
- * `loadInitialState`: hash wins over localStorage), let `initCustomizer` run to completion (it
- * persists `svc-state` AND `svc-css` via `persistPreviewCss()` at the end of init), then poll until
- * `svc-state` matches. This uses the app's own real code path end to end (including the private
- * CDN `fontFaceCss` baked into `svc-css`) instead of reimplementing it.
+ * Seeds the app's live-preview localStorage exactly the way a real user reaches that state: a new
+ * visitor (nothing saved) opens the overlay-flagged page with the state encoded in the `#svc=`
+ * hash, `initCustomizer` runs to completion (it persists `svc-state` AND `svc-css` via
+ * `persistPreviewCss()` at the end of init), then this polls until `svc-state` matches. This uses
+ * the app's own real code path end to end (including the private CDN `fontFaceCss` baked into
+ * `svc-css`) instead of reimplementing it. Storage is cleared first: a share link no longer
+ * replaces a different saved theme without asking (`core/share-link.js`), so seeding over the
+ * previous theme would stop at the "Open the shared theme?" question.
  * @param {import('playwright-core').Page} page
  * @param {string} encodedState
  */
 export async function seedAppState(page, encodedState) {
+	await clearAppState(page);
 	await page.goto(`${BASE_ORIGIN}/demo/specimen/?svc-overlay#svc=${encodedState}`, { waitUntil: 'load' });
 	await page.waitForFunction((expected) => localStorage.getItem('svc-state') === expected, encodedState, { timeout: 15000 });
 	await page.waitForFunction(() => {

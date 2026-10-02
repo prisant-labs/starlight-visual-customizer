@@ -225,8 +225,11 @@ async function main() {
 
 	/** @type {Record<string, any>} */
 	const allResults = {};
+	// Declared outside the try so `finally` can close it: an open browser keeps this process alive
+	// after a failure, which once made a timeout look like a 30-minute hang.
+	let browser = null;
 	try {
-		const browser = await launch();
+		browser = await launch();
 		const context = await browser.newContext({ viewport: VIEWPORT });
 		const page = await context.newPage();
 
@@ -241,8 +244,8 @@ async function main() {
 			allResults[name] = await compareOnBrowser(page, name, fontFamiliesForState(state), encodeState(state));
 		}
 
-		await browser.close();
 	} finally {
+		await browser?.close().catch(() => {});
 		console.log('\n--- Stopping fresh site preview ---');
 		stopFreshPreview();
 	}
