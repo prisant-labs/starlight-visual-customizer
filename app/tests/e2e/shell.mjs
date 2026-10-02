@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * @file Acceptance suite for the studio SHELL (rail, panel column, toolbar,
- * context line, scaling, Split, status bar, history, theme name/save status, contrast floors).
+ * context line, scaling, Split, the top bar's change count and the context line's contrast check, history, theme name/save status, contrast floors).
  * Complements `studio.mjs` (frame-targeting/page-switcher/device/follow-on-page regression checks,
  * adapted for the new DOM) rather than duplicating it.
  *
@@ -723,6 +723,11 @@ async function main() {
 
 			const ACCENT = { r: 68, g: 83, b: 201 }; // --ui-accent #4453c9
 			const MUTED = { r: 86, g: 96, b: 114 }; // --ui-muted #566072
+			// Status text (studio.astro's --ui-ok and --ui-warn: the context line's contrast check and
+			// the top bar's save-failure text) is held to WCAG AA's 4.5:1, like muted text. The bottom
+			// status bar it replaced showed the same information in --ui-muted.
+			const OK = { r: 23, g: 112, b: 58 }; // --ui-ok #17703a
+			const WARN = { r: 138, g: 83, b: 0 }; // --ui-warn #8a5300
 
 			const host = document.querySelector('sl-customizer');
 			const hostEls = collect(document.body, null);
@@ -738,7 +743,7 @@ async function main() {
 				if (!textColor) continue;
 				const bgColor = firstOpaqueBg(el);
 				const r = ratio(textColor, bgColor);
-				const floor = closeColor(bgColor, ACCENT) || closeColor(textColor, MUTED) ? 4.5 : 7;
+				const floor = closeColor(bgColor, ACCENT) || closeColor(textColor, MUTED) || closeColor(textColor, OK, 2) || closeColor(textColor, WARN, 2) ? 4.5 : 7;
 				if (r < minRatio) {
 					minRatio = r;
 					minRow = { text: (el.textContent || '').trim().slice(0, 40), tag: el.tagName, cls: el.className, ratio: r, floor };
@@ -886,14 +891,55 @@ async function main() {
 			input.dispatchEvent(new Event('change', { bubbles: true }));
 		});
 		await page.waitForTimeout(150);
-		const saveStatus = await page.evaluate(() => document.getElementById('svc-save-status').textContent);
-		check('save status shows "Saved locally" after a change', saveStatus.includes('Saved locally'), saveStatus);
+		const saveStatus = await page.evaluate(() => {
+			const el = document.getElementById('svc-save-status');
+			return { hidden: el.hidden, shown: el.getClientRects().length > 0 };
+		});
+		check('the save status stays hidden while saving works (no "Saved locally" text)', saveStatus.hidden && !saveStatus.shown, JSON.stringify(saveStatus));
 
 		await page.reload({ waitUntil: 'networkidle' });
 		await waitForPanelBody(page);
 		await page.waitForTimeout(300);
 		const nameAfterReload = await page.evaluate(() => document.getElementById('svc-theme-name').value);
 		check('the theme name survives a reload', nameAfterReload === 'Shell Suite Theme', nameAfterReload);
+	}
+
+	// S13: when storage is blocked, the failure text appears right after the theme name, ahead of
+	// undo and redo (T2b), and it shortens rather than disappears in a narrow window.
+	{
+		const blockedCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+		await blockedCtx.addInitScript(() => {
+			const orig = Storage.prototype.setItem;
+			Storage.prototype.setItem = function (key, value) {
+				if (this === window.localStorage && key !== 'starlight-theme') throw new DOMException('blocked', 'QuotaExceededError');
+				return orig.call(this, key, value);
+			};
+		});
+		const blocked = await blockedCtx.newPage();
+		trackErrors(blocked);
+		await blocked.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+		await waitForPanelBody(blocked);
+		await blocked.evaluate(() => {
+			const input = document.getElementById('svc-theme-name');
+			input.value = 'Blocked Storage';
+			input.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		const fail = await waitForComputed(
+			() =>
+				blocked.evaluate(() => {
+					const el = document.getElementById('svc-save-status');
+					const r = (id) => document.getElementById(id).getBoundingClientRect();
+					return { text: el.innerText.trim(), shown: el.getClientRects().length > 0, name: r('svc-theme-name').right, saveLeft: el.getBoundingClientRect().left, saveRight: el.getBoundingClientRect().right, undo: r('svc-undo').left };
+				}),
+			(v) => v.shown
+		);
+		check('blocked storage shows "Not saved (storage blocked)"', fail.shown && fail.text === 'Not saved (storage blocked)', JSON.stringify(fail));
+		check('the failure text sits between the theme name and undo', fail.name <= fail.saveLeft + 0.5 && fail.saveRight <= fail.undo + 0.5, JSON.stringify(fail));
+		await blocked.setViewportSize({ width: 600, height: 800 });
+		await blocked.waitForTimeout(200);
+		const narrowText = await blocked.evaluate(() => document.getElementById('svc-save-status').innerText.trim());
+		check('below 720px the failure text shortens to "Not saved" instead of disappearing', narrowText === 'Not saved', narrowText);
+		await blockedCtx.close();
 	}
 
 	// =============================================================================================
@@ -1031,11 +1077,13 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// S12: status bar count + contrast warning when a role override breaks AA
+	// S12: the top bar's change count + the context line's contrast check (the bottom status bar
+	// that used to hold both is gone)
 	// =============================================================================================
 	{
-		const countBefore = await page.evaluate(() => document.getElementById('svc-status-left').textContent);
-		check('status bar starts at 0 changes', countBefore.startsWith('0 '), countBefore);
+		check('there is no bottom status bar', !(await lightQuery(page, '#svc-statusbar')));
+		const countBefore = await page.evaluate(() => document.getElementById('svc-change-count').textContent);
+		check('the change count starts at "0 changes"', countBefore === '0 changes', countBefore);
 
 		await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');
@@ -1045,13 +1093,16 @@ async function main() {
 		});
 		// scheduleApply is rAF-debounced (panel.js) - poll rather than a fixed sleep.
 		const countAfter = await waitForComputed(
-			() => page.evaluate(() => document.getElementById('svc-status-left').textContent),
+			() => page.evaluate(() => document.getElementById('svc-change-count').textContent),
 			(t) => t.startsWith('1 ')
 		);
-		check('status bar count increments after a change', countAfter.startsWith('1 '), countAfter);
+		check('the change count reads "1 change" after a change', countAfter === '1 change', countAfter);
 
-		const contrastMidBefore = await page.evaluate(() => document.getElementById('svc-status-mid').textContent);
-		check('status bar shows AA pass with no overrides breaking contrast', contrastMidBefore.includes('meet AA'), contrastMidBefore);
+		const contrastBefore = await page.evaluate(() => {
+			const el = document.getElementById('svc-contrast-status');
+			return { text: el.textContent.trim(), color: getComputedStyle(el).color, inContext: !!el.closest('#svc-context-line') };
+		});
+		check('the context line shows "Contrast AA" in green with no overrides breaking contrast', contrastBefore.text === 'Contrast AA' && contrastBefore.color === 'rgb(23, 112, 58)' && contrastBefore.inContext, JSON.stringify(contrastBefore));
 
 		// Break AA: set the link role override to nearly the same color as the page background.
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Colors'));
@@ -1070,12 +1121,12 @@ async function main() {
 			hexInput.dispatchEvent(new Event('blur'));
 		});
 		const midAfterBreak = await waitForComputed(
-			() => page.evaluate(() => document.getElementById('svc-status-mid').textContent),
+			() => page.evaluate(() => document.getElementById('svc-contrast-status').textContent),
 			(t) => t.includes('warning')
 		);
-		const midWarnClass = await page.evaluate(() => document.getElementById('svc-status-mid').classList.contains('svc-status-warn'));
-		check('status bar shows a contrast warning once a role override breaks AA', midAfterBreak.includes('warning'), midAfterBreak);
-		check('the warning state carries the warn styling class', midWarnClass);
+		const warnColor = await page.evaluate(() => getComputedStyle(document.getElementById('svc-contrast-status')).color);
+		check('the contrast check shows a warning once a role override breaks AA', midAfterBreak.includes('warning'), midAfterBreak);
+		check('the warning state is amber text', warnColor === 'rgb(138, 83, 0)', warnColor);
 
 		// Reset all to leave a clean baseline for later sections.
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.getState());
@@ -1094,8 +1145,13 @@ async function main() {
 	}
 
 	{
-		await realClick(page, await lightQuery(page, '#svc-status-mid'));
+		await realClick(page, await lightQuery(page, '#svc-contrast-status'));
 		await page.waitForTimeout(200);
+		const contrastDialogOpen = await page.evaluate(() => {
+			const d = document.querySelector('sl-customizer').shadowRoot.querySelector('.svc-contrast-dialog-table');
+			return !!d && d.getClientRects().length > 0;
+		});
+		check('clicking the contrast check opens the contrast table', contrastDialogOpen);
 		await page.screenshot({ path: path.join(SCREENSHOTS_DIR, 'c1-contrast-dialog.png') });
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
@@ -1616,7 +1672,24 @@ async function main() {
 
 	// The top bar sheds text (brand name, save status, button labels) as the window narrows, but it
 	// never overflows, and Export, About and GitHub stay on screen at any width.
-	for (const width of [1280, 820, 600, 390]) {
+	// T2b: undo and redo sit before the change count, so a count that grows from one digit to two
+	// never shifts them (the defect that ruled out T3).
+	{
+		const stable = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+		trackErrors(stable);
+		await stable.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
+		await waitForPanelBody(stable);
+		const xs = () => stable.evaluate(() => ['svc-undo', 'svc-redo'].map((id) => Math.round(document.getElementById(id).getBoundingClientRect().left * 10) / 10));
+		const before = await xs();
+		await stable.evaluate(() => document.querySelector('sl-customizer').__svc.openGroup('Presets', { scroll: false }));
+		await realClick(stable, await shadowQueryByText(stable, '.svc-preset-card', 'Editorial Serif'));
+		const count = await waitForComputed(() => stable.evaluate(() => document.getElementById('svc-change-count').textContent), (t) => /^\d\d+ /.test(t));
+		const after = await xs();
+		check('undo and redo keep their position when the count grows to two digits', before.join() === after.join() && /^\d\d+ /.test(count), JSON.stringify({ before, after, count }));
+		await stable.close();
+	}
+
+	for (const width of [1280, 1024, 820, 600, 390]) {
 		const narrow = await browser.newPage({ viewport: { width, height: 800 } });
 		trackErrors(narrow);
 		await narrow.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });

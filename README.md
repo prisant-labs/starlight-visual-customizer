@@ -23,8 +23,8 @@ pages, in light mode and dark mode.
   blocks and the footer each have their own controls.
 - **See your theme on real pages.** The preview is an actual Starlight build in a frame, not a
   mockup. Switch between a style guide, a long document, a landing page and the 404 page.
-- **Check light and dark together.** Split view shows both modes side by side. The status bar
-  reports whether text color pairs meet WCAG AA contrast in both modes.
+- **Check light and dark together.** Split view shows both modes side by side. The contrast check
+  above the preview reports whether text color pairs meet WCAG AA contrast in both modes.
 - **Find the control for any element.** Turn on Inspect, then click an element on the page to
   open the controls that style it.
 - **Preview at real sizes.** Device widths run from a 390-pixel phone to a 2560-pixel ultra-wide

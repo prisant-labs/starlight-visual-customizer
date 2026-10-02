@@ -12,7 +12,7 @@
  *  - **Overlay** (a direct page visit carrying the `?svc-overlay` escape hatch): the floating
  *    drawer/FAB, the accordion group list, the sun/moon toggle.
  *  - **Studio** (`/studio/`): a rail (tablist) + panel column (tabpanel) replace the drawer.
- *    `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage, status bar)
+ *    `studio.js` builds the REST of the shell (top bar, toolbar, context line, stage)
  *    in the studio's own light DOM and talks to this module through a small controller this file
  *    sets on the host element, `host.__svc` (see its assignment below for the full surface).
  *    Putting the rail INSIDE this shadow root (rather than in studio.js's light DOM) keeps the
@@ -363,7 +363,7 @@ function initCustomizer(host) {
 	const history = createHistory({ limit: 100, coalesceMs: 650 });
 	let historyStepCounter = 0;
 	const distinctHistoryKey = (prefix) => `${prefix}:${historyStepCounter++}`;
-	/** @type {Set<() => void>} Notified after every state-affecting change - studio.js's status bar/
+	/** @type {Set<() => void>} Notified after every state-affecting change - studio.js's top bar and contrast check/
 	 * undo-redo buttons/save status subscribe via `host.__svc.subscribe`. */
 	const subscribers = new Set();
 	function notifySubscribers() {
@@ -649,7 +649,7 @@ function initCustomizer(host) {
 		onImportState: importStateFromJson,
 	});
 	shadow.appendChild(exportDialog.root);
-	// The status bar's contrast-warnings dialog lives here (not in studio.js's light
+	// The contrast-warnings dialog (opened from the context line's contrast check) lives here (not in studio.js's light
 	// DOM) so it can reuse this shadow root's `.svc-dialog*` CSS - a dialog built in light DOM would
 	// have no styling at all (styles.js's stylesheet only applies inside this shadow root).
 	const contrastDialog = createContrastDialog();
@@ -1497,7 +1497,7 @@ function fontFaceCss(state) {
 // studio.astro's own document is kept cascade-identical to the previewed page for exactly those
 // tokens (same base props.css, same emitted theme CSS via `hostSheet`, `data-theme` kept in sync
 // with the primary lane's). Reading `document` here is correct in both modes and avoids a
-// cross-document computed-style read entirely. The status-bar contrast report also uses
+// cross-document computed-style read entirely. The context line's contrast check also uses
 // this (with an explicit themeOverride for BOTH modes) rather than re-deriving Starlight's cascade
 // by hand - see STATUS_CONTRAST_PAIRS's comment.
 function resolveCssColor(cssProperty, cssValue, themeOverride) {

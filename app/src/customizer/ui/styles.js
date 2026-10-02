@@ -1161,7 +1161,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-font-radio { accent-color: var(--ui-accent); }
 :host([data-docked='true']) .svc-font-row-name { color: var(--ui-ink); }
 
-/* ---- Contrast readout + status bar's contrast dialog, restyled light ---- */
+/* ---- Contrast readout + the contrast-warnings dialog, restyled light ---- */
 :host([data-docked='true']) .svc-contrast { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-contrast h4 { color: var(--ui-muted); }
 :host([data-docked='true']) .svc-pass { background: transparent; color: var(--ui-pass); padding: 0; font-weight: 700; }
@@ -1200,7 +1200,7 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 :host([data-docked='true']) .svc-structure-toolbar .svc-ia-btn { color: var(--ui-ink); }
 :host([data-docked='true']) .svc-structure-toolbar .svc-ia-btn:disabled { color: var(--ui-muted); background: var(--ui-bg); border-color: var(--ui-line); opacity: 1; }
 
-/* ---- Contrast warnings dialog (status bar, S12) ---- */
+/* ---- Contrast warnings dialog (opened from the context line's contrast check) ---- */
 .svc-contrast-dialog-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .svc-contrast-dialog-table th, .svc-contrast-dialog-table td { text-align: start; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--ui-line); vertical-align: middle; }
 .svc-contrast-dialog-swatch { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 3px; border: 1px solid var(--ui-line); vertical-align: middle; margin-inline-end: 0.25rem; }

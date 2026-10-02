@@ -1302,7 +1302,7 @@ export function createContrastBlock() {
 }
 
 /**
- * The status bar's contrast-warnings dialog (a table: mode, pair, swatches, ratio,
+ * The contrast-warnings dialog (opened from the context line's contrast check) (a table: mode, pair, swatches, ratio,
  * target, pass/fail). Built in `controls.js` (not `studio.js`, which lives in the studio's light
  * DOM) so it can reuse the SAME `.svc-dialog*` shadow-DOM CSS `export.js`'s dialog already has -
  * appended into `panel.js`'s shadow root, alongside the export dialog.
