@@ -17,10 +17,12 @@
  * true when a preset changes. The four screenshots are not: recapture them in
  * `src/assets/home/` when the studio's look changes.
  *
- * Text uses the system font stack on purpose. The design mockup loaded Inter from Google Fonts,
- * and the About page tells visitors that the only third-party requests are web-font previews from
- * jsDelivr.
+ * Text is set in Inter, self-hosted from the `@fontsource-variable/inter` package: Astro bundles
+ * its font files into the build, so the page makes no third-party request. The design mockup loaded
+ * Inter from Google Fonts instead, but the About page tells visitors that the only third-party
+ * requests are web-font previews from jsDelivr.
  */
+import '@fontsource-variable/inter';
 import { Image } from 'astro:assets';
 import { withBase } from '../customizer/core/base-path.js';
 import { REPO_URL, HUB_URL } from '../customizer/core/project.js';
@@ -95,7 +97,7 @@ const presetCount = COUNT_WORDS[presets.length] ?? String(presets.length);
 					radial-gradient(700px 500px at 0% 10%, rgba(23, 23, 121, 0.5), transparent 70%),
 					var(--bg);
 				color: var(--ink);
-				font: 400 17px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+				font: 400 17px/1.6 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 			}
 			a { color: inherit; }
 			:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 4px; }

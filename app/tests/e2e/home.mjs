@@ -91,9 +91,22 @@ async function main() {
 	{
 		const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 		trackErrors(page);
+		const requestUrls = [];
+		page.on('request', (req) => requestUrls.push(req.url()));
 		await page.goto(`${SVC_BASE_URL}/`, { waitUntil: 'networkidle' });
 
 		check('/ renders the product page instead of forwarding', appPath(page.url()) === '/', page.url());
+
+		// The About page tells visitors the only third-party requests are web-font previews from
+		// jsDelivr, so the product page must make none: its Inter font is self-hosted.
+		const origin = new URL(SVC_BASE_URL).origin;
+		const thirdParty = requestUrls.filter((u) => /^https?:/.test(u) && new URL(u).origin !== origin);
+		check('the page makes no third-party requests', thirdParty.length === 0, thirdParty.join(', '));
+		const interLoaded = await page.evaluate(async () => {
+			await document.fonts.ready;
+			return [...document.fonts].some((f) => f.family.replace(/["']/g, '') === 'Inter Variable' && f.status === 'loaded');
+		});
+		check('the self-hosted Inter font loads', interLoaded);
 		const title = await page.title();
 		check('the page title is "Starlight Visual Customizer"', title === 'Starlight Visual Customizer', title);
 		const robots = await page.getAttribute('meta[name="robots"]', 'content');

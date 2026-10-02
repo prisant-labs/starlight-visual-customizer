@@ -46,7 +46,7 @@ Below 900px wide the panel column becomes a drawer over the workarea, toggled fr
 
 `src/pages/index.astro` explains the tool and links to the studio, the About page, and the repo. Four tabs swap a screenshot of the studio between presets, and a strip below shows one color chip per preset. The chips, the preset count in the strip's heading, and the tab dots are computed at build time from `core/presets.js` through `getPresetLightPalette` in `core/color.js`, the function the studio's preset cards use, so they follow any preset change. The screenshots do not: they are PNG files in `src/assets/home/`, which Astro converts to WebP at three widths, so recapture them when the studio's look changes. The logo is `public/logo.svg`, a work-in-progress mark that the branding work may replace.
 
-A root link that carries a shared theme (`/#svc=...`) still opens it: an inline script in the page's head forwards such a link to `/studio/`, with its query string and hash, before the page paints. The page uses the system font stack rather than a hosted web font, because the About page tells visitors that the only third-party requests are web-font previews from jsDelivr. It keeps `noindex` until launch, like every other page.
+A root link that carries a shared theme (`/#svc=...`) still opens it: an inline script in the page's head forwards such a link to `/studio/`, with its query string and hash, before the page paints. The page sets its text in Inter, self-hosted from the `@fontsource-variable/inter` package: Astro bundles the font files into the build, and only this page's stylesheet loads them. No font comes from Google Fonts or any other host, because the About page tells visitors that the only third-party requests are web-font previews from jsDelivr. It keeps `noindex` until launch, like every other page.
 
 ### About (dialog and `/about/`)
 
@@ -237,7 +237,7 @@ The 11 e2e suites, run one at a time in this order (`home && smoke && ui-round2 
 
 | Suite | Covers | Checks |
 |---|---|---|
-| `home.mjs` | The product page at `/`: it renders instead of forwarding, keeps `noindex`, has base-aware links that reach a working studio, swaps screenshots on a real tab click, shows one chip per preset in `presets.js` order, has no horizontal scroll at 375px, and forwards a root link carrying `#svc=` (with `?page=`) to the studio, which applies the shared theme | 23 |
+| `home.mjs` | The product page at `/`: it renders instead of forwarding, keeps `noindex`, makes no third-party request and loads its self-hosted Inter font, has base-aware links that reach a working studio, swaps screenshots on a real tab click, shows one chip per preset in `presets.js` order, has no horizontal scroll at 375px, and forwards a root link carrying `#svc=` (with `?page=`) to the studio, which applies the shared theme | 25 |
 | `smoke.mjs` | Panel mounts; a control and a preset visibly recolor the page; an IA rename persists | 11 |
 | `ui-round2.mjs` | No-flash preload CSS; the filter; the overlay's Navigation tree; panel UI state persisting across navigation; "follow on page" | 22 |
 | `treatments.mjs` | Every treatment control's computed-style effect, light + dark | 129 |
