@@ -14,6 +14,7 @@ Full license text for each license family appears once, in [Appendix: full licen
 |---|---|---|---|
 | [astro](https://github.com/withastro/astro) | 7.3.5 | MIT | (c) 2021 Fred K. Schott |
 | [@astrojs/starlight](https://github.com/withastro/starlight) | 0.42.4 | MIT | (c) 2023 [Astro contributors](https://github.com/withastro/starlight/graphs/contributors) |
+| [@fontsource-variable/inter](https://github.com/fontsource/font-files) (the [Inter](https://github.com/rsms/inter) typeface) | 5.3.0 | SIL Open Font License 1.1 | (c) 2016 The Inter Project Authors |
 | [culori](https://github.com/Evercoder/culori) | 4.0.2 | MIT | (c) 2018 Dan Burzo |
 | [fflate](https://github.com/101arrowz/fflate) | 0.8.3 | MIT | (c) Arjun Barrett |
 | [modern-screenshot](https://github.com/qq15725/modern-screenshot) | 4.7.0 | MIT | (c) 2021-present wxm |
@@ -24,6 +25,10 @@ Notes:
 
 - `astro`, `@astrojs/starlight`, `culori`, `fflate`, `modern-screenshot`, and `vanilla-colorful`
   ship in the built site (`app/dist/`) or run in the browser as part of the customizer.
+- `@fontsource-variable/inter` ships Inter's variable font files (WOFF2, one per character subset)
+  into `app/dist/_astro/`. Only the product page (`app/src/pages/index.astro`) loads them, from
+  this site's own origin. Entry verified on 2026-10-02 against
+  `app/node_modules/@fontsource-variable/inter/LICENSE`. The appendix links the OFL text.
 - `sharp` is a **build-time only** dependency: Astro's built-in image service uses it to process
   image assets (for example `app/src/assets/houston.webp`) while running `astro build`. It is not
   loaded in the browser and no `sharp` code ships in `dist/`. Its prebuilt platform binary for this
@@ -88,7 +93,8 @@ site's illustration. `withastro/starlight` is MIT-licensed, copyright (c) 2023 A
 
 The Typography controls (`app/src/customizer/ui/tiles/fonts.js`, font list in
 `app/src/customizer/core/manifest.js`) let a user preview and export any of the following fonts.
-Font **faces are never bundled** in this repository or in `dist/`: the studio's live preview loads
+For these controls, font **faces are never bundled** in this repository or in `dist/`. (The one
+bundled font, Inter for the product page, is listed under runtime dependencies above.) The studio's live preview loads
 each variable-font file on demand from `cdn.jsdelivr.net/fontsource/...`, and an exported theme's
 `APPLY-THEME.md` instructs the user to add the matching `@fontsource-variable/<id>` npm package to
 their own Starlight project if they keep a non-default font. Only the font **names** and their
@@ -168,6 +174,6 @@ package's own `package.json`. Build-time only; not distributed in `app/dist/`. F
 
 ### SIL Open Font License, Version 1.1
 
-Applies to: the 12 Fontsource web fonts listed above. Full text:
+Applies to: Inter, bundled for the product page, and the 12 Fontsource web fonts listed above. Full text:
 <https://openfontlicense.org/> (also mirrored at
 <https://scripts.sil.org/OFL>).
