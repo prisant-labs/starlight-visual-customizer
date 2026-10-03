@@ -32,9 +32,12 @@
  * top/left margin offset that plain region-diff-fraction thresholds were loose enough to miss.
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+chromiumOnly('screenshot.mjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';

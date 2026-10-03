@@ -13,18 +13,18 @@
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/sizing.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
- * origin plus base path), SVC_CHROME_PATH.
+ * origin plus base path), SVC_CHROME_PATH, SVC_BROWSER (chromium (default), firefox, webkit - see
+ * browser.mjs).
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchBrowser } from './browser.mjs';
 import { SIZING_STORAGE_KEY } from '../../src/customizer/core/sizing.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
-const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 
 let failures = 0;
@@ -110,7 +110,7 @@ const readSizing = (page) =>
 
 async function main() {
 	mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-	const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	const browser = await launchBrowser();
 	const errors = [];
 	function trackErrors(page) {
 		page.on('pageerror', (err) => errors.push(`[pageerror ${page.url()}] ${err.message}`));

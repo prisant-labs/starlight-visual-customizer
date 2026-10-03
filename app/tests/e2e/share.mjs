@@ -13,13 +13,19 @@
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/share.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
- * origin plus base path), SVC_CHROME_PATH.
+ * origin plus base path), SVC_CHROME_PATH, SVC_BROWSER (chromium (default), firefox, webkit - see
+ * browser.mjs). Clipboard permissions (`clipboard-read`/`clipboard-write`) are granted as a pair, and
+ * only Chromium grants both: Firefox rejects both and WebKit rejects `clipboard-write` - so section 1's actual
+ * copy-to-clipboard click and `navigator.clipboard.readText()` read run only under chromium; under
+ * firefox/webkit they are skipped (`SKIP`, never counted as a pass or a failure) and `copied` is
+ * built directly with `studioLink`/`encodeState` instead, so every later section (which only
+ * consumes `copied`, never re-checks how it was produced) runs unchanged on all three engines.
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchBrowser, BROWSER_NAME, skip, skippedCount } from './browser.mjs';
 import { stripBase } from '../../src/customizer/core/base-path.js';
 import { defaultState, applyPreset, setName, encodeState, tryDecodeState, sameTheme } from '../../src/customizer/core/state.js';
 import { iaFromStarlightConfig } from '../../src/customizer/core/ia.js';
@@ -28,7 +34,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const BASE_PATH = new URL(SVC_BASE_URL).pathname;
 const ORIGIN = new URL(SVC_BASE_URL).origin;
-const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 const STATE_KEY = 'svc-state';
 const PAGE = '/demo/guides/kitchen-sink/';
@@ -81,7 +86,10 @@ async function waitForPanelBody(page, timeout = 15000) {
  */
 async function newVisitor(browser, trackErrors, saved = null) {
 	const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-	await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ORIGIN });
+	// Firefox and WebKit reject this grant outright - see the file header.
+	if (BROWSER_NAME === 'chromium') {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: ORIGIN });
+	}
 	if (saved) {
 		await context.addInitScript(
 			({ key, value }) => {
@@ -153,7 +161,7 @@ let browser = null;
 
 async function main() {
 	mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-	browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	browser = await launchBrowser();
 	const errors = [];
 	function trackErrors(page) {
 		page.on('pageerror', (err) => errors.push(`[pageerror ${page.url()}] ${err.message}`));
@@ -172,13 +180,28 @@ async function main() {
 		await page.evaluate(() => /** @type {any} */ (document.querySelector('sl-customizer')).__svc.setName('Copied theme'));
 		await page.evaluate(() => /** @type {any} */ (document.querySelector('sl-customizer')).__svc.openExport());
 		await page.waitForTimeout(200);
-		await page.locator('sl-customizer').getByRole('button', { name: 'Copy share link' }).click();
-		await page.waitForTimeout(300);
-		copied = await page.evaluate(() => navigator.clipboard.readText());
-		const u = new URL(copied);
-		check('the copied link points at the studio', appPath(u.pathname) === '/studio/', copied.slice(0, 120));
-		check('the copied link carries the page being viewed (?page=)', normalizePath(u.searchParams.get('page') ?? '') === PAGE, u.search);
-		check('the copied link carries the theme (#svc=)', u.hash.startsWith('#svc='), u.hash.slice(0, 12));
+		if (BROWSER_NAME === 'chromium') {
+			await page.locator('sl-customizer').getByRole('button', { name: 'Copy share link' }).click();
+			await page.waitForTimeout(300);
+			copied = await page.evaluate(() => navigator.clipboard.readText());
+			const u = new URL(copied);
+			check('the copied link points at the studio', appPath(u.pathname) === '/studio/', copied.slice(0, 120));
+			check('the copied link carries the page being viewed (?page=)', normalizePath(u.searchParams.get('page') ?? '') === PAGE, u.search);
+			check('the copied link carries the theme (#svc=)', u.hash.startsWith('#svc='), u.hash.slice(0, 12));
+		} else {
+			// "Copy share link" writes to navigator.clipboard, which this engine has no permission
+			// grant for (see the file header), so the click never happens for real and the three
+			// checks below can't exercise what they're named for - build the same link directly with
+			// studioLink/encodeState instead, so every later section still runs against a real,
+			// well-formed share link, and skip the three checks under their own names rather than
+			// reporting them as passes against a link the test itself constructed.
+			const reason =
+				BROWSER_NAME === 'firefox' ? 'Firefox cannot grant clipboard-read or clipboard-write' : 'WebKit cannot grant clipboard-write';
+			skip('the copied link points at the studio', reason);
+			skip('the copied link carries the page being viewed (?page=)', reason);
+			skip('the copied link carries the theme (#svc=)', reason);
+			copied = studioLink(setName(defaultState(), 'Copied theme'), PAGE);
+		}
 		await context.close();
 	}
 	{
@@ -373,7 +396,8 @@ async function main() {
 	check('no page errors or console errors', errors.length === 0, errors.join(' | '));
 	await browser.close();
 
-	console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}`);
+	const skippedNote = skippedCount() ? ` (${skippedCount()} SKIPPED on ${BROWSER_NAME})` : '';
+	console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}${skippedNote}`);
 	process.exitCode = failures === 0 ? 0 : 1;
 }
 

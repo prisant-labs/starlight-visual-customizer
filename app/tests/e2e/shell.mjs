@@ -9,14 +9,15 @@
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/shell.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
- * origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH.
+ * origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH,
+ * SVC_BROWSER (chromium (default), firefox, webkit - see browser.mjs).
  */
-import { chromium } from 'playwright-core';
 import sharp from 'sharp';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchBrowser } from './browser.mjs';
 import { contrastRatio } from '../../src/customizer/core/color.js';
 import { stripBase } from '../../src/customizer/core/base-path.js';
 
@@ -24,8 +25,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 // D3a: see studio.mjs's identical constant for why this is derived, not hardcoded.
 const BASE_PATH = new URL(SVC_BASE_URL).pathname;
-const EXECUTABLE_PATH =
-	process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 
 let failures = 0;
@@ -41,6 +40,30 @@ function check(name, cond, note = '') {
 async function getFrame(page, lane = 'light') {
 	const handle = await page.$(`iframe[data-svc-preview][data-svc-lane="${lane}"]`);
 	return handle.contentFrame();
+}
+
+/** The lane iframe's real navigated URL, read straight from `contentWindow.location.href` rather
+ * than Playwright's own Frame tracking - see the Split page-switcher check for why. */
+async function laneHref(page, lane) {
+	return page.evaluate((l) => {
+		const el = document.querySelector(`iframe[data-svc-preview][data-svc-lane="${l}"]`);
+		try {
+			return el.contentWindow.location.href;
+		} catch {
+			return el.src;
+		}
+	}, lane);
+}
+
+/** Polls `laneHref` until it matches `regex` or `timeout` elapses (then returns null). */
+async function waitForLaneHref(page, lane, regex, timeout = 10000) {
+	const start = Date.now();
+	while (Date.now() - start < timeout) {
+		const href = await laneHref(page, lane);
+		if (regex.test(href)) return href;
+		await page.waitForTimeout(100);
+	}
+	return null;
 }
 
 async function waitForPanelBody(page, timeout = 10000) {
@@ -267,7 +290,7 @@ async function checkFrameWithinWrapContentBox(page, lane, deviceLabel) {
 
 async function main() {
 	mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-	const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	const browser = await launchBrowser();
 	const errors = [];
 	function trackErrors(page) {
 		page.on('pageerror', (err) => errors.push(`[pageerror ${page.url()}] ${err.message}`));
@@ -1195,21 +1218,33 @@ async function main() {
 		check('Split: the left lane is forced light', lightTheme === 'light', lightTheme);
 		check('Split: the right lane is forced dark', darkTheme === 'dark', darkTheme);
 
-		const colorBefore = {
-			light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-			dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-		};
+		// Read each lane through its iframe element's contentDocument, not a Playwright Frame handle.
+		// A handle fetched while a lane is still loading can keep pointing at the document that lane
+		// replaced (seen under Firefox elsewhere in this file, and here under WebKit), and the check
+		// then reads a page the studio no longer updates.
+		const laneLinkColors = () =>
+			page.evaluate(() => {
+				/** @param {string} lane */
+				const read = (lane) => {
+					const iframe = /** @type {HTMLIFrameElement | null} */ (document.querySelector(`iframe[data-svc-preview][data-svc-lane="${lane}"]`));
+					const a = iframe?.contentDocument?.querySelector('.sl-markdown-content a');
+					return a ? (a.ownerDocument.defaultView?.getComputedStyle(a).color ?? null) : null;
+				};
+				return { light: read('light'), dark: read('dark') };
+			});
+		const colorBefore = await waitForComputed(laneLinkColors, (c) => !!c.light && !!c.dark, { timeoutMs: 5000, intervalMs: 100 });
 		await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');
 			const input = host.shadowRoot.querySelector("[data-control-id='color.accent.hue'] input[type=range]");
 			input.value = '150';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
-		await page.waitForTimeout(300);
-		const colorAfter = {
-			light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-			dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-		};
+		// Poll instead of a fixed wait; a lane that never updates still fails after 3 s.
+		const colorAfter = await waitForComputed(
+			laneLinkColors,
+			(c) => c.light !== colorBefore.light && c.dark !== colorBefore.dark,
+			{ timeoutMs: 3000, intervalMs: 100 }
+		);
 		check('Split: the accent change reaches the light lane', colorBefore.light !== colorAfter.light, `${colorBefore.light} -> ${colorAfter.light}`);
 		check('Split: the accent change reaches the dark lane', colorBefore.dark !== colorAfter.dark, `${colorBefore.dark} -> ${colorAfter.dark}`);
 		check('Split: the lanes end up with the SAME accent link color (same state, forced theme each)', colorAfter.light !== colorAfter.dark, 'lanes should differ only by light/dark tokens, not by state');
@@ -1227,12 +1262,19 @@ async function main() {
 		await realClick(page, await lightQueryByAttr(page, '.svc-seg-btn', 'title', 'Fills the available width'));
 		await page.waitForTimeout(300);
 
-		// Page switcher navigates both lanes.
+		// Page switcher navigates both lanes. Read each lane's real navigated URL from
+		// `contentWindow.location.href` (via `laneHref`, declared with the other shared helpers)
+		// rather than Playwright's own Frame.url()/waitForURL: under firefox, Playwright's frame
+		// tracking does not pick up a navigation this app drives by assigning
+		// `frame.contentWindow.location.href` (as opposed to changing the iframe's `src` attribute) -
+		// the content genuinely navigates (confirmed by reading `contentWindow.location.href` and
+		// `contentDocument.readyState` directly) but `Frame.url()` keeps reporting the page from
+		// before the click, indefinitely. `waitForLaneHref` polls the same real DOM state `check`
+		// below reads, so the two can never disagree.
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Document'));
-		await Promise.all([lightFrame.waitForURL(/kitchen-sink/, { timeout: 10000 }).catch(() => {}), darkFrame.waitForURL(/kitchen-sink/, { timeout: 10000 }).catch(() => {})]);
-		await page.waitForTimeout(400);
-		const lightPath = normalizePath(stripBase(new URL((await getFrame(page, 'light')).url()).pathname, BASE_PATH));
-		const darkPath = normalizePath(stripBase(new URL((await getFrame(page, 'dark')).url()).pathname, BASE_PATH));
+		const [lightHref, darkHref] = await Promise.all([waitForLaneHref(page, 'light', /kitchen-sink/), waitForLaneHref(page, 'dark', /kitchen-sink/)]);
+		const lightPath = normalizePath(stripBase(new URL(lightHref ?? (await laneHref(page, 'light'))).pathname, BASE_PATH));
+		const darkPath = normalizePath(stripBase(new URL(darkHref ?? (await laneHref(page, 'dark'))).pathname, BASE_PATH));
 		check('Split: the page switcher navigates the light lane', lightPath === '/demo/guides/kitchen-sink/', lightPath);
 		check('Split: the page switcher navigates the dark lane too', darkPath === '/demo/guides/kitchen-sink/', darkPath);
 
@@ -1408,7 +1450,7 @@ async function main() {
 	{
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Landing'));
 		await page.waitForTimeout(500);
-		let frame = await getFrame(page, 'light');
+		const frame = await getFrame(page, 'light');
 		await frame.evaluate(() => window.scrollTo(0, 0));
 		// F3 (reversed): the Footer test above already left "Footer" as the SELECTED rail item, so
 		// this click is itself a re-click - which must still re-select (and re-scroll/re-navigate,
@@ -1440,14 +1482,20 @@ async function main() {
 			}
 		});
 		check('a Footer rail click from Landing (empty pagination wrapper) navigates the preview to Style guide', navigatedFromLanding, String(landedPath));
-		frame = await getFrame(page, 'light');
+		// Read through `contentDocument` on the light-DOM iframe element itself, not a Playwright
+		// `Frame` handle: under firefox, re-fetching the frame right after a navigation this app
+		// drives via `contentWindow.location.href` (rather than the iframe's `src` attribute) can
+		// still resolve to the page from before that navigation - see the Split page-switcher check
+		// above for the full account. Reading `contentDocument` straight off the element sidesteps
+		// Playwright's own frame tracking entirely, so it can never be stale this way.
 		const paginationVisibleFromLanding = await waitForComputed(
 			() =>
-				frame.evaluate(() => {
-					const el = document.querySelector('.pagination-links');
+				page.evaluate(() => {
+					const iframe = /** @type {HTMLIFrameElement} */ (document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]'));
+					const el = iframe.contentDocument?.querySelector('.pagination-links');
 					if (!el) return { visible: false };
 					const r = el.getBoundingClientRect();
-					return { visible: r.height > 0 && r.top < window.innerHeight && r.bottom > 0, rect: r.toJSON() };
+					return { visible: r.height > 0 && r.top < iframe.contentWindow.innerHeight && r.bottom > 0, rect: r.toJSON() };
 				}),
 			(v) => v.visible === true,
 			{ timeoutMs: 6000, intervalMs: 150 }

@@ -265,7 +265,19 @@ Against the dev server instead:
 $env:SVC_BASE_URL = 'http://localhost:4700'; npm run test:e2e; Remove-Item Env:SVC_BASE_URL
 ```
 
-The browser suites use `playwright-core` with the Chromium build it expects (install it once with `npx playwright install chromium`); set `SVC_CHROME_PATH` to use another Chromium or Chrome. Every suite drives real `page.mouse.click`/`down`/`move`/`up` and `page.keyboard.type` at element centers rather than script-dispatched `.click()` calls, because some interactions (a real click blurs a focused field; a script-invoked action does not) only reproduce correctly under a real click.
+The browser suites use `playwright-core` with the Chromium build it expects (install it once with `npx playwright-core install chromium`); set `SVC_CHROME_PATH` to use another Chromium or Chrome. Every suite drives real `page.mouse.click`/`down`/`move`/`up` and `page.keyboard.type` at element centers rather than script-dispatched `.click()` calls, because some interactions (a real click blurs a focused field; a script-invoked action does not) only reproduce correctly under a real click.
+
+### Running against Firefox or WebKit
+
+Six of the thirteen suites (`home`, `smoke`, `studio`, `shell`, `sizing`, `share`) also run under Firefox or WebKit through the same `playwright-core` package, via a shared launcher, `tests/e2e/browser.mjs`. Install the other two engines once (`npx playwright-core install firefox webkit`), then set `SVC_BROWSER`:
+
+```powershell
+$env:SVC_BROWSER = 'firefox'   # or 'webkit'
+node tests/e2e/shell.mjs
+Remove-Item Env:SVC_BROWSER
+```
+
+`SVC_BROWSER` defaults to `chromium`, matching every suite's previous, only behavior; `SVC_CHROME_PATH` still applies to the `chromium` branch only; it has no effect under `firefox`/`webkit`. A check that needs a browser permission only Chromium grants (`share.mjs`'s clipboard read and write, for "Copy share link": Firefox grants neither, and WebKit lacks `clipboard-write`) prints `SKIP - <check> (<reason>)` under Firefox/WebKit instead of running - a skip never counts as a pass or a failure, and the suite's summary line counts its skips. The other seven suites have not been checked on Firefox or WebKit: under `SVC_BROWSER=firefox` or `webkit` each one prints `SKIP - <suite> runs on Chromium only` and exits successfully, so `npm run test:e2e` still runs the six and never reports a Chromium run as another engine's pass. Playwright's own WebKit build on Windows is not Apple's Safari: it is WebKit's upstream Windows port, closer in heritage to Linux's GTK WebKit than to macOS Safari, so a pass there is evidence for the WebKit engine, not a Safari guarantee. **Known WebKit failure:** `shell.mjs`'s "Split: the accent change reaches the dark lane" fails in about half of WebKit runs, because the dark lane keeps its old accent; Chromium and Firefox pass it every time. Reading the lane's document directly and polling for 3 seconds fail the same way, so it looks like a real timing bug in how a Split lane attaches to the studio (`attachToPageDoc` in `src/customizer/ui/panel.js` skips a document that is still loading), not a test problem. It is not fixed yet.
 
 ## Source layout notes
 

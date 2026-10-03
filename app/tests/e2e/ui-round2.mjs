@@ -18,9 +18,12 @@
  * Run: node tests/e2e/ui-round2.mjs   (env: SVC_BASE_URL, default http://localhost:4420 = production preview, http://localhost:4700 = dev server; SVC_CHROME_PATH)
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+chromiumOnly('ui-round2.mjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';

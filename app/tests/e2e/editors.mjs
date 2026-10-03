@@ -13,11 +13,14 @@
  * Env overrides: SVC_BASE_URL (default http://localhost:4420), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
 import { mkdirSync, readFileSync, copyFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { unzipSync, strFromU8 } from 'fflate';
 import sharp from 'sharp';
+
+chromiumOnly('editors.mjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
