@@ -111,7 +111,7 @@ See ["Serving under a sub-path"](app/README.md#serving-under-a-sub-path) for the
 
 | Suite | What it checks |
 |---|---|
-| `npm test` (239 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, share-link decoding and sidebar-link safety, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
+| `npm test` (242 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, share-link decoding and sidebar-link safety, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
 | `npm run test:e2e` (13 browser suites) | The product page, every control's visual effect and target, the studio shell, Studio sizing, share links, Inspect, hex color entry, the structure editor and PNG screenshot export, against a running preview |
 | `npm run test:roundtrip` | Applies a real export to a freshly scaffolded Starlight site and compares its computed styles with the studio's live preview |
 
