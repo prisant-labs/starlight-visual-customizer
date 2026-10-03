@@ -14,8 +14,8 @@
  *   node tests/e2e/share.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
  * origin plus base path), SVC_CHROME_PATH, SVC_BROWSER (chromium (default), firefox, webkit - see
- * browser.mjs). Clipboard permissions (`clipboard-read`/`clipboard-write`) are a Chromium-only
- * grant - Firefox and WebKit reject `grantPermissions` for them - so section 1's actual
+ * browser.mjs). Clipboard permissions (`clipboard-read`/`clipboard-write`) are granted as a pair, and
+ * only Chromium grants both: Firefox rejects both and WebKit rejects `clipboard-write` - so section 1's actual
  * copy-to-clipboard click and `navigator.clipboard.readText()` read run only under chromium; under
  * firefox/webkit they are skipped (`SKIP`, never counted as a pass or a failure) and `copied` is
  * built directly with `studioLink`/`encodeState` instead, so every later section (which only
@@ -25,7 +25,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { launchBrowser, BROWSER_NAME, skip } from './browser.mjs';
+import { launchBrowser, BROWSER_NAME, skip, skippedCount } from './browser.mjs';
 import { stripBase } from '../../src/customizer/core/base-path.js';
 import { defaultState, applyPreset, setName, encodeState, tryDecodeState, sameTheme } from '../../src/customizer/core/state.js';
 import { iaFromStarlightConfig } from '../../src/customizer/core/ia.js';
@@ -195,7 +195,8 @@ async function main() {
 			// studioLink/encodeState instead, so every later section still runs against a real,
 			// well-formed share link, and skip the three checks under their own names rather than
 			// reporting them as passes against a link the test itself constructed.
-			const reason = 'clipboard-read/clipboard-write are not grantable outside chromium';
+			const reason =
+				BROWSER_NAME === 'firefox' ? 'Firefox cannot grant clipboard-read or clipboard-write' : 'WebKit cannot grant clipboard-write';
 			skip('the copied link points at the studio', reason);
 			skip('the copied link carries the page being viewed (?page=)', reason);
 			skip('the copied link carries the theme (#svc=)', reason);
@@ -395,7 +396,8 @@ async function main() {
 	check('no page errors or console errors', errors.length === 0, errors.join(' | '));
 	await browser.close();
 
-	console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}`);
+	const skippedNote = skippedCount() ? ` (${skippedCount()} SKIPPED on ${BROWSER_NAME})` : '';
+	console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}${skippedNote}`);
 	process.exitCode = failures === 0 ? 0 : 1;
 }
 

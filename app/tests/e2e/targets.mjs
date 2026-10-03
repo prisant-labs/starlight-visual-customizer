@@ -17,6 +17,9 @@
  * under a sub-path build, the full origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer); SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
+
+chromiumOnly('targets.mjs');
 
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 const EXECUTABLE_PATH =

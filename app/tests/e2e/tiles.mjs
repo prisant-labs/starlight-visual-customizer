@@ -28,6 +28,7 @@
  * e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH.
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -37,6 +38,8 @@ import { treatments } from '../../src/customizer/core/treatments.js';
 import { controls } from '../../src/customizer/core/manifest.js';
 import { TILE_CONTROL_IDS, computeTileLayout } from '../../src/customizer/ui/tiles/index.js';
 import { WIREFRAME_CONTROL_IDS, WIREFRAME_SIZE } from '../../src/customizer/ui/tiles/wireframes.js';
+
+chromiumOnly('tiles.mjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';

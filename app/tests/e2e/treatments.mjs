@@ -29,12 +29,15 @@
  * UNCHANGED there, the testable form of "wrap in the matching media query so mobile is unaffected".
  */
 import { chromium } from 'playwright-core';
+import { chromiumOnly } from './browser.mjs';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defaultState, setValue, encodeState } from '../../src/customizer/core/state.js';
 import { treatments } from '../../src/customizer/core/treatments.js';
+
+chromiumOnly('treatments.mjs');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');

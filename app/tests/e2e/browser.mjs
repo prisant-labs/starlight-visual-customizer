@@ -30,7 +30,27 @@ export async function launchBrowser() {
 	return ENGINES[BROWSER_NAME].launch({ headless: true });
 }
 
+let skipped = 0;
+
 /** Prints a skip line for a check this engine cannot run. Never counts as a pass or a failure. */
 export function skip(name, reason = '') {
+	skipped += 1;
 	console.log(`SKIP - ${name}${reason ? ` (${reason})` : ''}`);
+}
+
+/** How many checks `skip` has reported so far, for a suite's closing summary line. */
+export function skippedCount() {
+	return skipped;
+}
+
+/**
+ * For a suite not yet checked on Firefox or WebKit: under `SVC_BROWSER=firefox` or `webkit` it
+ * prints one SKIP line and exits successfully, before launching anything. `npm run test:e2e` then
+ * carries on to the next suite, and a Chromium run is never reported as another engine's pass.
+ * @param {string} suite The suite's file name, for the SKIP line.
+ */
+export function chromiumOnly(suite) {
+	if (BROWSER_NAME === 'chromium') return;
+	console.log(`SKIP - ${suite} runs on Chromium only, so SVC_BROWSER=${BROWSER_NAME} skips the whole suite`);
+	process.exit(0);
 }
