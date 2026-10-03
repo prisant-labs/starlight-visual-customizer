@@ -145,9 +145,13 @@ async function clickDialogButton(page, label) {
 	await page.waitForTimeout(300);
 }
 
+/** Module scope so the failure handler below can close it: an open browser keeps the process
+ * alive after a thrown error, so a single timeout would otherwise hang the whole run. */
+let browser = null;
+
 async function main() {
 	mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-	const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
 	const errors = [];
 	function trackErrors(page) {
 		page.on('pageerror', (err) => errors.push(`[pageerror ${page.url()}] ${err.message}`));
@@ -330,7 +334,8 @@ async function main() {
 	process.exitCode = failures === 0 ? 0 : 1;
 }
 
-main().catch((err) => {
+main().catch(async (err) => {
 	console.error(err);
 	process.exitCode = 1;
+	await browser?.close().catch(() => {});
 });
