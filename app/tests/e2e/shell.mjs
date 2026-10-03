@@ -1228,11 +1228,16 @@ async function main() {
 			input.value = '150';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
-		await page.waitForTimeout(300);
-		const colorAfter = {
-			light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-			dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-		};
+		// Poll instead of a fixed 300 ms wait: under WebKit the second lane sometimes restyles later
+		// than that (one run in three on 2026-10-02). A lane that never updates still fails after 3 s.
+		const colorAfter = await waitForComputed(
+			async () => ({
+				light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
+				dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
+			}),
+			(c) => c.light !== colorBefore.light && c.dark !== colorBefore.dark,
+			{ timeoutMs: 3000, intervalMs: 100 }
+		);
 		check('Split: the accent change reaches the light lane', colorBefore.light !== colorAfter.light, `${colorBefore.light} -> ${colorAfter.light}`);
 		check('Split: the accent change reaches the dark lane', colorBefore.dark !== colorAfter.dark, `${colorBefore.dark} -> ${colorAfter.dark}`);
 		check('Split: the lanes end up with the SAME accent link color (same state, forced theme each)', colorAfter.light !== colorAfter.dark, 'lanes should differ only by light/dark tokens, not by state');
