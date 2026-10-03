@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a specific change to the studio or to its export.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an open-ended idea, or want to hear what others think first? Start a thread in [Discussions, under Ideas](https://github.com/prisant-labs/starlight-visual-customizer/discussions/categories/ideas) instead.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: Describe the problem or the goal, not only the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help?
+      description: The change you have in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What do you do today?
+      description: Any workaround you use now, such as hand-editing theme.css.

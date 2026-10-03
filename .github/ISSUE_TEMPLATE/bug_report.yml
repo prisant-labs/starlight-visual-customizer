@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in the studio, or in an exported theme, does not work as expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. A share link is the fastest way to show us the problem. In the studio, open **Export** and choose **Copy share link**, then paste it below. The link carries your whole theme and the page you were on.
+
+        Found a security problem? Please report it privately instead, as [SECURITY.md](https://github.com/prisant-labs/starlight-visual-customizer/blob/main/SECURITY.md) describes.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect to see instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the studio and pick a preset.
+        2. Switch to Split view.
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: share-link
+    attributes:
+      label: Share link
+      description: From Export, then Copy share link. Leave this empty if the bug does not depend on a theme.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options:
+        - In the studio
+        - In an exported theme, applied to my own Starlight site
+        - In APPLY-THEME.md, or while a coding agent follows it
+        - On the product page or the About page
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and operating system
+      placeholder: For example, Firefox on Windows 11
+    validations:
+      required: true
+  - type: input
+    id: starlight-version
+    attributes:
+      label: Starlight version on your site
+      description: Only for problems with an exported theme. The studio targets Starlight 0.42.4.

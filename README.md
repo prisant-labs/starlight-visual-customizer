@@ -129,6 +129,16 @@ breakdown, ports and commands are in [`app/README.md`](app/README.md#tests).
 for the color picker, [fflate](https://github.com/101arrowz/fflate) for the zip download and
 [modern-screenshot](https://github.com/qq15725/modern-screenshot) for PNG export.
 
+## Contributing
+
+Bug reports, ideas and themes are welcome. Report a bug under
+[Issues](https://github.com/prisant-labs/starlight-visual-customizer/issues/new/choose), and bring
+questions and ideas to
+[Discussions](https://github.com/prisant-labs/starlight-visual-customizer/discussions). To share a
+theme, post its share link in Show and tell. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how to
+run the app and its tests. [`SECURITY.md`](SECURITY.md) explains how to report a vulnerability
+privately.
+
 ## Releases
 
 Each release is tagged, and its notes are on the
