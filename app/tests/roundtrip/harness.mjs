@@ -77,6 +77,18 @@ export async function gotoPlain(page, origin, pageKey, mode) {
 	}, mode);
 	await page.reload({ waitUntil: 'load' });
 	await page.evaluate(() => document.fonts.ready);
+	// Starlight's table of contents marks the current section from a scroll observer that runs
+	// after load, so sampling straight away reads the `toc-current` marker (and the first TOC link's
+	// color) before or after it exists, at random. Wait for the marker on both origins. The wait
+	// gives up quietly after 5 seconds, so a theme that really breaks the marker still shows up as a
+	// mismatch instead of a harness crash.
+	await page
+		.waitForFunction(
+			() => !document.querySelector('starlight-toc') || !!document.querySelector("starlight-toc a[aria-current='true']"),
+			null,
+			{ timeout: 5000 }
+		)
+		.catch(() => {});
 	// Exclude the F1 "Open in Studio" pill from every comparison/screenshot (app origin only; the
 	// fresh site never has it, so this is a harmless no-op there).
 	await page.addStyleTag({ content: '#svc-open-in-studio-pill{display:none!important}' });
