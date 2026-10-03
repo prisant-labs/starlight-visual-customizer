@@ -59,7 +59,7 @@ import { stampTocLevels, applySiteTitle } from './preview-approx.js';
 import { createExportDialog } from './export.js';
 import { createShareLinkDialog } from './share-dialog.js';
 import { createTargetHighlighter } from './target-highlight.js';
-import { setFrameEls, getPageDoc, getPageWin, getFrameEl, isStudio } from './page-doc.js';
+import { setFrameEls, getPageDoc, getPageDocs, getPageWin, getFrameEl, isStudio } from './page-doc.js';
 import { withBase, stripBase } from '../core/base-path.js';
 import { nextSizing, formatSizing, effectiveSizing, SIZING_STEPS, SIZING_NARROW_BELOW, DEFAULT_SIZING } from '../core/sizing.js';
 import { loadSizing, saveSizing, setChromeZoom } from './studio-sizing.js';
@@ -1482,16 +1482,19 @@ function initCustomizer(host) {
 	}
 
 	// Studio design doc, item D: triggers (2) and (3) for attachToPageDoc, registered before the
-	// synchronous trigger (1) below so a frame that (implausibly fast) already finished loading by
-	// then still has somewhere to report to. S9: every lane gets its own `load` listener.
+	// synchronous trigger (1) below. A lane that finished loading before this point has already
+	// missed both, which trigger (1) covers. S9: every lane gets its own `load` listener.
 	if (studio) {
 		window.__svcAttachPreview = attachToPageDoc;
 		for (const el of frameEls) el.addEventListener('load', () => attachToPageDoc(el.contentDocument));
 	}
-	// Trigger (1): synchronous safety net. In overlay mode `getPageDoc()` is always `document`,
-	// always ready, so this is the ONLY trigger that ever fires - byte-identical to the old
-	// unconditional "initial paint" block it replaces.
-	attachToPageDoc(getPageDoc());
+	// Trigger (1): synchronous safety net, for EVERY lane. Both lanes start loading with the studio
+	// page, so a lane can finish - fire its `load` and ping `__svcAttachPreview` - before the two
+	// registrations above exist; this call is then the only one that ever reaches it. Covering only
+	// the primary lane left the Split dark lane unattached, deaf to every edit (WebKit, about one
+	// load in four). `getPageDocs()` lists the primary lane first. In overlay mode it is just
+	// `[document]`, always ready, so this is the ONLY trigger that ever fires there.
+	for (const doc of getPageDocs()) attachToPageDoc(doc);
 	persistPreviewCss();
 
 	contrastBlock.refresh(computeContrastRows());

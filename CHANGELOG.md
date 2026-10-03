@@ -5,6 +5,13 @@ notes on the [Releases page](https://github.com/prisant-labs/starlight-visual-cu
 Version numbers follow [semantic versioning](https://semver.org/); before 1.0, a minor release
 can change behavior.
 
+## Unreleased
+
+- **Fixed: Split view's dark side could ignore edits.** When the dark side of Split view finished
+  loading before the studio's own script ran, it never received the theme, so it kept its old look.
+  WebKit hit this in about one load in four. Both sides are now themed however early they finish
+  loading, and a browser test forces that load order on every engine.
+
 ## 0.1.0 - 2026-10-02
 
 The first release. It targets Starlight 0.42.4 and Astro 7.3.5.
