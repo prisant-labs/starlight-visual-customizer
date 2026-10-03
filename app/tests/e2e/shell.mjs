@@ -1367,7 +1367,7 @@ async function main() {
 					const el = document.querySelector('.pagination-links');
 					if (!el) return { visible: false };
 					const r = el.getBoundingClientRect();
-					return { visible: r.top < window.innerHeight && r.bottom > 0, rect: r.toJSON(), innerHeight: window.innerHeight, scrollY: window.scrollY };
+					return { visible: r.height > 0 && r.top < window.innerHeight && r.bottom > 0, rect: r.toJSON(), innerHeight: window.innerHeight, scrollY: window.scrollY };
 				}),
 			(v) => v.visible === true,
 			{ timeoutMs: 5000, intervalMs: 150 }
@@ -1415,17 +1415,31 @@ async function main() {
 		// S10) exactly like any other rail click now that the old collapse-on-reclick affordance is
 		// gone (see the dedicated F3 regression check earlier in this file).
 		await realClick(page, await shadowQuery(page, '.svc-rail-item[data-group="Footer"]'));
-		await page.waitForFunction(
-			() => {
-				const el = document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]');
-				try {
-					return /specimen/.test(el.contentWindow.location.pathname);
-				} catch {
-					return false;
-				}
-			},
-			{ timeout: 10000 }
-		).catch(() => {});
+		// Landing renders an empty, zero-height `.pagination-links`. The rail must not treat that as a
+		// match: it has to open the Style guide, which has real pagination. Assert the navigation
+		// itself, not just what is in view afterward.
+		const navigatedFromLanding = await page
+			.waitForFunction(
+				() => {
+					const el = document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]');
+					try {
+						return /specimen/.test(el.contentWindow.location.pathname);
+					} catch {
+						return false;
+					}
+				},
+				undefined,
+				{ timeout: 10000 }
+			)
+			.then(() => true, () => false);
+		const landedPath = await page.evaluate(() => {
+			try {
+				return document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]').contentWindow.location.pathname;
+			} catch {
+				return null;
+			}
+		});
+		check('a Footer rail click from Landing (empty pagination wrapper) navigates the preview to Style guide', navigatedFromLanding, String(landedPath));
 		frame = await getFrame(page, 'light');
 		const paginationVisibleFromLanding = await waitForComputed(
 			() =>
@@ -1433,7 +1447,7 @@ async function main() {
 					const el = document.querySelector('.pagination-links');
 					if (!el) return { visible: false };
 					const r = el.getBoundingClientRect();
-					return { visible: r.top < window.innerHeight && r.bottom > 0, rect: r.toJSON() };
+					return { visible: r.height > 0 && r.top < window.innerHeight && r.bottom > 0, rect: r.toJSON() };
 				}),
 			(v) => v.visible === true,
 			{ timeoutMs: 6000, intervalMs: 150 }
