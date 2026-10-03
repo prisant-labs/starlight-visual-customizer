@@ -1218,23 +1218,30 @@ async function main() {
 		check('Split: the left lane is forced light', lightTheme === 'light', lightTheme);
 		check('Split: the right lane is forced dark', darkTheme === 'dark', darkTheme);
 
-		const colorBefore = {
-			light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-			dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-		};
+		// Read each lane through its iframe element's contentDocument, not a Playwright Frame handle.
+		// A handle fetched while a lane is still loading can keep pointing at the document that lane
+		// replaced (seen under Firefox elsewhere in this file, and here under WebKit), and the check
+		// then reads a page the studio no longer updates.
+		const laneLinkColors = () =>
+			page.evaluate(() => {
+				/** @param {string} lane */
+				const read = (lane) => {
+					const iframe = /** @type {HTMLIFrameElement | null} */ (document.querySelector(`iframe[data-svc-preview][data-svc-lane="${lane}"]`));
+					const a = iframe?.contentDocument?.querySelector('.sl-markdown-content a');
+					return a ? (a.ownerDocument.defaultView?.getComputedStyle(a).color ?? null) : null;
+				};
+				return { light: read('light'), dark: read('dark') };
+			});
+		const colorBefore = await waitForComputed(laneLinkColors, (c) => !!c.light && !!c.dark, { timeoutMs: 5000, intervalMs: 100 });
 		await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');
 			const input = host.shadowRoot.querySelector("[data-control-id='color.accent.hue'] input[type=range]");
 			input.value = '150';
 			input.dispatchEvent(new Event('input', { bubbles: true }));
 		});
-		// Poll instead of a fixed 300 ms wait: under WebKit the second lane sometimes restyles later
-		// than that (one run in three on 2026-10-02). A lane that never updates still fails after 3 s.
+		// Poll instead of a fixed wait; a lane that never updates still fails after 3 s.
 		const colorAfter = await waitForComputed(
-			async () => ({
-				light: await lightFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-				dark: await darkFrame.evaluate(() => getComputedStyle(document.querySelector('.sl-markdown-content a')).color),
-			}),
+			laneLinkColors,
 			(c) => c.light !== colorBefore.light && c.dark !== colorBefore.dark,
 			{ timeoutMs: 3000, intervalMs: 100 }
 		);
