@@ -120,6 +120,9 @@ async function main() {
 		check('og:image is the absolute TOOL_URL-based card', ogImage === `${TOOL_URL}og.png`, String(ogImage));
 		const twitterCard = await page.getAttribute('meta[name="twitter:card"]', 'content');
 		check('twitter:card requests the large-image layout', twitterCard === 'summary_large_image', String(twitterCard));
+		const ogAlt = await page.getAttribute('meta[property="og:image:alt"]', 'content');
+		const twitterAlt = await page.getAttribute('meta[name="twitter:image:alt"]', 'content');
+		check('the card has alt text, the same for Open Graph and Twitter', !!ogAlt && ogAlt.length > 20 && ogAlt === twitterAlt, String(ogAlt));
 		const h1 = (await page.textContent('h1'))?.trim() ?? '';
 		check('the headline reads "Design your Starlight theme on real pages"', h1 === 'Design your Starlight theme on real pages', h1);
 

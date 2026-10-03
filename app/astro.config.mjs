@@ -45,11 +45,12 @@ export default defineConfig({
 				{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } },
 				{ tag: 'script', content: noFlashPreloadScript },
 				// L-01 (social preview card): applies to every demo page too, so a link to any of
-				// them also renders a large image card. og:title/og:description/og:url are left to
-				// Starlight's own per-page <title>/<meta description>/canonical, which already vary
-				// correctly by page; only the image and the card type need adding here.
+				// them also renders the card. Starlight already emits og:title, og:description,
+				// og:url and twitter:card (summary_large_image) per page, so only the image and its
+				// alt text need adding here.
 				{ tag: 'meta', attrs: { property: 'og:image', content: `${TOOL_URL}og.png` } },
-				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+				{ tag: 'meta', attrs: { property: 'og:image:alt', content: 'Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image:alt', content: 'Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio' } },
 			],
 			// Points the header's site-title link at the demo's own home page (`/demo/`) rather than
 			// the site root, which belongs to the product page and the studio, not to the demo.
