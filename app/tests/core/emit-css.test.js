@@ -9,6 +9,7 @@ import { controls } from '../../src/customizer/core/manifest.js';
 import { treatments } from '../../src/customizer/core/treatments.js';
 import { presets } from '../../src/customizer/core/presets.js';
 import { defaultState, setValue, applyPreset } from '../../src/customizer/core/state.js';
+import { goldenCases } from '../golden/cases.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const goldenDir = path.join(__dirname, '..', 'golden');
@@ -128,18 +129,14 @@ describe('presets', () => {
 	});
 });
 
+// The cases live in tests/golden/cases.js, shared with `npm run golden:update`: default state, the
+// "ocean" palette preset and the "dense-technical" character preset.
 describe('golden files', () => {
-	test('default state matches tests/golden/default.css byte-for-byte', () => {
-		assert.equal(emitCss(defaultState()), readGolden('default.css'));
-	});
-
-	test('the "ocean" palette preset matches tests/golden/ocean.css byte-for-byte', () => {
-		assert.equal(emitCss(applyPreset(defaultState(), 'ocean')), readGolden('ocean.css'));
-	});
-
-	test('the "dense-technical" character preset matches tests/golden/dense-technical.css byte-for-byte', () => {
-		assert.equal(emitCss(applyPreset(defaultState(), 'dense-technical')), readGolden('dense-technical.css'));
-	});
+	for (const c of goldenCases.filter((g) => g.file.endsWith('.css'))) {
+		test(`emitCss matches tests/golden/${c.file} byte-for-byte`, () => {
+			assert.equal(c.emit(), readGolden(c.file));
+		});
+	}
 });
 
 describe('forPreview build-time approximations', () => {
