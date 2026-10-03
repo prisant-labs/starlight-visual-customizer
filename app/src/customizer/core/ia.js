@@ -91,6 +91,38 @@ function stripOrderPrefix(name) {
 /** URL schemes a sidebar link may use. Others, such as `javascript:` or `data:`, can run script. */
 const SAFE_LINK_SCHEMES = new Set(['http', 'https', 'mailto']);
 
+/** Line breaks, other control characters, and the Unicode line and paragraph separators. */
+const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+
+/**
+ * `value` as one line of plain text at most `maxLength` characters long: every control character,
+ * line break included, becomes a space. Text from a theme ends up in `APPLY-THEME.md`, where a line
+ * break could start a new Markdown step for a coding agent to follow.
+ * @param {unknown} value
+ * @param {number} maxLength
+ * @returns {string}
+ */
+export function toSingleLine(value, maxLength) {
+	return String(value).replace(CONTROL_CHARS_RE, ' ').slice(0, maxLength);
+}
+
+/**
+ * `safeLinkHref` for text that is also flattened to one line. The scheme is checked on the
+ * original text and again on the flattened text: flattening turns a hidden character such as
+ * U+0085 into a space, and a browser skips a leading space, so ` javascript:` would run.
+ * @param {string} href
+ * @returns {string}
+ */
+export function safeSingleLineHref(href) {
+	return safeLinkHref(href) === '#' ? '#' : safeLinkHref(toSingleLine(href, 2000));
+}
+
+/** One path segment of a docs slug or directory: letters, digits, marks, `.`, `_` and `-`. */
+const DOC_PATH_SEGMENT_RE = /^[\p{L}\p{N}\p{M}._-]+$/u;
+
+/** An HTML attribute name, as Starlight's `attrs` puts it on the link element. */
+const ATTR_NAME_RE = /^[A-Za-z_:][-A-Za-z0-9_:.]*$/;
+
 /**
  * Returns `href` unchanged when it is relative, root-relative or a fragment, or uses http, https
  * or mailto, and `'#'` for any other scheme. Browsers skip leading control characters and spaces
@@ -111,6 +143,24 @@ export function safeLinkHref(href) {
 }
 
 /**
+ * True when `path` is safe to use as a docs path: a slug, or an `autogenerate` directory.
+ * `APPLY-THEME.md` turns a slug into a file path that a coding agent edits
+ * (`src/content/docs/<slug>.md`) inside a Markdown code span, and sidebar structure can arrive in
+ * someone else's share link. So the path must stay relative and inside the docs folder, and it
+ * may hold only what a slug is made of: every segment is letters, digits, marks, `.`, `_` or `-`
+ * (`DOC_PATH_SEGMENT_RE`), and none is `.` or `..`. An allowlist, not a denylist, so nothing such
+ * as `$(...)` reaches a path an agent may put in a shell command. Empty is allowed; Starlight uses
+ * it for a site's root page.
+ * @param {unknown} path
+ * @returns {boolean}
+ */
+export function isSafeDocPath(path) {
+	if (typeof path !== 'string' || path.length > 200) return false;
+	if (path === '') return true;
+	return path.split('/').every((segment) => DOC_PATH_SEGMENT_RE.test(segment) && segment !== '.' && segment !== '..');
+}
+
+/**
  * A link's `attrs` as the exported config may carry them: no event-handler (`on...`) attributes,
  * and URL-valued attributes passed through `safeLinkHref`. Starlight puts `attrs` on the link
  * element, so an unfiltered `onclick` from a shared theme would run in the site that applies it.
@@ -123,8 +173,15 @@ export function safeLinkAttrs(attrs) {
 	if (!attrs || typeof attrs !== 'object' || Array.isArray(attrs)) return out;
 	for (const [key, value] of Object.entries(attrs)) {
 		// `__proto__` from parsed JSON is an own key; assigning it would swap `out`'s prototype.
-		if (/^on/i.test(key) || key === '__proto__') continue;
-		out[key] = /^(href|src|ping|action|formaction|xlink:href)$/i.test(key) ? safeLinkHref(value) : value;
+		if (!ATTR_NAME_RE.test(key) || key.length > 100 || /^on/i.test(key) || key === '__proto__') continue;
+		// Starlight's schema takes a string, number or boolean per attribute. Anything else, such as
+		// a nested object, is dropped, and text becomes one line: the config source lands inside a
+		// code fence in APPLY-THEME.md, where a line break could close the fence.
+		if (typeof value === 'string') {
+			out[key] = /^(href|src|ping|action|formaction|xlink:href)$/i.test(key) ? safeSingleLineHref(value) : toSingleLine(value, 2000);
+		} else if (typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))) {
+			out[key] = value;
+		}
 	}
 	return out;
 }
@@ -366,8 +423,21 @@ function isSafeIdentifier(key) {
 	return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key);
 }
 
+/**
+ * A single-quoted JS string literal. The sidebar source sits inside a code fence in
+ * APPLY-THEME.md, so line breaks and backticks are escaped as well: a raw line break could close
+ * the fence, and JS reads `\x60` as a backtick.
+ */
 function formatStringLiteral(s) {
-	return `'${String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+	const escaped = String(s)
+		.replace(/\\/g, '\\\\')
+		.replace(/'/g, "\\'")
+		.replace(/\n/g, '\\n')
+		.replace(/\r/g, '\\r')
+		.replace(/\u2028/g, '\\u2028')
+		.replace(/\u2029/g, '\\u2029')
+		.replace(/`/g, '\\x60');
+	return `'${escaped}'`;
 }
 
 function formatJsValue(value, indent) {
@@ -881,6 +951,9 @@ export function iaToFrontmatterTable(items) {
 	function walk(list) {
 		list.forEach((item, index) => {
 			if (item.type === 'link' && item.slug !== undefined) {
+				// The slug becomes a file path a coding agent edits; never emit one that leaves the
+				// docs folder or breaks out of its Markdown cell (`isSafeDocPath`).
+				if (!isSafeDocPath(item.slug)) return;
 				const derived = titleCase(lastSlugSegment(item.slug) || item.slug);
 				/** @type {{order?: number, label?: string, hidden?: boolean, badge?: Badge}} */
 				const sidebar = { order: index + 1 };

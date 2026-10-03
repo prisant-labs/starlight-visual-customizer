@@ -5,6 +5,7 @@
 import { controls } from './manifest.js';
 import { presets } from './presets.js';
 import { STARLIGHT_VERSION } from './version.js';
+import { isSafeDocPath, safeLinkAttrs, safeSingleLineHref, toSingleLine } from './ia.js';
 
 /**
  * @typedef {{type:'link', id:string, label:string, slug?:string, href?:string,
@@ -184,20 +185,191 @@ export function tryDecodeState(str) {
 		for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 		const payload = JSON.parse(new TextDecoder().decode(bytes));
 		if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
-		return {
-			v: 1,
-			starlight: STARLIGHT_VERSION,
-			preset: typeof payload.preset === 'string' ? payload.preset : 'starlight-default',
-			values:
-				payload.values && typeof payload.values === 'object' && !Array.isArray(payload.values)
-					? payload.values
-					: {},
-			ia: Array.isArray(payload.ia) ? payload.ia : null,
-			meta: { name: (payload.meta && typeof payload.meta.name === 'string' && payload.meta.name) || DEFAULT_THEME_NAME },
-		};
+		return sanitizeState(payload);
 	} catch {
 		return null;
 	}
+}
+
+// ---------------------------------------------------------------------------------------------
+// Sanitizing a theme from outside
+// ---------------------------------------------------------------------------------------------
+
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+const BADGE_VARIANTS = new Set(['note', 'tip', 'caution', 'danger', 'success', 'default']);
+const MAX_NAME_LENGTH = 100;
+const MAX_LABEL_LENGTH = 200;
+const MAX_IA_DEPTH = 8;
+const MAX_IA_ITEMS = 1000;
+
+/** @param {unknown} value @returns {value is string} True for a `#rrggbb` hex color. */
+export function isHexColor(value) {
+	return typeof value === 'string' && HEX_COLOR_RE.test(value);
+}
+
+/**
+ * One control value checked against its manifest entry, or `undefined` to drop it. A value of the
+ * wrong type, or one no control of that kind can hold, is dropped. A finite number outside its
+ * range is clamped, so a theme saved before a range changed still loads. It is not snapped to the
+ * step grid: some presets sit between steps on purpose (a 1.333 type scale on a 0.01 grid).
+ * @param {import('./manifest.js').Control} control
+ * @param {unknown} value
+ * @returns {any}
+ */
+function sanitizeValue(control, value) {
+	switch (control.type) {
+		case 'range': {
+			if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+			return Math.min(control.max ?? Infinity, Math.max(control.min ?? -Infinity, value));
+		}
+		case 'select':
+		case 'font':
+			return (control.options ?? []).some((option) => option.value === value) ? value : undefined;
+		case 'toggle':
+			return typeof value === 'boolean' ? value : undefined;
+		case 'color':
+			return value === 'auto' || isHexColor(value) ? value : undefined;
+		case 'text':
+			return typeof value === 'string' ? toSingleLine(value, control.maxLength ?? MAX_LABEL_LENGTH) : undefined;
+		default:
+			return undefined;
+	}
+}
+
+/** @param {unknown} value @returns {value is Record<string, any>} */
+function isPlainObject(value) {
+	return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * A sidebar badge rebuilt from its known fields, or `undefined` when it is not a usable badge.
+ * @param {unknown} badge
+ */
+function sanitizeBadge(badge) {
+	if (!isPlainObject(badge) || typeof badge.text !== 'string' || !BADGE_VARIANTS.has(badge.variant)) return undefined;
+	/** @type {{text: string, variant: string, class?: string}} */
+	const out = { text: toSingleLine(badge.text, MAX_LABEL_LENGTH), variant: badge.variant };
+	// Printed as an escaped JS string and set as a class attribute, so any one-line text is safe,
+	// including utility classes such as `md:hidden`.
+	if (typeof badge.class === 'string') out.class = toSingleLine(badge.class, MAX_LABEL_LENGTH);
+	return out;
+}
+
+/** @param {unknown} translations @returns {Record<string, string> | undefined} */
+function sanitizeTranslations(translations) {
+	if (!isPlainObject(translations)) return undefined;
+	/** @type {Record<string, string>} */
+	const out = {};
+	for (const [lang, label] of Object.entries(translations)) {
+		if (/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(lang) && typeof label === 'string') out[lang] = toSingleLine(label, MAX_LABEL_LENGTH);
+	}
+	return out;
+}
+
+/**
+ * One sidebar item rebuilt from the fields its type allows, or `null` to drop it. Only keys the
+ * input had are written, so a well-formed item comes back deep-equal to itself.
+ * @param {unknown} item
+ * @param {number} depth
+ * @param {{left: number}} budget Items still allowed in the whole tree.
+ * @returns {SidebarItem | null}
+ */
+function sanitizeIaItem(item, depth, budget) {
+	if (!isPlainObject(item) || typeof item.id !== 'string') return null;
+	/** @type {Record<string, any>} */
+	const out = { type: item.type, id: toSingleLine(item.id, MAX_LABEL_LENGTH) };
+	const copyLabel = () => {
+		if (typeof item.label === 'string') out.label = toSingleLine(item.label, MAX_LABEL_LENGTH);
+	};
+	const copyCommon = () => {
+		if ('badge' in item) {
+			const badge = sanitizeBadge(item.badge);
+			if (badge) out.badge = badge;
+		}
+		if ('translations' in item) {
+			const translations = sanitizeTranslations(item.translations);
+			if (translations) out.translations = translations;
+		}
+	};
+	if (item.type === 'link') {
+		copyLabel();
+		if (typeof out.label !== 'string') return null;
+		if ('slug' in item && isSafeDocPath(item.slug)) out.slug = item.slug;
+		if ('href' in item && typeof item.href === 'string') out.href = safeSingleLineHref(item.href);
+		if (out.slug === undefined && out.href === undefined) return null;
+		copyCommon();
+		if (typeof item.hidden === 'boolean') out.hidden = item.hidden;
+		if ('attrs' in item) out.attrs = safeLinkAttrs(item.attrs);
+		return /** @type {SidebarItem} */ (out);
+	}
+	if (item.type === 'group') {
+		copyLabel();
+		if (typeof out.label !== 'string') return null;
+		if (typeof item.collapsed === 'boolean') out.collapsed = item.collapsed;
+		copyCommon();
+		out.items = Array.isArray(item.items) && depth < MAX_IA_DEPTH ? sanitizeIaItems(item.items, depth + 1, budget) : [];
+		return /** @type {SidebarItem} */ (out);
+	}
+	if (item.type === 'autogenerate') {
+		if (!isSafeDocPath(item.directory)) return null;
+		copyLabel();
+		out.directory = item.directory;
+		if (typeof item.collapsed === 'boolean') out.collapsed = item.collapsed;
+		if ('attrs' in item) out.attrs = safeLinkAttrs(item.attrs);
+		return /** @type {SidebarItem} */ (out);
+	}
+	return null;
+}
+
+/**
+ * @param {unknown[]} items
+ * @param {number} depth
+ * @param {{left: number}} budget
+ * @returns {SidebarItem[]}
+ */
+function sanitizeIaItems(items, depth, budget) {
+	const out = [];
+	for (const item of items) {
+		if (budget.left <= 0) break;
+		budget.left--;
+		const clean = sanitizeIaItem(item, depth, budget);
+		if (clean) out.push(clean);
+	}
+	return out;
+}
+
+/**
+ * A full `ThemeState` built from a theme that came from outside the studio's own controls: a share
+ * link, a saved theme in `localStorage`, or an imported `state.json`. Anyone can craft a share
+ * link, and its theme flows into `theme.css`, into the `astro.config.mjs` lines in
+ * `APPLY-THEME.md`, and into steps a coding agent follows. So every value is checked against its
+ * control (`sanitizeValue`), unknown control ids and an unknown preset are dropped, text becomes
+ * one line, and the sidebar is rebuilt from known fields with safe links and paths. A theme the
+ * studio itself made comes back unchanged.
+ * @param {unknown} raw
+ * @returns {ThemeState}
+ */
+export function sanitizeState(raw) {
+	const input = isPlainObject(raw) ? raw : {};
+	/** @type {Record<string, any>} */
+	const values = {};
+	if (isPlainObject(input.values)) {
+		for (const [id, value] of Object.entries(input.values)) {
+			const control = controlsById.get(id);
+			if (!control) continue;
+			const clean = sanitizeValue(control, value);
+			if (clean !== undefined) values[id] = clean;
+		}
+	}
+	const name = typeof input.meta?.name === 'string' ? toSingleLine(input.meta.name, MAX_NAME_LENGTH) : '';
+	return {
+		v: 1,
+		starlight: STARLIGHT_VERSION,
+		preset: presets.some((p) => p.id === input.preset) ? input.preset : 'starlight-default',
+		values,
+		ia: Array.isArray(input.ia) ? sanitizeIaItems(input.ia, 0, { left: MAX_IA_ITEMS }) : null,
+		meta: { name: name.trim() ? name : DEFAULT_THEME_NAME },
+	};
 }
 
 /**
