@@ -190,15 +190,16 @@ async function main() {
 			check('the copied link carries the theme (#svc=)', u.hash.startsWith('#svc='), u.hash.slice(0, 12));
 		} else {
 			// "Copy share link" writes to navigator.clipboard, which this engine has no permission
-			// grant for (see the file header) - build the same link directly so every later section
-			// still runs against a real, well-formed share link.
-			skip('clicking "Copy share link"', 'clipboard-write is not grantable outside chromium');
-			skip('reading the copied link back from the clipboard', 'clipboard-read is not grantable outside chromium');
+			// grant for (see the file header), so the click never happens for real and the three
+			// checks below can't exercise what they're named for - build the same link directly with
+			// studioLink/encodeState instead, so every later section still runs against a real,
+			// well-formed share link, and skip the three checks under their own names rather than
+			// reporting them as passes against a link the test itself constructed.
+			const reason = 'clipboard-read/clipboard-write are not grantable outside chromium';
+			skip('the copied link points at the studio', reason);
+			skip('the copied link carries the page being viewed (?page=)', reason);
+			skip('the copied link carries the theme (#svc=)', reason);
 			copied = studioLink(setName(defaultState(), 'Copied theme'), PAGE);
-			const u = new URL(copied);
-			check('the built-in-place link points at the studio', appPath(u.pathname) === '/studio/', copied.slice(0, 120));
-			check('the built-in-place link carries the page being viewed (?page=)', normalizePath(u.searchParams.get('page') ?? '') === PAGE, u.search);
-			check('the built-in-place link carries the theme (#svc=)', u.hash.startsWith('#svc='), u.hash.slice(0, 12));
 		}
 		await context.close();
 	}
