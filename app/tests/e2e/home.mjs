@@ -11,13 +11,14 @@
  * build`) or `npm run dev:bg`.
  *   node tests/e2e/home.mjs
  * Env overrides: SVC_BASE_URL (default http://localhost:4420; under a sub-path build, the full
- * origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH.
+ * origin plus base path, e.g. http://localhost:4425/starlight-visual-customizer), SVC_CHROME_PATH,
+ * SVC_BROWSER (chromium (default), firefox, webkit - see browser.mjs).
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchBrowser } from './browser.mjs';
 import { withBase, stripBase } from '../../src/customizer/core/base-path.js';
 import { REPO_URL, TOOL_URL } from '../../src/customizer/core/project.js';
 import { presets } from '../../src/customizer/core/presets.js';
@@ -28,7 +29,6 @@ const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
 // The base path the server under test was built with ('/' at root), so every path check below
 // compares base-free paths, exactly as studio.mjs does.
 const BASE_PATH = new URL(SVC_BASE_URL).pathname;
-const EXECUTABLE_PATH = process.env.SVC_CHROME_PATH || chromium.executablePath();
 const SCREENSHOTS_DIR = path.join(__dirname, 'screenshots');
 
 let failures = 0;
@@ -76,7 +76,7 @@ async function waitForPanelBody(page, timeout = 15000) {
 
 async function main() {
 	mkdirSync(SCREENSHOTS_DIR, { recursive: true });
-	const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	const browser = await launchBrowser();
 
 	const errors = [];
 	function trackErrors(page) {

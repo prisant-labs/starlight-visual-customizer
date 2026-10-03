@@ -7,7 +7,8 @@
  *   node tests/e2e/smoke.mjs
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run build`) or `npm run dev:bg`.
- * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server), SVC_CHROME_PATH.
+ * Env overrides: SVC_BASE_URL (default http://localhost:4420 = this project's production preview; use http://localhost:4700 for its dev server), SVC_CHROME_PATH,
+ * SVC_BROWSER (chromium (default), firefox, webkit - see browser.mjs).
  *
  * Everything that touches the panel goes through `page.evaluate` reaching into
  * `document.querySelector('sl-customizer').shadowRoot` directly with native DOM APIs (set
@@ -18,16 +19,14 @@
  * any dependency on exactly which Playwright locator behaviors this playwright-core/Chromium
  * pairing supports.
  */
-import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { launchBrowser } from './browser.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
-const EXECUTABLE_PATH =
-	process.env.SVC_CHROME_PATH ||
-	chromium.executablePath();
 // A direct top-level page visit no longer mounts the panel at all (it shows a
 // small "Open in Studio" pill instead) - `?svc-overlay` is the escape hatch this suite (an ENGINE
 // test of the overlay panel itself, not of the visitor-mode page) needs to keep exercising the
@@ -46,7 +45,7 @@ function check(name, cond) {
 async function main() {
 	mkdirSync(path.join(__dirname, 'screenshots'), { recursive: true });
 
-	const browser = await chromium.launch({ executablePath: EXECUTABLE_PATH, headless: true });
+	const browser = await launchBrowser();
 	const page = await browser.newPage();
 	page.on('pageerror', (err) => console.log('[browser page error]', err.message));
 	page.on('console', (msg) => {

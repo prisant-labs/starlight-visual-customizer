@@ -267,6 +267,18 @@ $env:SVC_BASE_URL = 'http://localhost:4700'; npm run test:e2e; Remove-Item Env:S
 
 The browser suites use `playwright-core` with the Chromium build it expects (install it once with `npx playwright install chromium`); set `SVC_CHROME_PATH` to use another Chromium or Chrome. Every suite drives real `page.mouse.click`/`down`/`move`/`up` and `page.keyboard.type` at element centers rather than script-dispatched `.click()` calls, because some interactions (a real click blurs a focused field; a script-invoked action does not) only reproduce correctly under a real click.
 
+### Running against Firefox or WebKit
+
+Six of the thirteen suites (`home`, `smoke`, `studio`, `shell`, `sizing`, `share`) also run under Firefox or WebKit through the same `playwright-core` package, via a shared launcher, `tests/e2e/browser.mjs`. Install the other two engines once (`npx playwright-core install firefox webkit`), then set `SVC_BROWSER`:
+
+```powershell
+$env:SVC_BROWSER = 'firefox'   # or 'webkit'
+node tests/e2e/shell.mjs
+Remove-Item Env:SVC_BROWSER
+```
+
+`SVC_BROWSER` defaults to `chromium`, matching every suite's previous, only behavior; `SVC_CHROME_PATH` still applies to the `chromium` branch only; it has no effect under `firefox`/`webkit`. A check that needs a Chromium-only browser permission (`share.mjs`'s clipboard read/write, for "Copy share link") prints `SKIP - <check> (<reason>)` under Firefox/WebKit instead of running - a skip never counts as a pass or a failure. Playwright's own WebKit build on Windows is not Apple's Safari: it is WebKit's upstream Windows port, closer in heritage to Linux's GTK WebKit than to macOS Safari, so a pass there is evidence for the WebKit engine, not a Safari guarantee.
+
 ## Source layout notes
 
 ```
