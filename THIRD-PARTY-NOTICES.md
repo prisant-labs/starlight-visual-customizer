@@ -174,7 +174,7 @@ package's own `package.json`. Build-time only; not distributed in `app/dist/`. F
 
 ### SIL Open Font License, Version 1.1
 
-Applies to: Inter, bundled for the product page, and the 12 Fontsource web fonts listed above. Text
+Applies to: Inter, bundled for the product page, and the other 11 Fontsource web fonts listed above. Text
 below is copied verbatim from `app/node_modules/@fontsource-variable/inter/LICENSE` as installed
 (version 5.3.0), including that file's own copyright line, which names both the typeface and the
 specific font file Fontsource generated the LICENSE from:
