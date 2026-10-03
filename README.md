@@ -132,8 +132,9 @@ for the color picker, [fflate](https://github.com/101arrowz/fflate) for the zip 
 
 **Your exported themes are yours.** The MIT license covers the studio's own source code. The
 files you export (`theme.css`, `APPLY-THEME.md` and the state file) are yours to use, change and
-publish however you like, with no attribution or license notice required. `theme.css` and
-`APPLY-THEME.md` each end with a one-line link back to this tool; keep it or delete it.
+publish however you like, with no attribution or license notice required. `theme.css` names
+this tool, with a link, in its header comment, and `APPLY-THEME.md` ends with the same line;
+keep them or delete them.
 
 Starlight Visual Customizer is an independent, open-source project by Prisant Labs. It is not
 affiliated with or endorsed by the Astro team.
