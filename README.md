@@ -10,6 +10,9 @@ fonts, layout and components on real Starlight pages, then export one CSS file.*
 
 [![The studio with the Editorial Serif preset applied: serif headings, a red accent and a banner on a Starlight style guide page](docs/studio.png)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
 
+Starlight Visual Customizer is an independent, open-source project by Prisant Labs, released
+under the MIT license. It is not affiliated with or endorsed by the Astro team.
+
 Starlight's built-in color theme editor sets an accent color and a gray. This editor covers
 typography, layout and component styles too. Every change appears at once on real Starlight
 pages, in light mode and dark mode.
