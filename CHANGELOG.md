@@ -17,12 +17,14 @@ The first release. It targets Starlight 0.42.4 and Astro 7.3.5.
   Nine presets give a starting point, and every value stays editable.
 - **Inspect.** Clicking an element in the preview opens the controls that style it.
 - **Export.** The studio exports `theme.css` for Starlight's `customCss` option, `APPLY-THEME.md`
-  with numbered steps to apply it, a state file to import later, and a PNG screenshot. Both
-  `theme.css` and `APPLY-THEME.md` end with a link back to the tool, which you can delete.
+  with numbered steps to apply it, a state file to import later, and a PNG screenshot.
+  `theme.css` names the tool, with a link, in its header comment, and `APPLY-THEME.md` ends with
+  the same line. You can delete either one.
 - **Share links.** A share link carries the whole theme and the page you were viewing. Opening one
-  asks before it replaces a theme you have already saved.
+  asks before it replaces a theme you have already saved. Sidebar links that arrive in a share
+  link can only point to web, mail or relative addresses.
 - **The site.** A product page sits at the root, the studio at `studio/`, and the demo docs site
   under `demo/`.
 - **Tests.** Unit tests cover the emitters and the core logic. Browser suites cover every control
-  on Chromium, and a subset also runs on Firefox and WebKit. A round-trip test applies real exports
+  on Chromium, and six of the suites also run on Firefox and WebKit. A round-trip test applies real exports
   to a freshly created Starlight site and compares the result with the studio's preview.
