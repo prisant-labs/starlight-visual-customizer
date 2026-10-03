@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { resolveInitialTheme, SHARE_HASH_PREFIX } from '../../src/customizer/core/share-link.js';
+import { resolveInitialTheme, buildShareUrl, SHARE_HASH_PREFIX } from '../../src/customizer/core/share-link.js';
 import { defaultState, applyPreset, setName, encodeState, sameTheme } from '../../src/customizer/core/state.js';
 
 const shared = setName(applyPreset(defaultState(), 'ocean'), 'Ocean draft');
@@ -67,5 +67,30 @@ describe('resolveInitialTheme', () => {
 		const r = resolveInitialTheme(`${SHARE_HASH_PREFIX}not-base64-!!!`, null);
 		assert.equal(sameTheme(r.state, defaultState()), true);
 		assert.equal(r.damaged, true);
+	});
+});
+
+describe('buildShareUrl', () => {
+	const loc = (search) => ({ origin: 'https://example.com', pathname: '/svc/studio/', search });
+
+	test("keeps the studio's ?page= and the theme", () => {
+		assert.equal(buildShareUrl(loc('?page=/demo/specimen/'), 'abc'), 'https://example.com/svc/studio/?page=/demo/specimen/#svc=abc');
+	});
+
+	test('drops every other query parameter, including test flags and tracking parameters', () => {
+		const url = buildShareUrl(loc('?svc-overlay&utm_source=x&page=/demo/landing/&session=1'), 'abc');
+		assert.equal(url, 'https://example.com/svc/studio/?page=/demo/landing/#svc=abc');
+	});
+
+	test('no page, no query string', () => {
+		assert.equal(buildShareUrl(loc(''), 'abc'), 'https://example.com/svc/studio/#svc=abc');
+		assert.equal(buildShareUrl(loc('?svc-overlay'), 'abc'), 'https://example.com/svc/studio/#svc=abc');
+	});
+
+	test('a page value cannot add parameters or a fragment of its own', () => {
+		const url = buildShareUrl(loc('?page=' + encodeURIComponent('/demo/x/&evil=1#svc=other')), 'abc');
+		assert.equal(new URL(url).searchParams.get('page'), '/demo/x/&evil=1#svc=other');
+		assert.equal(new URL(url).searchParams.get('evil'), null);
+		assert.equal(new URL(url).hash, '#svc=abc');
 	});
 });

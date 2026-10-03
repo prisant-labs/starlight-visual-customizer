@@ -23,7 +23,7 @@
  * no-op via the map lookup below.
  */
 import { fixtureSidebar } from '../../fixture-sidebar.mjs';
-import { iaFromStarlightConfig } from '../core/ia.js';
+import { iaFromStarlightConfig, safeLinkHref } from '../core/ia.js';
 import { withBase, stripBase } from '../core/base-path.js';
 import { demoSlug } from '../../demo-site.mjs';
 
@@ -156,7 +156,7 @@ function isCurrentHref(href, pageWin) {
  * root-relative href a user types in the Structure editor is taken literally, so `/guides/x/`
  * points outside the demo and shows the 404 page in the preview. */
 function linkHref(item) {
-	if (item.href !== undefined) return withBase(item.href);
+	if (item.href !== undefined) return withBase(safeLinkHref(item.href));
 	if (item.slug !== undefined) return withBase(`/${demoSlug(item.slug)}/`);
 	return '#';
 }

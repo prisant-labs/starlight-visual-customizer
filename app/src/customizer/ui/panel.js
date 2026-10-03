@@ -35,7 +35,7 @@ import { useMode, modeRgb, formatHex } from 'culori/fn';
 import { controls, GROUPS, FONTS } from '../core/manifest.js';
 import { presets } from '../core/presets.js';
 import { defaultState, getValue, setValue, applyPreset, encodeState, setName, getName, sameTheme } from '../core/state.js';
-import { resolveInitialTheme, SHARE_HASH_PREFIX } from '../core/share-link.js';
+import { resolveInitialTheme, buildShareUrl, SHARE_HASH_PREFIX } from '../core/share-link.js';
 import { emitCss } from '../core/emit-css.js';
 import { contrastRatio, CONTRAST_AA, CONTRAST_AAA } from '../core/color.js';
 import { createHistory } from '../core/history.js';
@@ -819,7 +819,7 @@ function initCustomizer(host) {
 		shareBtn.className = 'svc-btn';
 		shareBtn.textContent = 'Copy share link';
 		shareBtn.addEventListener('click', async () => {
-			const url = `${location.origin}${location.pathname}${SHARE_HASH_PREFIX}${encodeState(state)}`;
+			const url = buildShareUrl(location, encodeState(state));
 			try {
 				await navigator.clipboard.writeText(url);
 				flashText(shareBtn, 'Copied!');
@@ -1507,7 +1507,17 @@ function loadInitialState() {
 	} catch {
 		/* storage blocked: nothing saved to protect */
 	}
-	return resolveInitialTheme(location.hash, stored);
+	const initial = resolveInitialTheme(location.hash, stored);
+	// The link has been read; take it out of the address bar, so a reload after later edits never
+	// meets it again. The studio's own URL rewrite also drops it, but this holds in every mode.
+	if (location.hash.startsWith(SHARE_HASH_PREFIX)) {
+		try {
+			history.replaceState(history.state, '', `${location.pathname}${location.search}`);
+		} catch {
+			/* a sandboxed page may refuse; the studio's rewrite still runs */
+		}
+	}
+	return initial;
 }
 
 /** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - drives

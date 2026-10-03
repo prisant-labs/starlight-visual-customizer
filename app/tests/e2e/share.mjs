@@ -6,7 +6,8 @@
  * visit saves, or the same theme); that a link which differs from real saved work asks first
  * ("Open the shared theme?"), with Keep, Escape, Open and Undo each doing what they say; that a
  * damaged link keeps the saved theme and says so; that the root forwarder reaches the same
- * question; and that a theme name from a link is shown as text, never as markup.
+ * question; that a theme name from a link is shown as text, never as markup; and that a sidebar
+ * from a link cannot put a `javascript:` URL into the preview.
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
  * build`) or `npm run dev:bg`.
@@ -21,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import { stripBase } from '../../src/customizer/core/base-path.js';
 import { defaultState, applyPreset, setName, encodeState, tryDecodeState, sameTheme } from '../../src/customizer/core/state.js';
+import { iaFromStarlightConfig } from '../../src/customizer/core/ia.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SVC_BASE_URL = process.env.SVC_BASE_URL || 'http://localhost:4420';
@@ -324,6 +326,47 @@ async function main() {
 		const injected = await page.evaluate(() => /** @type {any} */ (window).__svcInjected === 1);
 		check('a name with markup appears as literal text in the question', s.open && s.text.includes('<img src=x') && s.markupInBody === 0, JSON.stringify({ open: s.open, markup: s.markupInBody }));
 		check('a name with markup runs nothing', !injected);
+		await context.close();
+	}
+
+	// =============================================================================================
+	// 7. A sidebar from a link can only link somewhere: no script URL reaches the preview.
+	// =============================================================================================
+	{
+		const hostile = {
+			...setName(applyPreset(defaultState(), 'forest'), 'Hostile sidebar'),
+			ia: iaFromStarlightConfig([
+				{ label: 'Script link', link: 'javascript:window.__svcInjected=2' },
+				{ label: 'Spaced script link', link: ' java\tscript:window.__svcInjected=3' },
+				{ label: 'Safe link', link: 'https://example.com/' },
+			]),
+		};
+		const { context, page } = await newVisitor(browser, trackErrors);
+		await open(page, studioLink(hostile));
+		const rendered = await page
+			.waitForFunction(
+				() => {
+					const doc = /** @type {HTMLIFrameElement | null} */ (document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]'))?.contentDocument;
+					return !!doc && Array.from(doc.querySelectorAll('a')).some((a) => a.textContent?.trim() === 'Safe link');
+				},
+				undefined,
+				{ timeout: 10000 }
+			)
+			.then(() => true, () => false);
+		const hrefs = await page.evaluate(() => {
+			const doc = /** @type {HTMLIFrameElement | null} */ (document.querySelector('iframe[data-svc-preview][data-svc-lane="light"]'))?.contentDocument;
+			/** @type {Record<string, string | null>} */
+			const out = {};
+			for (const a of doc?.querySelectorAll('a') ?? []) {
+				const label = a.textContent?.trim() ?? '';
+				if (['Script link', 'Spaced script link', 'Safe link'].includes(label)) out[label] = a.getAttribute('href');
+			}
+			return out;
+		});
+		check('a sidebar from a share link renders in the preview', rendered, JSON.stringify(hrefs));
+		check('a javascript: sidebar link from a share link renders as #', hrefs['Script link'] === '#', JSON.stringify(hrefs));
+		check('a javascript: link hidden behind a space and a tab renders as # too', hrefs['Spaced script link'] === '#', JSON.stringify(hrefs));
+		check('an https sidebar link from a share link is kept as it is', hrefs['Safe link'] === 'https://example.com/', JSON.stringify(hrefs));
 		await context.close();
 	}
 

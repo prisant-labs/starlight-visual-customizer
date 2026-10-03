@@ -9,6 +9,25 @@ import { defaultState, decodeState, tryDecodeState, sameTheme } from './state.js
 export const SHARE_HASH_PREFIX = '#svc=';
 
 /**
+ * The URL "Copy share link" copies: this page, the `?page=` the studio is showing, and the theme.
+ * Only `page` survives from the query string, so a test flag such as `?svc-overlay` or a tracking
+ * parameter on the sender's address never travels into a link they paste somewhere else.
+ * @param {{ origin: string, pathname: string, search: string }} loc Usually `location`.
+ * @param {string} encodedState The output of `encodeState`.
+ * @returns {string}
+ */
+export function buildShareUrl(loc, encodedState) {
+	let page = null;
+	try {
+		page = new URLSearchParams(loc.search).get('page');
+	} catch {
+		/* an unparsable query string carries no page */
+	}
+	const query = page ? `?page=${encodeURIComponent(page).replace(/%2F/gi, '/')}` : '';
+	return `${loc.origin}${loc.pathname}${query}${SHARE_HASH_PREFIX}${encodedState}`;
+}
+
+/**
  * @typedef {{
  *   state: import('./state.js').ThemeState,
  *   pendingShared: import('./state.js').ThemeState | null,
