@@ -1285,6 +1285,75 @@ async function main() {
 		await page.waitForTimeout(300);
 	}
 
+	// Split: the dark lane takes edits even when it finished loading before the studio's own script
+	// ran. Both lanes start loading with the page, so a lane can fire its `load` event and ping
+	// `__svcAttachPreview` before the studio registers either; WebKit does this in about one run in
+	// four. Holding back the studio page's own scripts until both lanes have loaded makes that order
+	// certain on every engine.
+	{
+		const lateCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+		const late = await lateCtx.newPage();
+		trackErrors(late);
+		// Each lane's readiness, ignoring the iframe's initial about:blank document, and whether the
+		// studio has registered its attach hook yet. A document reaches 'complete' in the same task that
+		// fires its `load` event, so a lane read as 'complete' has already pinged and loaded.
+		const laneState = () =>
+			late
+				.evaluate(() => ({
+					hook: typeof (/** @type {any} */ (window).__svcAttachPreview),
+					lanes: ['light', 'dark'].map((lane) => {
+						const doc = /** @type {HTMLIFrameElement | null} */ (document.querySelector(`iframe[data-svc-preview][data-svc-lane="${lane}"]`))?.contentDocument;
+						return doc && doc.URL !== 'about:blank' ? doc.readyState : 'none';
+					}),
+				}))
+				.catch(() => null);
+		/** @type {{ hook: string, lanes: string[] } | null} The state when the studio's scripts were let through. */
+		let atRelease = null;
+		await lateCtx.route('**/*.js', async (route) => {
+			let fromStudioPage = false;
+			try {
+				fromStudioPage = route.request().frame() === late.mainFrame();
+			} catch {
+				/* a worker's request has no frame; let it through */
+			}
+			if (fromStudioPage) {
+				// Generous, so a slow server fails the setup check below rather than the fix check.
+				const deadline = Date.now() + 45000;
+				let state = await laneState();
+				while (Date.now() < deadline && !state?.lanes.every((r) => r === 'complete')) {
+					await new Promise((r) => setTimeout(r, 100));
+					state = await laneState();
+				}
+				atRelease ??= state;
+			}
+			await route.continue();
+		});
+		await late.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'load', timeout: 60000 });
+		await waitForPanelBody(late);
+		check(
+			'Split, late studio script: both lanes finished loading before the studio could attach them',
+			atRelease?.hook === 'undefined' && atRelease.lanes.every((r) => r === 'complete'),
+			JSON.stringify(atRelease)
+		);
+
+		await realClick(late, await lightQueryByText(late, '.svc-seg-btn', 'Split'));
+		const darkLinkColor = () =>
+			late.evaluate(() => {
+				const doc = /** @type {HTMLIFrameElement | null} */ (document.querySelector('iframe[data-svc-preview][data-svc-lane="dark"]'))?.contentDocument;
+				const a = doc?.querySelector('.sl-markdown-content a');
+				return a ? (a.ownerDocument.defaultView?.getComputedStyle(a).color ?? null) : null;
+			});
+		const darkBefore = await waitForComputed(darkLinkColor, (c) => !!c, { timeoutMs: 5000, intervalMs: 100 });
+		await late.evaluate(() => {
+			const input = document.querySelector('sl-customizer').shadowRoot.querySelector("[data-control-id='color.accent.hue'] input[type=range]");
+			input.value = '150';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+		});
+		const darkAfter = await waitForComputed(darkLinkColor, (c) => c !== darkBefore, { timeoutMs: 3000, intervalMs: 100 });
+		check('Split, late studio script: the accent change still reaches the dark lane', !!darkBefore && darkAfter !== darkBefore, `${darkBefore} -> ${darkAfter}`);
+		await lateCtx.close();
+	}
+
 	// =============================================================================================
 	// S8: scaling - device 1440 in a 1280 window
 	// =============================================================================================
