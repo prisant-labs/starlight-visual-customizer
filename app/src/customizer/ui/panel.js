@@ -34,7 +34,8 @@ import { useMode, modeRgb, formatHex } from 'culori/fn';
 
 import { controls, GROUPS, FONTS } from '../core/manifest.js';
 import { presets } from '../core/presets.js';
-import { defaultState, getValue, setValue, applyPreset, encodeState, decodeState, setName, getName } from '../core/state.js';
+import { defaultState, getValue, setValue, applyPreset, encodeState, setName, getName, sameTheme } from '../core/state.js';
+import { resolveInitialTheme, buildShareUrl, SHARE_HASH_PREFIX } from '../core/share-link.js';
 import { emitCss } from '../core/emit-css.js';
 import { contrastRatio, CONTRAST_AA, CONTRAST_AAA } from '../core/color.js';
 import { createHistory } from '../core/history.js';
@@ -56,6 +57,7 @@ import { createIaEditor } from './ia-editor.js';
 import { harvestSidebarTemplates, renderSidebar } from './sidebar-render.js';
 import { stampTocLevels, applySiteTitle } from './preview-approx.js';
 import { createExportDialog } from './export.js';
+import { createShareLinkDialog } from './share-dialog.js';
 import { createTargetHighlighter } from './target-highlight.js';
 import { setFrameEls, getPageDoc, getPageWin, getFrameEl, isStudio } from './page-doc.js';
 import { withBase, stripBase } from '../core/base-path.js';
@@ -69,7 +71,6 @@ useMode(modeRgb); // registers the rgb color model with culori/fn's shared regis
 const SUN_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>`;
 const MOON_ICON_SVG = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"></path></svg>`;
 
-const HASH_PREFIX = '#svc=';
 const LOCALSTORAGE_STATE_KEY = 'svc-state';
 const LOCALSTORAGE_CSS_KEY = 'svc-css';
 const SESSIONSTORAGE_UI_KEY = 'svc-ui';
@@ -292,8 +293,11 @@ function initCustomizer(host) {
 	}
 	const studio = isStudio();
 
+	// A share link that competes with real work saved here does not replace it yet: `state` starts
+	// as the saved theme and the share-link dialog (opened at the end of this function) asks first.
+	const initialTheme = loadInitialState();
 	/** @type {import('../core/state.js').ThemeState} */
-	let state = loadInitialState();
+	let state = initialTheme.state;
 	let lastSaveOk = persistState(state);
 	let lastSaveAt = Date.now();
 
@@ -656,6 +660,10 @@ function initCustomizer(host) {
 	// have no styling at all (styles.js's stylesheet only applies inside this shadow root).
 	const contrastDialog = createContrastDialog();
 	if (studio) shadow.appendChild(contrastDialog.root);
+	// Opening the shared theme goes through the import path, so it is one undo step and Undo
+	// brings the saved theme back.
+	const shareDialog = createShareLinkDialog({ onOpenShared: (shared) => importStateFromJson(shared) });
+	shadow.appendChild(shareDialog.root);
 
 	function importStateFromJson(parsed) {
 		history.record(state, distinctHistoryKey('import'), Date.now());
@@ -811,7 +819,7 @@ function initCustomizer(host) {
 		shareBtn.className = 'svc-btn';
 		shareBtn.textContent = 'Copy share link';
 		shareBtn.addEventListener('click', async () => {
-			const url = `${location.origin}${location.pathname}${HASH_PREFIX}${encodeState(state)}`;
+			const url = buildShareUrl(location, encodeState(state));
 			try {
 				await navigator.clipboard.writeText(url);
 				flashText(shareBtn, 'Copied!');
@@ -1428,6 +1436,10 @@ function initCustomizer(host) {
 			getChangeCount: () => computeChangeCount(state),
 			getContrastReport: () => computeStatusContrastReport(state),
 			openContrastDialog: () => contrastDialog.open(computeStatusContrastReport(state)),
+			// For shell.mjs's contrast walk, which cannot arrange a real conflict mid-suite: opens either
+			// shape of the share-link dialog against the current theme. Choosing "Open shared theme" here
+			// re-imports the current theme, one harmless undo step.
+			openShareLinkDialog: (kind) => (kind === 'damaged' ? shareDialog.openDamaged(true) : shareDialog.openConflict(state, state)),
 			openGroup,
 			// Inspect support - see the block above `host.__svc`.
 			highlightControls,
@@ -1474,20 +1486,38 @@ function initCustomizer(host) {
 	contrastBlock.refresh(computeContrastRows());
 	if (!studio) setCollapsed(uiState.collapsed === true);
 	syncThemeButton();
+
+	if (initialTheme.pendingShared) shareDialog.openConflict(initialTheme.pendingShared, state);
+	else if (initialTheme.damaged) shareDialog.openDamaged(!sameTheme(state, defaultState()));
 }
 
 // ---------------------------------------------------------------------------------------------
 // module-level helpers (no closure over `state`; take it as a parameter)
 // ---------------------------------------------------------------------------------------------
 
-/** @returns {import('../core/state.js').ThemeState} Hash `#svc=` wins over localStorage over default. */
+/**
+ * @returns {import('../core/share-link.js').InitialTheme} A share link (`#svc=`) wins over the saved
+ * theme only when nothing worth keeping is saved; otherwise `pendingShared` asks first. See
+ * `resolveInitialTheme` in core/share-link.js for the rules.
+ */
 function loadInitialState() {
-	if (location.hash.startsWith(HASH_PREFIX)) {
-		return decodeState(location.hash.slice(HASH_PREFIX.length));
+	let stored = null;
+	try {
+		stored = localStorage.getItem(LOCALSTORAGE_STATE_KEY);
+	} catch {
+		/* storage blocked: nothing saved to protect */
 	}
-	const stored = localStorage.getItem(LOCALSTORAGE_STATE_KEY);
-	if (stored) return decodeState(stored);
-	return defaultState();
+	const initial = resolveInitialTheme(location.hash, stored);
+	// The link has been read; take it out of the address bar, so a reload after later edits never
+	// meets it again. The studio's own URL rewrite also drops it, but this holds in every mode.
+	if (location.hash.startsWith(SHARE_HASH_PREFIX)) {
+		try {
+			history.replaceState(history.state, '', `${location.pathname}${location.search}`);
+		} catch {
+			/* a sandboxed page may refuse; the studio's rewrite still runs */
+		}
+	}
+	return initial;
 }
 
 /** @param {import('../core/state.js').ThemeState} state @returns {boolean} True on success - drives

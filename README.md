@@ -30,7 +30,8 @@ pages, in light mode and dark mode.
 - **Preview at real sizes.** Device widths run from a 390-pixel phone to a 2560-pixel ultra-wide
   screen.
 - **Undo anything, and share the result.** Every change is one undo step. A share link carries
-  the whole theme in its URL.
+  the whole theme and the page you were viewing in its URL. Opening one never silently replaces
+  a theme you saved: the studio asks first.
 
 <table>
   <tr>
@@ -110,8 +111,8 @@ See ["Serving under a sub-path"](app/README.md#serving-under-a-sub-path) for the
 
 | Suite | What it checks |
 |---|---|
-| `npm test` (203 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
-| `npm run test:e2e` (10 browser suites) | Every control's visual effect and target, the studio shell, Inspect, hex color entry, the structure editor and PNG screenshot export, against a running preview |
+| `npm test` (239 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, share-link decoding and sidebar-link safety, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
+| `npm run test:e2e` (13 browser suites) | The product page, every control's visual effect and target, the studio shell, Studio sizing, share links, Inspect, hex color entry, the structure editor and PNG screenshot export, against a running preview |
 | `npm run test:roundtrip` | Applies a real export to a freshly scaffolded Starlight site and compares its computed styles with the studio's live preview |
 
 Every pull request runs the unit tests and a production build in CI. The suite-by-suite

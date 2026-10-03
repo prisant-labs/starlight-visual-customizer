@@ -88,6 +88,47 @@ function stripOrderPrefix(name) {
 	return name.replace(/^\d+[-._]+/, '');
 }
 
+/** URL schemes a sidebar link may use. Others, such as `javascript:` or `data:`, can run script. */
+const SAFE_LINK_SCHEMES = new Set(['http', 'https', 'mailto']);
+
+/**
+ * Returns `href` unchanged when it is relative, root-relative or a fragment, or uses http, https
+ * or mailto, and `'#'` for any other scheme. Browsers skip leading control characters and spaces
+ * and drop tabs and newlines inside a URL, so the scheme is read the same way.
+ *
+ * Sidebar structure can arrive in someone else's share link, and a share link with nothing saved
+ * to protect applies at once. Every place that turns an IA link into a real link goes through
+ * this: the preview's sidebar (`ui/sidebar-render.js`) and the exported Starlight config.
+ * @param {unknown} href
+ * @returns {string}
+ */
+export function safeLinkHref(href) {
+	const raw = String(href ?? '');
+	const compact = raw.replace(/^[\u0000- ]+/, '').replace(/[\t\n\r]/g, '');
+	const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(compact);
+	if (scheme && !SAFE_LINK_SCHEMES.has(scheme[1].toLowerCase())) return '#';
+	return raw;
+}
+
+/**
+ * A link's `attrs` as the exported config may carry them: no event-handler (`on...`) attributes,
+ * and URL-valued attributes passed through `safeLinkHref`. Starlight puts `attrs` on the link
+ * element, so an unfiltered `onclick` from a shared theme would run in the site that applies it.
+ * @param {unknown} attrs
+ * @returns {Record<string, any>}
+ */
+export function safeLinkAttrs(attrs) {
+	/** @type {Record<string, any>} */
+	const out = {};
+	if (!attrs || typeof attrs !== 'object' || Array.isArray(attrs)) return out;
+	for (const [key, value] of Object.entries(attrs)) {
+		// `__proto__` from parsed JSON is an own key; assigning it would swap `out`'s prototype.
+		if (/^on/i.test(key) || key === '__proto__') continue;
+		out[key] = /^(href|src|ping|action|formaction|xlink:href)$/i.test(key) ? safeLinkHref(value) : value;
+	}
+	return out;
+}
+
 /** kebab-case / snake_case filename -> Title Case label. Exported for reuse/testing. */
 export function titleCase(name) {
 	const stripped = stripOrderPrefix(String(name ?? ''));
@@ -273,12 +314,13 @@ function itemToRaw(item) {
 			const derived = titleCase(lastSlugSegment(item.slug) || item.slug);
 			if (item.label !== derived) raw.label = item.label;
 		} else {
-			raw.link = item.href;
+			raw.link = safeLinkHref(item.href);
 			raw.label = item.label; // required for href-based links, no fallback
 		}
 		const badge = badgeToRaw(item.badge);
 		if (badge !== undefined) raw.badge = badge;
-		if (item.attrs && Object.keys(item.attrs).length) raw.attrs = item.attrs;
+		const attrs = safeLinkAttrs(item.attrs);
+		if (Object.keys(attrs).length) raw.attrs = attrs;
 		if (item.translations && Object.keys(item.translations).length) raw.translations = item.translations;
 		return raw;
 	}
@@ -294,7 +336,8 @@ function itemToRaw(item) {
 	if (item.type === 'autogenerate') {
 		const auto = { directory: item.directory };
 		if (item.collapsed) auto.collapsed = true;
-		if (item.attrs && Object.keys(item.attrs).length) auto.attrs = item.attrs;
+		const attrs = safeLinkAttrs(item.attrs);
+		if (Object.keys(attrs).length) auto.attrs = attrs;
 		const bare = { autogenerate: auto };
 		if (item.label) {
 			// Not producible by a real Starlight config (label must be undefined

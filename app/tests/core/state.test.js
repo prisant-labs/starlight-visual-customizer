@@ -8,6 +8,9 @@ import {
 	applyPreset,
 	encodeState,
 	decodeState,
+	tryDecodeState,
+	sameTheme,
+	setName,
 	snapToStep,
 } from '../../src/customizer/core/state.js';
 import { controls } from '../../src/customizer/core/manifest.js';
@@ -118,6 +121,22 @@ describe('encodeState / decodeState', () => {
 		}
 	});
 
+	test('tryDecodeState returns null for garbage, a truncated link, and a non-object payload', () => {
+		const encoded = encodeState(setName(applyPreset(defaultState(), 'ocean'), 'Ocean draft'));
+		const truncated = encoded.slice(0, Math.floor(encoded.length / 2));
+		const arrayPayload = Buffer.from('[1,2]', 'utf8').toString('base64').replace(/=+$/, '');
+		for (const bad of ['', 'not-base64-!!!', truncated, arrayPayload, null, undefined]) {
+			assert.equal(tryDecodeState(bad), null, String(bad));
+		}
+	});
+
+	test('tryDecodeState decodes a valid encoding exactly as decodeState does', () => {
+		const s = setName(applyPreset(defaultState(), 'forest'), 'Forest draft');
+		const encoded = encodeState(s);
+		assert.deepEqual(tryDecodeState(encoded), decodeState(encoded));
+		assert.equal(sameTheme(tryDecodeState(encoded), s), true);
+	});
+
 	test('decodeState tolerates a well-formed but foreign JSON payload', () => {
 		const encoded = Buffer.from(JSON.stringify({ hello: 'world' }), 'utf8')
 			.toString('base64')
@@ -189,5 +208,21 @@ describe('snapToStep', () => {
 		for (const c of controls.filter((c) => c.type === 'range' && c.step > 0)) {
 			assert.equal(snapToStep(c.default, c.step, c.min), c.default, c.id);
 		}
+	});
+});
+
+describe('sameTheme', () => {
+	test('ignores key order in values and the starlight stamp', () => {
+		const a = { ...defaultState(), values: { 'color.accent.hue': 12, 'sidebar.activeStyle': 'tinted' } };
+		const b = { ...defaultState(), starlight: '0.0.0', values: { 'sidebar.activeStyle': 'tinted', 'color.accent.hue': 12 } };
+		assert.equal(sameTheme(a, b), true);
+	});
+
+	test('tells apart a different preset, value, sidebar structure, or name', () => {
+		const base = defaultState();
+		assert.equal(sameTheme(base, applyPreset(base, 'ocean')), false);
+		assert.equal(sameTheme(base, setValue(base, 'color.accent.hue', 12)), false);
+		assert.equal(sameTheme(base, { ...base, ia: [] }), false);
+		assert.equal(sameTheme(base, setName(base, 'Renamed')), false);
 	});
 });

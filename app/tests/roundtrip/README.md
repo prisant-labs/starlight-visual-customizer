@@ -57,6 +57,10 @@ packages are installed); a cold first run adds the time `npm install` takes on y
 - **Tolerances:** colors compared as rgb channel deltas <=2; px lengths <=0.5px; everything else
   (font-family, text-transform, border style, box-shadow, display, position...) exact after
   whitespace/quote normalization. Stated in `harness.mjs`'s `valuesMatch`.
+- **Settling:** before it samples a page, `gotoPlain` waits up to 5 seconds for the table of
+  contents' current-section marker. Starlight sets that marker from a scroll observer after load,
+  so without the wait the `toc-link` and `toc-current` surfaces mismatched at random, even on the
+  control. If the marker never appears, the wait gives up quietly and the comparison reports it.
 
 ## What it does NOT do
 

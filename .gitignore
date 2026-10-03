@@ -2,3 +2,6 @@ _local/
 
 # Browser-automation tool cache (Playwright MCP)
 .playwright-mcp/
+
+# Claude Code's temporary git worktrees for parallel agents
+.claude/worktrees/

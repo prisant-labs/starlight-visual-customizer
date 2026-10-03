@@ -8,6 +8,8 @@ import {
 	iaFromFileListing,
 	iaToFrontmatterTable,
 	titleCase,
+	safeLinkHref,
+	safeLinkAttrs,
 } from '../../src/customizer/core/ia.js';
 
 // ---------------------------------------------------------------------------
@@ -425,5 +427,45 @@ describe('iaToFrontmatterTable', () => {
 
 	test('empty tree yields an empty table', () => {
 		assert.deepEqual(iaToFrontmatterTable([]), []);
+	});
+});
+
+describe('safeLinkHref and safeLinkAttrs (sidebar links from a share link)', () => {
+	test('keeps relative, root-relative, fragment, http, https and mailto links', () => {
+		for (const href of ['guides/x/', '/guides/x/', '#top', '?q=1', 'https://a.example/', 'http://a.example/', '//cdn.example/x', 'mailto:a@example.com', 'HTTPS://A.EXAMPLE/']) {
+			assert.equal(safeLinkHref(href), href, href);
+		}
+	});
+
+	test('replaces script-capable and unknown schemes with #, however a browser would spell them', () => {
+		for (const href of ['javascript:alert(1)', 'JavaScript:alert(1)', '  javascript:alert(1)', '\u0001javascript:alert(1)', 'java\tscript:alert(1)', 'java\nscript:alert(1)', 'data:text/html,<script>alert(1)</script>', 'vbscript:msgbox(1)', 'file:///etc/passwd']) {
+			assert.equal(safeLinkHref(href), '#', JSON.stringify(href));
+		}
+	});
+
+	test('attrs lose event handlers and unsafe URL values, and keep everything else', () => {
+		assert.deepEqual(safeLinkAttrs({ onclick: 'alert(1)', OnMouseOver: 'x', target: '_blank', class: 'k', href: 'javascript:x', 'data-x': 'javascript:ok-as-data' }), {
+			target: '_blank',
+			class: 'k',
+			href: '#',
+			'data-x': 'javascript:ok-as-data',
+		});
+		assert.deepEqual(safeLinkAttrs('not an object'), {});
+		assert.deepEqual(safeLinkAttrs(null), {});
+		assert.deepEqual(safeLinkAttrs({ ping: 'javascript:x' }), { ping: '#' });
+		const fromJson = safeLinkAttrs(JSON.parse('{"__proto__": {"onclick": "alert(1)"}, "title": "t"}'));
+		assert.deepEqual(fromJson, { title: 't' });
+		assert.equal(Object.getPrototypeOf(fromJson), Object.prototype);
+	});
+
+	test('the exported Starlight config never carries a javascript: link or an onclick', () => {
+		const items = iaFromStarlightConfig([
+			{ label: 'Click me', link: 'javascript:alert(1)', attrs: { onclick: 'alert(2)', target: '_blank' } },
+			{ label: 'Docs', autogenerate: { directory: 'guides', attrs: { onmouseover: 'alert(3)' } } },
+		]);
+		const out = iaToStarlightConfig(items);
+		assert.equal(out[0].link, '#');
+		assert.deepEqual(out[0].attrs, { target: '_blank' });
+		assert.doesNotMatch(iaToConfigSource(items), /javascript:|onclick|onmouseover/);
 	});
 });

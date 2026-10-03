@@ -18,6 +18,7 @@ import { zipSync, strToU8 } from 'fflate';
 import { emitCss } from '../core/emit-css.js';
 import { emitApplyTheme } from '../core/emit-apply.js';
 import { encodeState, getName } from '../core/state.js';
+import { buildShareUrl } from '../core/share-link.js';
 import { isStudio, getPageDoc, getPageWin } from './page-doc.js';
 import { stripBase } from '../core/base-path.js';
 import { DEMO_DIR } from '../../demo-site.mjs';
@@ -546,7 +547,9 @@ export function createExportDialog(handlers) {
 	footer.className = 'svc-dialog-footer';
 	const shareBtn = textButton('Copy share link', async () => {
 		const state = handlers.getState();
-		const url = `${location.origin}${location.pathname}#svc=${encodeState(state)}`;
+		// The studio's `?page=` (studio.js's updateUrl keeps it current) travels with the link, so the
+		// recipient lands on the page the sender was looking at. Nothing else from the query does.
+		const url = buildShareUrl(location, encodeState(state));
 		const ok = await copyToClipboard(url);
 		flash(shareBtn, ok ? 'Link copied!' : 'Copy failed');
 	});

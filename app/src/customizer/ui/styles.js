@@ -862,6 +862,13 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-export-textarea { flex: 1 1 auto; min-height: 240px; }
 .svc-dialog-footer { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #2c2f38; flex-wrap: wrap; }
 
+/* ---- Share-link dialog (share-dialog.js): a short question, so narrower than the export dialog,
+   with its choices at the end of the footer. ---- */
+.svc-dialog.svc-share-dialog { width: min(30rem, calc(100vw / var(--svc-chrome-zoom, 1) - 2rem)); }
+.svc-share-body { padding: 1rem 1rem 0.25rem; font-size: 0.875rem; line-height: 1.55; }
+.svc-share-body p { margin: 0 0 0.75rem; }
+.svc-share-dialog .svc-dialog-footer { justify-content: flex-end; }
+
 /* Items 2/3: "Download all (.zip)" + "Screenshot (PNG)", between the file view and the footer. */
 .svc-export-extra { flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #2c2f38; }
 .svc-export-extra-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
