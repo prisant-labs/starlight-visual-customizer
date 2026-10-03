@@ -35,4 +35,4 @@ Files touched by these steps (revert with `git checkout -- <file>` or `git diff`
 - `src/styles/theme.css` (new file -- delete it)
 - `astro.config.mjs` (or `.ts`): `customCss` entry
 
-Generated with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/
+Made with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/

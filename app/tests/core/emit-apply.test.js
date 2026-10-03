@@ -9,6 +9,7 @@ import { defaultState, setValue } from '../../src/customizer/core/state.js';
 import { iaFromStarlightConfig } from '../../src/customizer/core/ia.js';
 import { computeGeneratedPalette } from '../../src/customizer/core/emit-css.js';
 import { goldenCases, buildRichState } from '../golden/cases.js';
+import { TOOL_URL } from '../../src/customizer/core/project.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,6 +52,15 @@ describe('emitApplyTheme: structure', () => {
 		assert.match(out, /\*\*Add the theme CSS\.\*\*/);
 		assert.match(out, /## Verification/);
 		assert.match(out, /## Rollback/);
+	});
+
+	test('ends with one credit line linking to TOOL_URL, after the rollback section', () => {
+		for (const state of [defaultState(), buildRichState()]) {
+			const lines = emitApplyTheme(state).trimEnd().split('\n');
+			assert.equal(lines.at(-1), `Made with the Starlight Visual Customizer: ${TOOL_URL}`);
+			assert.ok(lines.findIndex((l) => l.startsWith('## Rollback')) < lines.length - 1);
+			assert.equal(lines.filter((l) => l.includes(TOOL_URL)).length, 1);
+		}
 	});
 
 	test('omits the font step when every font is "system"', () => {

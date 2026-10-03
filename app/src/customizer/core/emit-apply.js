@@ -594,7 +594,7 @@ export function emitApplyTheme(state, { cssFileName = 'theme.css' } = {}) {
 	sections.push(
 		buildRollback(cssFileName, !!fontData, !!configLines, !!iaStep, iaStep ? iaStep.frontmatterFiles : [])
 	);
-	sections.push(`Generated with the Starlight Visual Customizer: ${TOOL_URL}`);
+	sections.push(`Made with the Starlight Visual Customizer: ${TOOL_URL}`);
 
 	return sections.join('\n\n') + '\n';
 }

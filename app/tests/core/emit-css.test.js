@@ -10,6 +10,7 @@ import { treatments } from '../../src/customizer/core/treatments.js';
 import { presets } from '../../src/customizer/core/presets.js';
 import { defaultState, setValue, applyPreset } from '../../src/customizer/core/state.js';
 import { goldenCases } from '../golden/cases.js';
+import { TOOL_URL } from '../../src/customizer/core/project.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const goldenDir = path.join(__dirname, '..', 'golden');
@@ -125,6 +126,18 @@ describe('presets', () => {
 			const out = emitCss(applyPreset(defaultState(), preset.id));
 			assert.equal(out.includes('@layer'), false, `preset "${preset.id}" leaked an @layer`);
 			assert.equal(out.includes('!important'), false, `preset "${preset.id}" used !important`);
+		}
+	});
+});
+
+describe('the header comment', () => {
+	test('links back to TOOL_URL inside the first comment, which TOOL_URL cannot close early', () => {
+		assert.ok(!TOOL_URL.includes('*/'));
+		for (const state of [defaultState(), applyPreset(defaultState(), 'ocean')]) {
+			const out = emitCss(state);
+			assert.ok(out.startsWith('/*'));
+			const header = out.slice(0, out.indexOf('*/') + 2);
+			assert.ok(header.includes(` * Made with the Starlight Visual Customizer: ${TOOL_URL}\n`), header);
 		}
 	});
 });
