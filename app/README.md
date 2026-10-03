@@ -54,7 +54,10 @@ The prose lives in `src/about/about.md`; edit that file to change it. `src/about
 - **The About dialog** - the top bar's info button opens it in the studio as a native modal `<dialog>` (`src/pages/studio.astro`). Escape, the close button, and a click on the backdrop close it; its external links open in a new tab; the studio's keyboard shortcuts (and Inspect's `I`/Escape) stand down while it is open.
 - **The `/about/` page** - the same text as a standalone page, for direct links and sharing (`src/pages/about.astro`), with base-aware "Open the studio" links. It is deliberately not a Starlight content page: a page in `src/content/docs/` would join the demo site, pick up the visitor's current theme preview through the no-flash preload, and appear in the demo site's sidebar and search.
 
-The repo and hub URLs live in one module, `src/customizer/core/project.js`.
+The repo and hub URLs live in one module, `src/customizer/core/project.js`, which also exports
+`TOOL_URL` (the product page) - both `emit-css.js`'s `theme.css` header and `emit-apply.js`'s
+`APPLY-THEME.md` closing line link back to it, so every adopter's repo carries a path back to the
+tool.
 
 ### Export and import
 
@@ -229,9 +232,14 @@ whatever value it was carrying for the e2e suites' sub-path run above.
 
 | Command | What it covers | Needs a running server |
 |---|---|---|
-| `npm test` | 239 unit tests: CSS emitter (golden files), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state, the strict `tryDecodeState` and `sameTheme`, and `snapToStep`), `core/share-link.js`'s choice between a share link and the saved theme and its share-URL builder, the sidebar-link scheme and `attrs` filter, color (including the color popover's RGB/HSL conversions and each preset's own light palette), sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, `core/base-path.js`'s `withBase`/`stripBase` (both trailing-slash shapes of `import.meta.env.BASE_URL` - see "Serving under a sub-path" above), `core/sizing.js`'s Studio sizing steps and narrow-window cap, `src/demo-site.mjs`'s `demo/` prefix helpers (including a guard that `src/fixture-sidebar.mjs` stays prefix-free), and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
+| `npm test` | 242 unit tests: CSS emitter (golden files, with a guard that `golden:update` covers every one), manifest, state (including decoding a pre-upgrade `starlight: '0.42.3'` state, the strict `tryDecodeState` and `sameTheme`, and `snapToStep`), `core/share-link.js`'s choice between a share link and the saved theme and its share-URL builder, the sidebar-link scheme and `attrs` filter, color (including the color popover's RGB/HSL conversions and each preset's own light palette), sidebar IA parser, `APPLY-THEME.md` emitter (including the site title config line), `core/history.js`'s undo/redo stack, `core/base-path.js`'s `withBase`/`stripBase` (both trailing-slash shapes of `import.meta.env.BASE_URL` - see "Serving under a sub-path" above), `core/sizing.js`'s Studio sizing steps and narrow-window cap, `src/demo-site.mjs`'s `demo/` prefix helpers (including a guard that `src/fixture-sidebar.mjs` stays prefix-free), and a guard that `core/version.js`'s `STARLIGHT_VERSION` matches the installed `@astrojs/starlight` | No |
 | `npm run test:e2e` | 13 browser suites, real mouse/keyboard throughout (see below) | Yes, the **production preview on 4420** by default |
 | `npm run test:roundtrip` | Applies an exported `theme.css` + `APPLY-THEME.md` to a real, freshly-scaffolded Starlight site and compares it against the live preview - proves the export/preview promise holds outside the studio, not just inside it (see `tests/roundtrip/README.md`) | Yes, the app's own production preview (`SVC_BASE_URL`, default 4420, a root-only origin with no base suffix - see "Serving under a sub-path" above); it starts/stops its own fresh-site preview on 4431 |
+
+After an intended change to `emit-css.js` or `emit-apply.js`, `npm run golden:update` rewrites the
+five golden files in `tests/golden/` from `tests/golden/cases.js`, the same list the unit tests
+read. Read the diff before you commit it: the script trusts the emitters, so it would write a
+regression into the golden files just as faithfully as an improvement.
 
 The 13 e2e suites, run one at a time in this order (`home && smoke && ui-round2 && treatments && targets && tiles && studio && shell && sizing && share && inspect && editors && screenshot`):
 

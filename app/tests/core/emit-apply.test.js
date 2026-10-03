@@ -8,6 +8,8 @@ import { emitApplyTheme } from '../../src/customizer/core/emit-apply.js';
 import { defaultState, setValue } from '../../src/customizer/core/state.js';
 import { iaFromStarlightConfig } from '../../src/customizer/core/ia.js';
 import { computeGeneratedPalette } from '../../src/customizer/core/emit-css.js';
+import { goldenCases, buildRichState } from '../golden/cases.js';
+import { TOOL_URL } from '../../src/customizer/core/project.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,46 +22,14 @@ function normalize(text) {
 	return text.replace(/\r\n/g, '\n');
 }
 
-/** Builds the same "rich" fixture used for tests/golden/apply-full.md. */
-function buildRichState() {
-	let s = defaultState();
-	s = { ...s, preset: 'demo-rich' };
-	s = setValue(s, 'color.accent.hue', 200);
-	s = setValue(s, 'color.accent.chroma', 0.2);
-	s = setValue(s, 'type.font.body', 'lora');
-	s = setValue(s, 'type.font.heading', 'playfair-display');
-	s = setValue(s, 'type.font.mono', 'fira-code');
-	s = setValue(s, 'sidebar.activeStyle', 'left-bar');
-	s = setValue(s, 'page.toc.minLevel', 1);
-	s = setValue(s, 'page.pagination', false);
-	s = setValue(s, 'page.lastUpdated', true);
-	s = setValue(s, 'page.credits', true);
-	s = setValue(s, 'page.headingLinks', false);
-	s = setValue(s, 'code.theme', 'nord');
-	s = {
-		...s,
-		ia: iaFromStarlightConfig([
-			{
-				label: 'Guides',
-				items: [
-					{ slug: 'guides/example', label: 'Example Guide' },
-					{ autogenerate: { directory: 'guides' } },
-				],
-			},
-			{ label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }] },
-		]),
-	};
-	return s;
-}
-
+// The cases live in tests/golden/cases.js, shared with `npm run golden:update`: the default state,
+// and the "rich" fixture (web fonts, page options, and an IA with autogenerate).
 describe('emitApplyTheme: golden files', () => {
-	test('default state matches tests/golden/apply-default.md', () => {
-		assert.equal(normalize(emitApplyTheme(defaultState())), readGolden('apply-default.md'));
-	});
-
-	test('fonts + page options + ia (with autogenerate) matches tests/golden/apply-full.md', () => {
-		assert.equal(normalize(emitApplyTheme(buildRichState())), readGolden('apply-full.md'));
-	});
+	for (const c of goldenCases.filter((g) => g.file.endsWith('.md'))) {
+		test(`emitApplyTheme matches tests/golden/${c.file}`, () => {
+			assert.equal(normalize(c.emit()), readGolden(c.file));
+		});
+	}
 });
 
 describe('emitApplyTheme: determinism', () => {
@@ -82,6 +52,15 @@ describe('emitApplyTheme: structure', () => {
 		assert.match(out, /\*\*Add the theme CSS\.\*\*/);
 		assert.match(out, /## Verification/);
 		assert.match(out, /## Rollback/);
+	});
+
+	test('ends with one credit line linking to TOOL_URL, after the rollback section', () => {
+		for (const state of [defaultState(), buildRichState()]) {
+			const lines = emitApplyTheme(state).trimEnd().split('\n');
+			assert.equal(lines.at(-1), `Made with the Starlight Visual Customizer: ${TOOL_URL}`);
+			assert.ok(lines.findIndex((l) => l.startsWith('## Rollback')) < lines.length - 1);
+			assert.equal(lines.filter((l) => l.includes(TOOL_URL)).length, 1);
+		}
 	});
 
 	test('omits the font step when every font is "system"', () => {

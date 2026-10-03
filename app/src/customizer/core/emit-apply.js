@@ -17,6 +17,7 @@ import { getValue, defaultState } from './state.js';
 import { presets } from './presets.js';
 import { iaToConfigSource, iaToFrontmatterTable, titleCase } from './ia.js';
 import { STARLIGHT_VERSION as TARGET_STARLIGHT_VERSION } from './version.js';
+import { TOOL_URL } from './project.js';
 
 /**
  * Best-effort Shiki bundled theme id pairs for the curated `code.theme` options. Verify these
@@ -593,6 +594,7 @@ export function emitApplyTheme(state, { cssFileName = 'theme.css' } = {}) {
 	sections.push(
 		buildRollback(cssFileName, !!fontData, !!configLines, !!iaStep, iaStep ? iaStep.frontmatterFiles : [])
 	);
+	sections.push(`Made with the Starlight Visual Customizer: ${TOOL_URL}`);
 
 	return sections.join('\n\n') + '\n';
 }

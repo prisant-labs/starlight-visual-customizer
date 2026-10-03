@@ -24,7 +24,8 @@
     "preview:stop": "astro preview stop",
     "preview:logs": "astro preview logs",
     "test:e2e": "node tests/e2e/home.mjs && node tests/e2e/smoke.mjs && node tests/e2e/ui-round2.mjs && node tests/e2e/treatments.mjs && node tests/e2e/targets.mjs && node tests/e2e/tiles.mjs && node tests/e2e/studio.mjs && node tests/e2e/shell.mjs && node tests/e2e/sizing.mjs && node tests/e2e/share.mjs && node tests/e2e/inspect.mjs && node tests/e2e/editors.mjs && node tests/e2e/screenshot.mjs",
-    "test:roundtrip": "node tests/roundtrip/roundtrip.mjs"
+    "test:roundtrip": "node tests/roundtrip/roundtrip.mjs",
+    "golden:update": "node scripts/update-golden.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "0.42.4",
