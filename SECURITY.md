@@ -3,14 +3,8 @@
 ## Supported versions
 
 The live studio at <https://projects.prisantlabs.com/starlight-visual-customizer/> always runs the
-latest code on `main`, and security fixes land there first. Before 1.0, only the newest release
-receives fixes.
-
-| Version | Supported |
-|---|---|
-| `main`, and the live studio | Yes |
-| The latest release | Yes |
-| Older releases | No |
+latest code on `main`. Security fixes land on `main`, which puts them live at once, and they ship
+in the next release. Earlier releases do not receive separate fixes.
 
 ## Reporting a vulnerability
 
@@ -36,9 +30,9 @@ and in what it writes:
 - **Imported theme files.** The same applies to a `state.json` file opened with **Import
   state.json**.
 - **Exports.** `theme.css` and `APPLY-THEME.md` end up in other people's repositories, and coding
-  agents follow `APPLY-THEME.md` step by step. A theme name, a site title or a sidebar label ends
-  up in that file. Any theme that makes an export carry unexpected code, configuration or
-  instructions is in scope.
+  agents follow `APPLY-THEME.md` step by step. The site title, the sidebar labels and the preset's
+  name all end up in that file. Any theme that makes an export carry unexpected code,
+  configuration or instructions is in scope.
 
 ## What is out of scope
 
