@@ -452,6 +452,10 @@ describe('safeLinkHref and safeLinkAttrs (sidebar links from a share link)', () 
 		});
 		assert.deepEqual(safeLinkAttrs('not an object'), {});
 		assert.deepEqual(safeLinkAttrs(null), {});
+		assert.deepEqual(safeLinkAttrs({ ping: 'javascript:x' }), { ping: '#' });
+		const fromJson = safeLinkAttrs(JSON.parse('{"__proto__": {"onclick": "alert(1)"}, "title": "t"}'));
+		assert.deepEqual(fromJson, { title: 't' });
+		assert.equal(Object.getPrototypeOf(fromJson), Object.prototype);
 	});
 
 	test('the exported Starlight config never carries a javascript: link or an onclick', () => {

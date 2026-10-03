@@ -122,8 +122,9 @@ export function safeLinkAttrs(attrs) {
 	const out = {};
 	if (!attrs || typeof attrs !== 'object' || Array.isArray(attrs)) return out;
 	for (const [key, value] of Object.entries(attrs)) {
-		if (/^on/i.test(key)) continue;
-		out[key] = /^(href|src|action|formaction|xlink:href)$/i.test(key) ? safeLinkHref(value) : value;
+		// `__proto__` from parsed JSON is an own key; assigning it would swap `out`'s prototype.
+		if (/^on/i.test(key) || key === '__proto__') continue;
+		out[key] = /^(href|src|ping|action|formaction|xlink:href)$/i.test(key) ? safeLinkHref(value) : value;
 	}
 	return out;
 }
