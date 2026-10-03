@@ -7,6 +7,13 @@ can change behavior.
 
 ## Unreleased
 
+- **Fixed (security): a crafted theme could put code into an export.** A share link, an imported
+  `state.json` or a saved theme carried its values into the exports unchecked. A crafted link
+  could add config code, such as a `<script>` in `head`, to `APPLY-THEME.md`. It could also add
+  numbered steps there for a coding agent to follow, and CSS rules to `theme.css`. Every theme from
+  outside the studio is now checked against the controls first, and the exporters guard their own
+  output as well. Exploiting this needed someone to open the link, export the theme, and apply it
+  without reading the instructions.
 - **Fixed: Split view's dark side could ignore edits.** When the dark side of Split view finished
   loading before the studio's own script ran, it never received the theme, so it kept its old look.
   WebKit hit this in about one load in four. Both sides are now themed however early they finish

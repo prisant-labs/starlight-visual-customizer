@@ -34,7 +34,7 @@ import { useMode, modeRgb, formatHex } from 'culori/fn';
 
 import { controls, GROUPS, FONTS } from '../core/manifest.js';
 import { presets } from '../core/presets.js';
-import { defaultState, getValue, setValue, applyPreset, encodeState, setName, getName, sameTheme } from '../core/state.js';
+import { defaultState, getValue, setValue, applyPreset, encodeState, setName, getName, sameTheme, sanitizeState } from '../core/state.js';
 import { resolveInitialTheme, buildShareUrl, SHARE_HASH_PREFIX } from '../core/share-link.js';
 import { emitCss } from '../core/emit-css.js';
 import { contrastRatio, CONTRAST_AA, CONTRAST_AAA } from '../core/color.js';
@@ -667,18 +667,8 @@ function initCustomizer(host) {
 
 	function importStateFromJson(parsed) {
 		history.record(state, distinctHistoryKey('import'), Date.now());
-		const base = defaultState();
-		state = {
-			v: 1,
-			starlight: base.starlight,
-			preset: typeof parsed?.preset === 'string' ? parsed.preset : base.preset,
-			values:
-				parsed?.values && typeof parsed.values === 'object' && !Array.isArray(parsed.values)
-					? parsed.values
-					: {},
-			ia: Array.isArray(parsed?.ia) ? parsed.ia : null,
-			meta: { name: (parsed?.meta && typeof parsed.meta.name === 'string' && parsed.meta.name) || base.meta.name },
-		};
+		// An imported file is as untrusted as a share link: same checks (`sanitizeState`).
+		state = sanitizeState(parsed);
 		scheduleApply(true);
 		fullRerenderControls();
 		iaEditor.refresh(state);

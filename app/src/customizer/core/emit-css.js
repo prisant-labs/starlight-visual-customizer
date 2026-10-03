@@ -30,7 +30,7 @@
  */
 import { controls } from './manifest.js';
 import { FONTS } from './manifest.js';
-import { getValue } from './state.js';
+import { getValue, isHexColor } from './state.js';
 import { getPalettes } from './color.js';
 import { treatments, globalRadiusHooks } from './treatments.js';
 import { STARLIGHT_VERSION } from './version.js';
@@ -344,7 +344,9 @@ function buildRootTokens(state) {
 		if (!isDefault(state, id)) lines.push(`${HUE_VAR_NAMES[id]}: ${getValue(state, id)};`);
 	}
 	for (const id of ROLE_IDS) {
-		if (!isDefault(state, id)) lines.push(`${ROLE_VAR_NAMES[id]}: ${getValue(state, id)};`);
+		// A role color is the one free-form string this function prints into CSS; only a real hex
+		// color gets through, whatever `sanitizeState` already checked.
+		if (!isDefault(state, id) && isHexColor(getValue(state, id))) lines.push(`${ROLE_VAR_NAMES[id]}: ${getValue(state, id)};`);
 	}
 	for (const id of FONT_TOKEN_IDS) {
 		if (!isDefault(state, id)) {

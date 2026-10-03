@@ -15,7 +15,7 @@ import { TOKEN_VAR_NAMES, computeGeneratedPalette } from './emit-css.js';
 import { treatments } from './treatments.js';
 import { getValue, defaultState } from './state.js';
 import { presets } from './presets.js';
-import { iaToConfigSource, iaToFrontmatterTable, titleCase } from './ia.js';
+import { iaToConfigSource, iaToFrontmatterTable, titleCase, toSingleLine } from './ia.js';
 import { STARLIGHT_VERSION as TARGET_STARLIGHT_VERSION } from './version.js';
 import { TOOL_URL } from './project.js';
 
@@ -50,9 +50,30 @@ const FIXED_BUILD_IDS = new Set([
 	'site.title',
 ]);
 
-/** Escapes a value for a single-quoted JS string literal in the generated `astro.config` snippet. */
+/**
+ * Escapes a value for a single-quoted JS string literal in the generated `astro.config` snippet.
+ * The snippet sits inside a Markdown code span, so line breaks and backticks are escaped too: a
+ * raw backtick would end the code span, and JS reads `\x60` as the same character.
+ */
 function jsStringLiteral(value) {
-	return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+	const escaped = String(value)
+		.replace(/\\/g, '\\\\')
+		.replace(/'/g, "\\'")
+		.replace(/\n/g, '\\n')
+		.replace(/\r/g, '\\r')
+		.replace(/\u2028/g, '\\u2028')
+		.replace(/\u2029/g, '\\u2029')
+		.replace(/`/g, '\\x60');
+	return `'${escaped}'`;
+}
+
+/**
+ * Text a theme supplies (the site title), for a sentence of this document: one line, with the
+ * characters escaped that Markdown would turn into a link, a code span, emphasis or a table cell.
+ * The title can come from someone else's share link, and a coding agent reads this file as steps.
+ */
+function proseText(value) {
+	return toSingleLine(value, 200).replace(/[\\`*_[\]<>|]/g, (ch) => `\\${ch}`);
 }
 
 function findControl(id) {
@@ -132,7 +153,8 @@ function summarizeTheme(state, base) {
 	if (state.ia) notable.push('a restructured sidebar navigation');
 
 	const siteTitle = getValue(state, 'site.title');
-	if (siteTitle) notable.push(`a custom site title ("${siteTitle}")`);
+	// One line with Markdown escaped, so a title adds no step, link or code span here (`proseText`).
+	if (siteTitle) notable.push(`a custom site title ("${proseText(siteTitle)}")`);
 
 	// A state can carry `preset: 'starlight-default'` (the base every custom theme starts from) yet
 	// still have real, non-default control values -- a hand-tuned theme built by adjusting
@@ -188,6 +210,26 @@ function renderFontStep(stepNumber, { pkgs }) {
 	].join('\n');
 }
 
+/**
+ * A toggle's value as a config line may print it: a boolean, or the control's default. These lines
+ * are pasted into the user's `astro.config.mjs` as code, so a value that `sanitizeState` should
+ * already have dropped must still never reach them as text.
+ * @param {import('./state.js').ThemeState} state @param {string} id @returns {boolean}
+ */
+function configBool(state, id) {
+	const value = getValue(state, id);
+	return typeof value === 'boolean' ? value : findControl(id).default;
+}
+
+/**
+ * The same guard for a whole-number range value.
+ * @param {import('./state.js').ThemeState} state @param {string} id @returns {number}
+ */
+function configInt(state, id) {
+	const value = getValue(state, id);
+	return Number.isInteger(value) ? value : findControl(id).default;
+}
+
 /** @returns {string[]|null} the config-option bullet lines, or null if none apply */
 function configOptionsLines(state, base) {
 	const lines = [];
@@ -203,23 +245,23 @@ function configOptionsLines(state, base) {
 	const tocMaxChanged = changed(state, base, 'page.toc.maxLevel');
 	if (tocMinChanged || tocMaxChanged) {
 		lines.push(
-			`   - \`tableOfContents: { minHeadingLevel: ${getValue(state, 'page.toc.minLevel')}, maxHeadingLevel: ${getValue(
+			`   - \`tableOfContents: { minHeadingLevel: ${configInt(state, 'page.toc.minLevel')}, maxHeadingLevel: ${configInt(
 				state,
 				'page.toc.maxLevel'
 			)} }\``
 		);
 	}
 	if (changed(state, base, 'page.pagination')) {
-		lines.push(`   - \`pagination: ${getValue(state, 'page.pagination')}\``);
+		lines.push(`   - \`pagination: ${configBool(state, 'page.pagination')}\``);
 	}
 	if (changed(state, base, 'page.lastUpdated')) {
-		lines.push(`   - \`lastUpdated: ${getValue(state, 'page.lastUpdated')}\``);
+		lines.push(`   - \`lastUpdated: ${configBool(state, 'page.lastUpdated')}\``);
 	}
 	if (changed(state, base, 'page.credits')) {
-		lines.push(`   - \`credits: ${getValue(state, 'page.credits')}\``);
+		lines.push(`   - \`credits: ${configBool(state, 'page.credits')}\``);
 	}
 	if (changed(state, base, 'page.headingLinks')) {
-		lines.push(`   - \`markdown: { headingLinks: ${getValue(state, 'page.headingLinks')} }\``);
+		lines.push(`   - \`markdown: { headingLinks: ${configBool(state, 'page.headingLinks')} }\``);
 	}
 	// `code.theme` and `code.wrap` are two different keys on the SAME `expressiveCode: { ... }`
 	// options object in the target's astro.config.mjs -- merged into one line so a re-run never
@@ -238,7 +280,7 @@ function configOptionsLines(state, base) {
 			}
 		}
 		if (wrapChanged) {
-			parts.push(`defaultProps: { wrap: ${getValue(state, 'code.wrap')} }`);
+			parts.push(`defaultProps: { wrap: ${configBool(state, 'code.wrap')} }`);
 		}
 		if (parts.length) {
 			lines.push(`   - \`expressiveCode: { ${parts.join(', ')} }\``);
@@ -447,7 +489,7 @@ function buildVerification(state, base) {
 	];
 	const siteTitle = getValue(state, 'site.title');
 	if (siteTitle) {
-		lines.push(`   - **Header → Site title text** (\`.site-title\`): the header now reads "${siteTitle}".`);
+		lines.push(`   - **Header → Site title text** (\`.site-title\`): the header now reads "${proseText(siteTitle)}".`);
 	}
 	// Accent/gray hue+chroma are jointly-generated (the palette algorithm needs both together, not
 	// token-by-token - see emit-css.js's PALETTE_IDS gate), and neither number alone is checkable on
@@ -474,7 +516,7 @@ function buildVerification(state, base) {
 			const inGroup = changedControls.filter((c) => c.group === group);
 			for (const c of inGroup) {
 				const rawValue = getValue(state, c.id);
-				const value = formatControlValue(c, rawValue);
+				const value = toSingleLine(formatControlValue(c, rawValue), 200);
 				// Round 2 fix: a treatment/select control (e.g. "Active item style: Left bar") is
 				// described in terms of the real site - what's visible plus a concrete selector+property
 				// derived from the SAME CSS theme.css emits - never as a bare option label.
