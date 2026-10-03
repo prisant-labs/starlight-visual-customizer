@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/prisant-labs/starlight-visual-customizer/discussions/categories/q-a
+    about: Questions about using the studio or applying a theme.
+  - name: Share a theme
+    url: https://github.com/prisant-labs/starlight-visual-customizer/discussions/categories/show-and-tell
+    about: Post the share link to a theme you made.
+  - name: Report a security problem privately
+    url: https://github.com/prisant-labs/starlight-visual-customizer/security/advisories/new
+    about: Please do not open a public issue for a vulnerability.
+  - name: Report a bug in Starlight itself
+    url: https://github.com/withastro/starlight/issues
+    about: For a problem that also happens on a Starlight site without this theme.
