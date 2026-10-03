@@ -4,6 +4,7 @@
 fonts, layout and components on real Starlight pages, then export one CSS file.**
 
 [![Try it live](https://img.shields.io/badge/Try_it_live-open_the_studio-4453c9?style=for-the-badge)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
+[![Latest release](https://img.shields.io/github/v/release/prisant-labs/starlight-visual-customizer?sort=semver&label=release)](https://github.com/prisant-labs/starlight-visual-customizer/releases)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built for Starlight 0.42.4](https://img.shields.io/badge/Starlight-0.42.4-6d4aff)](https://starlight.astro.build/)
 [![Astro 7.3.5](https://img.shields.io/badge/Astro-7.3.5-ff5d01)](https://astro.build/)
@@ -127,6 +128,12 @@ breakdown, ports and commands are in [`app/README.md`](app/README.md#tests).
 [culori](https://github.com/Evercoder/culori) for color math, [vanilla-colorful](https://github.com/web-padawan/vanilla-colorful)
 for the color picker, [fflate](https://github.com/101arrowz/fflate) for the zip download and
 [modern-screenshot](https://github.com/qq15725/modern-screenshot) for PNG export.
+
+## Releases
+
+Each release is tagged, and its notes are on the
+[Releases page](https://github.com/prisant-labs/starlight-visual-customizer/releases).
+[`CHANGELOG.md`](CHANGELOG.md) lists the notable changes in each release.
 
 ## License
 
