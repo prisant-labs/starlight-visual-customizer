@@ -3,8 +3,9 @@
  * @file Product page e2e suite (`/`, `src/pages/index.astro`). Verifies that the root renders the
  * product page instead of forwarding, that its links are base-aware and reach the studio, the About
  * page and the repo, that the preset tabs swap the screenshot on a real click, that the preset
- * chips follow `presets.js`, that the page has no horizontal scroll at phone width, and that a
- * root link carrying a shared theme (`#svc=...`) still opens that theme in the studio.
+ * chips follow `presets.js`, that the social preview card tags (L-01) are correct and that the
+ * local preview actually serves `og.png`, that the page has no horizontal scroll at phone width,
+ * and that a root link carrying a shared theme (`#svc=...`) still opens that theme in the studio.
  *
  * Needs a running server; start one first (see README.md): `npm run preview:bg` (after `npm run
  * build`) or `npm run dev:bg`.
@@ -18,7 +19,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { withBase, stripBase } from '../../src/customizer/core/base-path.js';
-import { REPO_URL } from '../../src/customizer/core/project.js';
+import { REPO_URL, TOOL_URL } from '../../src/customizer/core/project.js';
 import { presets } from '../../src/customizer/core/presets.js';
 import { defaultState, setName, encodeState } from '../../src/customizer/core/state.js';
 
@@ -111,6 +112,17 @@ async function main() {
 		check('the page title is "Starlight Visual Customizer"', title === 'Starlight Visual Customizer', title);
 		const robots = await page.getAttribute('meta[name="robots"]', 'content');
 		check('the page keeps noindex until launch', robots === 'noindex', String(robots));
+
+		// L-01 (social preview card): the product page's og:image is an absolute URL built from
+		// TOOL_URL, not a relative one - Discord, Reddit and Slack all need it absolute - and
+		// twitter:card opts into the large-image layout.
+		const ogImage = await page.getAttribute('meta[property="og:image"]', 'content');
+		check('og:image is the absolute TOOL_URL-based card', ogImage === `${TOOL_URL}og.png`, String(ogImage));
+		const twitterCard = await page.getAttribute('meta[name="twitter:card"]', 'content');
+		check('twitter:card requests the large-image layout', twitterCard === 'summary_large_image', String(twitterCard));
+		const ogAlt = await page.getAttribute('meta[property="og:image:alt"]', 'content');
+		const twitterAlt = await page.getAttribute('meta[name="twitter:image:alt"]', 'content');
+		check('the card has alt text, the same for Open Graph and Twitter', !!ogAlt && ogAlt.length > 20 && ogAlt === twitterAlt, String(ogAlt));
 		const h1 = (await page.textContent('h1'))?.trim() ?? '';
 		check('the headline reads "Design your Starlight theme on real pages"', h1 === 'Design your Starlight theme on real pages', h1);
 
@@ -173,7 +185,20 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 2. Phone width: no horizontal scroll.
+	// 2. L-01 (social preview card): the local preview actually serves og.png at the build's base
+	// path, as a real image - a 404 or an HTML error page here would still pass the og:image check
+	// above (it only inspects the meta tag's text), so this needs its own request.
+	// =============================================================================================
+	{
+		const ogUrl = `${SVC_BASE_URL}/og.png`;
+		const res = await fetch(ogUrl);
+		check(`og.png is served at ${ogUrl}`, res.status === 200, String(res.status));
+		const contentType = res.headers.get('content-type') ?? '';
+		check('og.png serves as image/png', contentType.startsWith('image/png'), contentType);
+	}
+
+	// =============================================================================================
+	// 3. Phone width: no horizontal scroll.
 	// =============================================================================================
 	{
 		const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
@@ -186,7 +211,7 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// 3. A root link that carries a shared theme still opens it in the studio. A fresh context (a
+	// 4. A root link that carries a shared theme still opens it in the studio. A fresh context (a
 	// new page here) means no saved theme, so the name below can only come from the link.
 	// =============================================================================================
 	{

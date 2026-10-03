@@ -25,7 +25,7 @@
 import '@fontsource-variable/inter';
 import { Image } from 'astro:assets';
 import { withBase } from '../customizer/core/base-path.js';
-import { REPO_URL, HUB_URL } from '../customizer/core/project.js';
+import { REPO_URL, HUB_URL, TOOL_URL } from '../customizer/core/project.js';
 import { presets } from '../customizer/core/presets.js';
 import { getPresetLightPalette } from '../customizer/core/color.js';
 import studioDefault from '../assets/home/studio-default.png';
@@ -69,7 +69,14 @@ const presetCount = COUNT_WORDS[presets.length] ?? String(presets.length);
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<title>Starlight Visual Customizer</title>
-		<meta name="description" content="A visual theme editor for Starlight. Pick a preset, tune colors, type and layout on real Starlight pages, and export one CSS file." />
+		<meta name="description" content="A visual theme editor for Starlight. Pick a preset, tune colors, type and layout on real Starlight pages, then export a theme.css and step-by-step instructions to apply it." />
+		<meta property="og:title" content="Starlight Visual Customizer" />
+		<meta property="og:description" content="A visual theme editor for Starlight. Pick a preset, tune colors, type and layout on real Starlight pages, then export a theme.css and step-by-step instructions to apply it." />
+		<meta property="og:image" content={`${TOOL_URL}og.png`} />
+		<meta property="og:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta name="twitter:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta property="og:url" content={TOOL_URL} />
+		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="color-scheme" content="dark" />
 		<meta name="theme-color" content="#15161d" />
 		<link rel="icon" href={withBase('/favicon.svg')} />

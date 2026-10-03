@@ -41,6 +41,7 @@ import starlightPropsCss from '../../node_modules/@astrojs/starlight/dist/style/
 // exactly as it does client-side. Used below for the favicon link and both lanes' initial iframe
 // `src` (both hand-written literals, unlike Starlight's own Head/asset pipeline).
 import { withBase } from '../customizer/core/base-path.js';
+import { TOOL_URL } from '../customizer/core/project.js';
 // The About dialog's text, rendered at build time (studio.js only opens and closes it).
 import AboutBody from '../about/AboutBody.astro';
 // "Studio sizing": the steps and storage names come from the same module the rail control uses, so
@@ -451,6 +452,14 @@ iframe[data-svc-preview] {
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<title>Starlight Visual Customizer</title>
+		<meta name="description" content="A visual theme editor for Starlight. Tune colors, type, layout and components on a real Starlight site, in light and dark, then export a theme.css and step-by-step instructions to apply it." />
+		<meta property="og:title" content="Starlight Visual Customizer" />
+		<meta property="og:description" content="A visual theme editor for Starlight. Tune colors, type, layout and components on a real Starlight site, in light and dark, then export a theme.css and step-by-step instructions to apply it." />
+		<meta property="og:image" content={`${TOOL_URL}og.png`} />
+		<meta property="og:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta name="twitter:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta property="og:url" content={`${TOOL_URL}studio/`} />
+		<meta name="twitter:card" content="summary_large_image" />
 		<!-- Unlike Starlight pages (which get this from Head.astro), this plain page has no favicon
 		     link by default - without one, the browser's automatic /favicon.ico probe 404s on every
 		     load (harmless, but noisy in the console). Same icon Starlight pages use. -->

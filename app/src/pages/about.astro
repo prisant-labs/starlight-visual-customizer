@@ -13,7 +13,7 @@
 import { frontmatter } from '../about/about.md';
 import AboutBody from '../about/AboutBody.astro';
 import { withBase } from '../customizer/core/base-path.js';
-import { REPO_URL } from '../customizer/core/project.js';
+import { REPO_URL, TOOL_URL } from '../customizer/core/project.js';
 ---
 
 <!doctype html>
@@ -24,6 +24,13 @@ import { REPO_URL } from '../customizer/core/project.js';
 		<meta name="robots" content="noindex" />
 		<title>About · Starlight Visual Customizer</title>
 		<meta name="description" content={frontmatter.description} />
+		<meta property="og:title" content="About · Starlight Visual Customizer" />
+		<meta property="og:description" content={frontmatter.description} />
+		<meta property="og:image" content={`${TOOL_URL}og.png`} />
+		<meta property="og:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta name="twitter:image:alt" content="Starlight Visual Customizer, a free visual theme editor for Starlight, beside a screenshot of the studio" />
+		<meta property="og:url" content={`${TOOL_URL}about/`} />
+		<meta name="twitter:card" content="summary_large_image" />
 		<link rel="icon" href={withBase('/favicon.svg')} />
 		<!-- is:global: the Markdown body is rendered by <Content />, outside this template's style scope. -->
 		<style is:global>
