@@ -1309,9 +1309,20 @@ function initCustomizer(host) {
 				} catch {
 					continue;
 				}
-				for (const el of nodes) if (el.getClientRects().length > 0) return c;
+				for (const el of nodes) if (hasVisibleArea(el)) return c;
 			}
 			return null;
+		}
+
+		/**
+		 * True when the element takes up visible space. A layout box alone is not enough: Starlight's
+		 * Landing page renders an empty, zero-height `.pagination-links`, and treating that as a match
+		 * made a Footer rail click scroll to nothing instead of opening the Style guide.
+		 * @param {Element} el
+		 */
+		function hasVisibleArea(el) {
+			for (const r of el.getClientRects()) if (r.width > 0 && r.height > 0) return true;
+			return false;
 		}
 
 		/** @param {string} groupName */
