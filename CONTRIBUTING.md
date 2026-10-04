@@ -77,8 +77,8 @@ change, and list them in the pull request.
 - Keep each pull request to one change, and explain why in its description.
 - Write commit messages in the style of the history: `fix(app): ...`, `feat(app): ...`,
   `docs: ...`, `test(app): ...` or `chore: ...`.
-- Add an entry under "Unreleased" in [`CHANGELOG.md`](CHANGELOG.md) for any change that users will
-  notice.
+- Add an entry under an "Unreleased" heading at the top of [`CHANGELOG.md`](CHANGELOG.md) for any
+  change that users will notice. Create the heading if it is not there yet.
 - Pull requests merge as merge commits once CI passes.
 
 ## License
