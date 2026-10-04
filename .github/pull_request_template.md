@@ -11,5 +11,5 @@
 
 ## Docs
 
-- [ ] A change that users will notice has an entry under "Unreleased" in `CHANGELOG.md`.
+- [ ] A change that users will notice has an entry under an "Unreleased" heading at the top of `CHANGELOG.md` (create it if needed).
 - [ ] The READMEs are updated wherever behavior or test counts changed.
