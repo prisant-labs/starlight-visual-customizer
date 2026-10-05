@@ -91,7 +91,7 @@ real click blurs a focused field, and a scripted click does not.
 | `targets.mjs` | Every control's target selector | 78 |
 | `tiles.mjs` | Tiled controls | 264 |
 | `studio.mjs` | The studio's frame, pages and export | 60 |
-| `shell.mjs` | The studio's chrome, contrast and layout | 154 |
+| `shell.mjs` | The studio's chrome, contrast and layout | 156 |
 | `sizing.mjs` | Studio sizing | 32 |
 | `share.mjs` | Share links | 43 |
 | `inspect.mjs` | Inspect | 32 |
@@ -147,9 +147,10 @@ still do.
 - Scaling, the narrow-width drawer, and a pixel check that every range thumb sits centered on its
   track.
 - Every section and card starting open, with working collapse, expand, Expand all and Collapse all.
-- The top bar's branding and GitHub pill.
+- The top bar's branding and GitHub pill, including a logo that loads from the base-aware
+  `logo.svg`.
 - The About dialog, opened and closed by real clicks and keys, with the shortcuts standing down
-  behind it, and the `/about/` page.
+  behind it, and the `/about/` page with its logo.
 - No top-bar overflow at five widths.
 - A Footer rail click on a page with an empty pagination wrapper (Landing) opens the Style guide.
 

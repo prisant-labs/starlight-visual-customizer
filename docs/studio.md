@@ -9,7 +9,7 @@ tokens, whatever mode the preview shows. `app/src/pages/studio.astro` builds the
 
 ## Top bar
 
-- **On the left:** the brand ("Starlight Visual Customizer"), the theme name, undo and redo, and
+- **On the left:** the logo and the product name ("Starlight Visual Customizer"), the theme name, undo and redo, and
   the change count as plain text, such as "24 changes". The theme name is editable and lives in
   `state.meta.name`. The count's tooltip says "from Starlight default". The count comes after undo
   and redo, so a change in its number of digits never moves the buttons.

@@ -165,11 +165,9 @@ export function initStudioShell() {
 	topbar.appendChild(drawerToggle);
 
 	const brand = h('div', { class: 'svc-brand' });
-	const brandMark = h(
-		'span',
-		{ class: 'svc-brand-mark' },
-		'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 6.3L20.5 11.5l-6.3 2.2L12 20l-2.2-6.3L3.5 11.5l6.3-2.2z"/></svg>'
-	);
+	// The product's logo, the same file the product page and the favicon use. It sits next to the
+	// product name, which already says what it is, so the image itself is decorative (empty alt).
+	const brandMark = h('img', { class: 'svc-brand-mark', src: withBase('/logo.svg'), alt: '', width: '28', height: '28', decoding: 'async' });
 	const brandName = h('span', { class: 'svc-brand-name' }, 'Starlight Visual Customizer');
 	brand.appendChild(brandMark);
 	brand.appendChild(brandName);

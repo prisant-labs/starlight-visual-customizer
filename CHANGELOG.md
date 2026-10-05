@@ -5,6 +5,12 @@ who use the studio: on the [Releases page](https://github.com/prisant-labs/starl
 and in [`docs/releases/`](docs/releases/README.md), one file per release. Version numbers follow
 [semantic versioning](https://semver.org/); before 1.0, a minor release can change behavior.
 
+## Unreleased
+
+- **The final logo.** The project's logo replaces the placeholder star in the studio's top bar,
+  on the About page and as the favicon. The product page shows it too.
+- **A new social preview card** for links to the site and the repository.
+
 ## [0.1.0] - 2026-10-03
 
 Release notes: [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md).
