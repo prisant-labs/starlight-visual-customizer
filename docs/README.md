@@ -47,5 +47,5 @@ These files sit at the repository root, where GitHub looks for them:
 
 [`images/`](images/) holds the screenshots that the README shows. After a visible change to the
 studio, regenerate them with `app/scripts/capture-readme-shots.mjs`. The script's header comment
-gives the steps. `app/scripts/social-card/` regenerates the social preview card,
-`app/public/og.png`.
+gives the steps. The social preview card, `app/public/og.png`, is a designed image, so no script
+produces it.
