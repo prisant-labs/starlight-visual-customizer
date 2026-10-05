@@ -193,7 +193,13 @@ same function, so both follow any preset change.
 
 The product page's screenshots do not follow on their own. They are PNG files in
 `app/src/assets/home/`, which Astro converts to WebP at three widths. Capture them again when the
-studio's look changes. The logo is `app/public/logo.svg`, a mark that is still a work in progress.
+studio's look changes.
+
+The logo is `app/public/logo.svg`, and `app/public/logo-grayscale.svg` is its grayscale version. The
+product page, the studio's top bar and the About page all show `logo.svg`, and
+`app/public/favicon.svg` is a copy of it. The social preview card, `app/public/og.png`, is a
+designed image at 1200 by 630 pixels. Keep it under 1 MB, because GitHub refuses a larger social
+preview.
 
 The product page sets its text in Inter, self-hosted from the `@fontsource-variable/inter`
 package. Astro bundles the font files, and only this page's stylesheet loads them. No font comes

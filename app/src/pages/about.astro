@@ -65,14 +65,10 @@ import { REPO_URL, TOOL_URL } from '../customizer/core/project.js';
 			}
 			.brand { display: flex; align-items: center; gap: 0.5rem; color: var(--ui-ink); text-decoration: none; font-weight: 700; font-size: 0.9375rem; }
 			.brand-mark {
+				display: block;
 				width: 1.75rem;
 				height: 1.75rem;
-				border-radius: 7px;
-				background: var(--ui-ink);
-				color: #fff;
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
+				flex-shrink: 0;
 			}
 			.spacer { flex: 1 1 auto; }
 			.btn {
@@ -116,9 +112,7 @@ import { REPO_URL, TOOL_URL } from '../customizer/core/project.js';
 	<body>
 		<header class="bar">
 			<a class="brand" href={withBase('/studio/')}>
-				<span class="brand-mark" aria-hidden="true">
-					<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 6.3L20.5 11.5l-6.3 2.2L12 20l-2.2-6.3L3.5 11.5l6.3-2.2z" /></svg>
-				</span>
+				<img class="brand-mark" src={withBase('/logo.svg')} alt="" width="28" height="28" decoding="async" />
 				<span class="brand-name">Starlight Visual Customizer</span>
 			</a>
 			<span class="spacer"></span>

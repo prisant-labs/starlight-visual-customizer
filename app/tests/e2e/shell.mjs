@@ -1712,6 +1712,10 @@ async function main() {
 		const brand = await page.evaluate(() => ({
 			name: document.querySelector('.svc-brand-name')?.textContent,
 			tag: !!document.querySelector('.svc-brand-tag'),
+			logo: (() => {
+				const img = /** @type {HTMLImageElement | null} */ (document.querySelector('#svc-topbar .svc-brand-mark'));
+				return img && { tag: img.tagName, src: img.getAttribute('src'), alt: img.getAttribute('alt'), loaded: img.complete && img.naturalWidth > 0 };
+			})(),
 			title: document.title,
 			github: (() => {
 				const a = document.getElementById('svc-github-link');
@@ -1724,6 +1728,11 @@ async function main() {
 		}));
 		check('top bar shows the product name "Starlight Visual Customizer"', brand.name === 'Starlight Visual Customizer', brand.name);
 		check('no prototype variation tag next to the brand', brand.tag === false);
+		check(
+			'the top bar shows the product logo (base-aware logo.svg, decorative alt) and it loads',
+			brand.logo?.tag === 'IMG' && brand.logo.src === `${basePrefix}/logo.svg` && brand.logo.alt === '' && brand.logo.loaded,
+			JSON.stringify(brand.logo)
+		);
 		check('studio tab title is "Starlight Visual Customizer"', brand.title === 'Starlight Visual Customizer', brand.title);
 		check(
 			'GitHub pill points at the repo, opens in a new tab, has an accessible name, and reads "GitHub"',
@@ -1795,6 +1804,10 @@ async function main() {
 			title: document.title,
 			external: Array.from(document.querySelectorAll('main a[href^="https://"]')).map((a) => a.getAttribute('href')),
 			openStudioHref: document.getElementById('about-open-studio')?.getAttribute('href'),
+			logoLoaded: (() => {
+				const img = /** @type {HTMLImageElement | null} */ (document.querySelector('.bar .brand-mark'));
+				return !!img && img.tagName === 'IMG' && img.complete && img.naturalWidth > 0;
+			})(),
 			// Markdown-rendered links must pick up the page's accent-ink color (the page's styles are
 			// global because <Content /> renders outside the template's style scope).
 			linkColor: getComputedStyle(document.querySelector('main a[href="https://starlight.astro.build/"]')).color,
@@ -1804,6 +1817,7 @@ async function main() {
 		for (const url of ABOUT_LINKS) check(`About page links to ${url}`, about.external.includes(url));
 		check('About page Markdown links use the accent-ink color', about.linkColor === 'rgb(58, 70, 176)', about.linkColor);
 		check('About page "Open the studio" is base-aware', about.openStudioHref === `${basePrefix}/studio/`, about.openStudioHref);
+		check('About page shows the product logo, and it loads', about.logoLoaded);
 
 		await realClick(page, await lightQuery(page, '#about-open-studio'));
 		await page.waitForURL((u) => u.pathname === `${basePrefix}/studio/`, { timeout: 10000 });

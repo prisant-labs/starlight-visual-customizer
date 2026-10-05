@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="246 228 800 800" role="img" aria-labelledby="title description">
-  <title id="title">Starlight Visual Customizer logo</title>
-  <desc id="description">Two overlapping document pages with a folded corner, and a four-point spark cut out of both.</desc>
-  <defs>
-    <linearGradient id="back-gradient" gradientUnits="userSpaceOnUse" x1="330" y1="290" x2="730" y2="849"><stop offset="0" stop-color="#171779"/><stop offset="1" stop-color="#191B80"/></linearGradient>
-    <linearGradient id="front-gradient" gradientUnits="userSpaceOnUse" x1="600" y1="411" x2="980" y2="967"><stop offset="0" stop-color="#7E39FC"/><stop offset="1" stop-color="#7734F8"/></linearGradient>
-    <linearGradient id="fold-gradient" gradientUnits="userSpaceOnUse" x1="824" y1="415" x2="970" y2="550"><stop offset="0" stop-color="#27DDFC"/><stop offset="1" stop-color="#21CFF6"/></linearGradient>
-    <mask id="spark-cutout" maskUnits="userSpaceOnUse" x="246" y="228" width="800" height="800" style="mask-type:luminance">
-      <rect x="246" y="228" width="800" height="800" fill="white"/>
-      <path id="spark-shape" d="M 601,449 C 600,549 547,613 425,632 C 542,646 592,701 601,797 C 609,700 662,646 776,632 C 660,612 608,552 601,449 Z" fill="black"/>
-    </mask>
-  </defs>
-  <g id="logo" mask="url(#spark-cutout)">
-    <path id="back-page" d="M 388,289 H 602 C 616,289 622,294 632,304 L 714,386 C 724,396 729,405 729,420 V 773 C 729,817 698,849 656,849 H 388 C 347,849 315,819 315,779 V 360 C 315,320 348,289 388,289 Z" fill="url(#back-gradient)"/>
-    <path id="front-page" d="M 645,411 H 820 C 835,411 842,416 853,427 L 964,538 C 974,548 978,558 978,573 V 900 C 978,937 949,967 912,967 H 665 C 628,967 601,939 601,901 V 457 C 601,431 619,411 645,411 Z" fill="url(#front-gradient)"/>
-    <path id="folded-corner" d="M 823,411 C 836,411 843,416 853,427 L 964,538 C 973,547 978,558 978,568 C 972,557 963,551 950,551 H 864 C 840,551 823,533 823,510 Z" fill="url(#fold-gradient)"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Starlight Visual Customizer</title>
+  <defs><linearGradient id="rear-page-gradient" gradientUnits="userSpaceOnUse" x1="-18.832" y1="93.433" x2="214.574" y2="236.318"><stop offset="0" stop-color="#212486"/><stop offset="1" stop-color="#1D227A"/></linearGradient>
+<linearGradient id="front-page-gradient" gradientUnits="userSpaceOnUse" x1="132.895" y1="124.071" x2="397.738" y2="362.032"><stop offset="0" stop-color="#723BF7"/><stop offset="1" stop-color="#763DF8"/></linearGradient>
+<linearGradient id="page-fold-gradient" gradientUnits="userSpaceOnUse" x1="295.849" y1="118.064" x2="387.69" y2="135.052"><stop offset="0" stop-color="#45DFFE"/><stop offset="1" stop-color="#28DBFE"/></linearGradient>
+<linearGradient id="star-frame-gradient" gradientUnits="userSpaceOnUse" x1="213.935" y1="166.769" x2="104.791" y2="244.848"><stop offset="0" stop-color="#FED987"/><stop offset="1" stop-color="#FDD989"/></linearGradient><mask id="aperture" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="410" style="mask-type:luminance"><rect width="400" height="410" fill="white"/><path d="M 159 155.5 C 149.058 175.922 131.458 195.39 110.5 205 C 131.18 217.647 148.733 232.084 159 255.5 C 170.842 234.444 184.411 217.427 206.5 206 C 184.93 192.59 171.702 178.034 159 155.5 Z" fill="black" stroke="black" stroke-width="2"/></mask></defs>
+  <g id="logo" transform="translate(7.779 2.18) scale(1.244)">
+    <g id="rear-page" mask="url(#aperture)"><title>Rear Page</title><path d="M 51.5 9.5 H 173.5 C 183.5 9.5 188.5 13.5 195.5 20.5 L 242.5 67.5 C 246.5 71.5 246.5 74.5 246.5 80.5 V 336.5 H 51.5 C 28.3 336.5 9.5 317.7 9.5 294.5 V 51.5 C 9.5 28.3 28.3 9.5 51.5 9.5 Z" fill="url(#rear-page-gradient)" fill-rule="evenodd"/></g>
+<g id="front-page" mask="url(#aperture)"><title>Front Page</title><path d="M 200 70 H 296.5 C 306.5 70 311.5 78 319.5 86 L 380.5 147 C 386.5 153 389.5 159 389.5 166 V 357.5 C 389.5 380.15 371.15 398.5 348.5 398.5 H 200 C 177.35 398.5 159 380.15 159 357.5 V 111 C 159 88.35 177.35 70 200 70 Z" fill="url(#front-page-gradient)" fill-rule="evenodd"/></g>
+<g id="page-fold" mask="url(#aperture)"><title>Page Fold</title><path d="M 299.5 70 C 306.5 70 311.5 78 319.5 86 L 380.5 147 C 386.5 153 389.5 159 389.5 166 C 388.5 159 382.5 157 372.5 157 H 327.5 C 312.04 157 299.5 144.46 299.5 129 Z" fill="url(#page-fold-gradient)" fill-rule="evenodd"/></g>
+<g id="star-frame"><title>Star Frame</title><path d="M 159 107.5 C 173.044 159.471 198.282 191.838 252.5 205 C 197.543 222.568 174.115 248.208 159 304.5 C 147.307 251.74 118.083 218.365 64.5 206 C 117.99 191.115 146.328 161.541 159 107.5 Z M 159 155.5 C 149.058 175.922 131.458 195.39 110.5 205 C 131.18 217.647 148.733 232.084 159 255.5 C 170.842 234.444 184.411 217.427 206.5 206 C 184.93 192.59 171.702 178.034 159 155.5 Z" fill="url(#star-frame-gradient)" fill-rule="evenodd"/></g>
   </g>
 </svg>
