@@ -1,0 +1,141 @@
+<!doctype html>
+<!--
+  Social preview card composer. Rendered at exactly 1200x630 by `capture.mjs`, in the same folder,
+  using playwright-core's chromium at deviceScaleFactor 1, and saved to `app/public/og.png` by
+  default.
+
+  Three placeholder tokens are filled in by capture.mjs before the page loads, so this file has no
+  network or filesystem dependency of its own:
+    [[FONT_DATA_URI]]  - the Inter Variable latin woff2 from
+                         app/node_modules/@fontsource-variable/inter, as a base64 data: URI.
+    [[SHOT_DATA_URI]]  - docs/images/studio.png (the README hero, 1600x900), as a base64 data: URI.
+    [[MARK_CLASS]]     - "with-mark" when capture.mjs is run with --with-mark, "" otherwise. The
+                         committed card (app/public/og.png) omits the mark, so --with-mark
+                         defaults to off.
+
+  The product mark (app/public/logo.svg) is inlined below as plain SVG markup, not a placeholder,
+  since it is small and already version-controlled text. The mark-class token above toggles it on
+  or off. No Houston mascot and no Astro/Starlight logo appears anywhere on this card - this tool
+  is independent and unofficial (see README.md's footer disclaimer).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: 'Inter Variable';
+    font-style: normal;
+    font-weight: 100 900;
+    src: url([[FONT_DATA_URI]]) format('woff2-variations');
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 1200px;
+    height: 630px;
+    overflow: hidden;
+    font-family: 'Inter Variable', system-ui, sans-serif;
+  }
+
+  body {
+    display: flex;
+    background:
+      radial-gradient(900px 480px at 0% 0%, rgba(126, 57, 252, 0.32), transparent 65%),
+      radial-gradient(640px 460px at 0% 30%, rgba(23, 23, 121, 0.55), transparent 70%),
+      #15161d;
+    color: #f4f5fb;
+  }
+
+  .text {
+    width: 500px;
+    flex: 0 0 500px;
+    padding: 64px 0 64px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .brand {
+    display: none; /* shown by body.with-mark below, when capture.mjs runs with --with-mark */
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  body.with-mark .brand { display: flex; }
+  .brand svg { width: 48px; height: 48px; flex: none; }
+  .brand span {
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: #c9b6ff;
+  }
+
+  h1 {
+    font-weight: 700;
+    font-size: 54px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+  /* When there's no mark (the default), the name alone needs the same visual weight the brand row
+     carries when the mark is on, so the heading grows to fill that space rather than leaving it empty. */
+  body:not(.with-mark) h1 { margin-top: 42px; }
+
+  p.pitch {
+    font-weight: 400;
+    font-size: 26px;
+    line-height: 1.4;
+    color: #c3c6d4;
+    max-width: 420px;
+  }
+
+  .shot {
+    flex: 1 1 auto;
+    position: relative;
+    overflow: hidden;
+    border-left: 1px solid #2d2f3c;
+  }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* The source is 1600x900 (16:9); this panel is ~700x630 (nearly square), so covering it crops
+       in tight either way. Anchoring near the left edge keeps the customizer's own colorful
+       control panel (the preset swatches, the blue "Starlight default" chip) in frame instead of
+       centering on the plain preview pane, which would read as a generic docs screenshot. */
+    object-position: 4% 38%;
+  }
+</style>
+</head>
+<body class="[[MARK_CLASS]]">
+  <div class="text">
+    <div class="brand">
+      <svg viewBox="246 228 800 800" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id="back-gradient" gradientUnits="userSpaceOnUse" x1="330" y1="290" x2="730" y2="849"><stop offset="0" stop-color="#171779"/><stop offset="1" stop-color="#191B80"/></linearGradient>
+          <linearGradient id="front-gradient" gradientUnits="userSpaceOnUse" x1="600" y1="411" x2="980" y2="967"><stop offset="0" stop-color="#7E39FC"/><stop offset="1" stop-color="#7734F8"/></linearGradient>
+          <linearGradient id="fold-gradient" gradientUnits="userSpaceOnUse" x1="824" y1="415" x2="970" y2="550"><stop offset="0" stop-color="#27DDFC"/><stop offset="1" stop-color="#21CFF6"/></linearGradient>
+          <mask id="spark-cutout" maskUnits="userSpaceOnUse" x="246" y="228" width="800" height="800" style="mask-type:luminance">
+            <rect x="246" y="228" width="800" height="800" fill="white"/>
+            <path d="M 601,449 C 600,549 547,613 425,632 C 542,646 592,701 601,797 C 609,700 662,646 776,632 C 660,612 608,552 601,449 Z" fill="black"/>
+          </mask>
+        </defs>
+        <g mask="url(#spark-cutout)">
+          <path d="M 388,289 H 602 C 616,289 622,294 632,304 L 714,386 C 724,396 729,405 729,420 V 773 C 729,817 698,849 656,849 H 388 C 347,849 315,819 315,779 V 360 C 315,320 348,289 388,289 Z" fill="url(#back-gradient)"/>
+          <path d="M 645,411 H 820 C 835,411 842,416 853,427 L 964,538 C 974,548 978,558 978,573 V 900 C 978,937 949,967 912,967 H 665 C 628,967 601,939 601,901 V 457 C 601,431 619,411 645,411 Z" fill="url(#front-gradient)"/>
+          <path d="M 823,411 C 836,411 843,416 853,427 L 964,538 C 973,547 978,558 978,568 C 972,557 963,551 950,551 H 864 C 840,551 823,533 823,510 Z" fill="url(#fold-gradient)"/>
+        </g>
+      </svg>
+      <span>Starlight Visual Customizer</span>
+    </div>
+    <h1>Starlight Visual<br />Customizer</h1>
+    <p class="pitch">A free visual theme editor for Starlight.</p>
+  </div>
+  <div class="shot">
+    <img src="[[SHOT_DATA_URI]]" alt="" />
+  </div>
+</body>
+</html>

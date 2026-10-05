@@ -101,15 +101,16 @@ npm run preview:bg   # serves dist/ in the background on http://localhost:4420
 Open <http://localhost:4420/studio/>. The studio opens on the demo site's style guide page. Pick
 a preset, adjust the controls, then open **Export**.
 
-[`app/README.md`](app/README.md) is the full developer guide. It covers every part of the studio,
-the dev server, serving under a sub-path, and the test suites.
+[`docs/development.md`](docs/development.md) covers the dev server, the ports and the background
+servers.
 
 ### Serving under a sub-path
 
 The app builds for `/` by default. To serve it under a sub-path, such as a GitHub Pages project
 site at `https://<user>.github.io/<repo>/`, set `SVC_SITE_BASE` before `astro build` and
 `astro preview`. Every internal link goes through one base-path helper, so nothing else changes.
-See ["Serving under a sub-path"](app/README.md#serving-under-a-sub-path) for the exact commands.
+See ["Serving under a sub-path"](docs/development.md#serving-under-a-sub-path) for the exact
+commands.
 
 ## Tests
 
@@ -120,7 +121,15 @@ See ["Serving under a sub-path"](app/README.md#serving-under-a-sub-path) for the
 | `npm run test:roundtrip` | Applies a real export to a freshly scaffolded Starlight site and compares its computed styles with the studio's live preview |
 
 Every pull request runs the unit tests and a production build in CI. The suite-by-suite
-breakdown, ports and commands are in [`app/README.md`](app/README.md#tests).
+breakdown and commands are in [`docs/testing.md`](docs/testing.md).
+
+## Documentation
+
+[`docs/`](docs/README.md) documents the project for people who want to understand, change or
+maintain it. It covers [what each part of the studio does](docs/studio.md), the
+[export format](docs/export-format.md), the [architecture](docs/architecture.md), the
+[security model](docs/security-model.md), and the [decisions](docs/decisions/README.md) behind the
+design. Coding agents start at [`AGENTS.md`](AGENTS.md).
 
 ## Built with
 
@@ -135,15 +144,17 @@ Bug reports, ideas and themes are welcome. Report a bug under
 [Issues](https://github.com/prisant-labs/starlight-visual-customizer/issues/new/choose), and bring
 questions and ideas to
 [Discussions](https://github.com/prisant-labs/starlight-visual-customizer/discussions). To share a
-theme, post its share link in Show and tell. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how to
-run the app and its tests. [`SECURITY.md`](SECURITY.md) explains how to report a vulnerability
-privately.
+theme, post its share link in Show and tell. [`SUPPORT.md`](SUPPORT.md) lists where every kind of
+question goes. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how to run the app and its tests.
+[`SECURITY.md`](SECURITY.md) explains how to report a vulnerability privately, and
+[`ACCESSIBILITY.md`](ACCESSIBILITY.md) explains how to report an accessibility barrier.
 
 ## Releases
 
 Each release is tagged, and its notes are on the
-[Releases page](https://github.com/prisant-labs/starlight-visual-customizer/releases).
-[`CHANGELOG.md`](CHANGELOG.md) lists the notable changes in each release.
+[Releases page](https://github.com/prisant-labs/starlight-visual-customizer/releases). The same
+notes live in the repository under [`docs/releases/`](docs/releases/README.md), one file per
+release. [`CHANGELOG.md`](CHANGELOG.md) lists the notable changes in each release.
 
 ## License
 
