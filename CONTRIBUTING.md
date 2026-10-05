@@ -14,8 +14,11 @@ all welcome.
   Once an idea is specific and agreed, it becomes an issue.
 - **Share a theme.** Post its share link in
   [Show and tell](https://github.com/prisant-labs/starlight-visual-customizer/discussions/categories/show-and-tell).
+- **Report an accessibility barrier,** as [`ACCESSIBILITY.md`](ACCESSIBILITY.md) describes.
 - **Report a security problem privately,** as [`SECURITY.md`](SECURITY.md) describes. Please do not
   open a public issue for it.
+
+[`SUPPORT.md`](SUPPORT.md) lists where every kind of question goes.
 
 ## Before you open a pull request
 
@@ -52,6 +55,20 @@ npm run build
 npm run preview:bg   # serves dist/ in the background, on http://localhost:4420
 ```
 
+[`docs/development.md`](docs/development.md) covers both servers in full, and serving the app under
+a sub-path.
+
+## Find your way around
+
+- [`docs/architecture.md`](docs/architecture.md) maps the code, and ends with a table of where to
+  start for common changes.
+- [`docs/studio.md`](docs/studio.md) describes what each part of the studio does.
+- [`docs/security-model.md`](docs/security-model.md) explains the rules for any change that reads a
+  theme or writes an export. Read it before you touch either.
+- [`docs/decisions/`](docs/decisions/README.md) records why the project is built the way it is. If
+  your change reverses one of those decisions, or makes a new one of the same weight, add a record
+  in the same pull request.
+
 ## Tests
 
 | Command | What it checks | Needs a browser |
@@ -63,8 +80,8 @@ npm run preview:bg   # serves dist/ in the background, on http://localhost:4420
 - The browser suites use Playwright's Chromium. Install it once with
   `npx playwright-core install chromium`.
 - Run the browser suites one at a time, against one preview server.
-  [`app/README.md`](app/README.md) describes each suite, and the `SVC_BROWSER` switch that runs six
-  of them on Firefox and WebKit.
+  [`docs/testing.md`](docs/testing.md) describes each suite, and the `SVC_BROWSER` switch that runs
+  six of them on Firefox and WebKit.
 - If you change export output on purpose, run `npm run golden:update` and review the diff in
   `app/tests/golden/`.
 
@@ -79,6 +96,7 @@ change, and list them in the pull request.
   `docs: ...`, `test(app): ...` or `chore: ...`.
 - Add an entry under an "Unreleased" heading at the top of [`CHANGELOG.md`](CHANGELOG.md) for any
   change that users will notice. Create the heading if it is not there yet.
+- Update the documents that describe the behavior you changed, including any test counts.
 - Pull requests merge as merge commits once CI passes.
 
 ## License

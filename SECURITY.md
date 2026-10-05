@@ -34,6 +34,9 @@ and in what it writes:
   name all end up in that file. Any theme that makes an export carry unexpected code,
   configuration or instructions is in scope.
 
+[`docs/security-model.md`](docs/security-model.md) explains how the code checks these inputs and
+guards each export.
+
 ## What is out of scope
 
 - **Bugs in Starlight or Astro themselves.** Please report those to

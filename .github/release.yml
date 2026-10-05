@@ -1,0 +1,22 @@
+# Groups merged pull requests by label for GitHub's "Generate release notes" button.
+# The hand-written notes in docs/releases/ are the release notes; this list is a checklist for
+# writing them. See docs/releasing.md.
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - wontfix
+  categories:
+    - title: New features
+      labels:
+        - enhancement
+    - title: Fixes
+      labels:
+        - bug
+    - title: Documentation
+      labels:
+        - documentation
+    - title: Other changes
+      labels:
+        - "*"
