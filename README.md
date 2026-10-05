@@ -9,7 +9,7 @@ fonts, layout and components on real Starlight pages, then export one CSS file.*
 [![Built for Starlight 0.42.4](https://img.shields.io/badge/Starlight-0.42.4-6d4aff)](https://starlight.astro.build/)
 [![Astro 7.3.5](https://img.shields.io/badge/Astro-7.3.5-ff5d01)](https://astro.build/)
 
-[![The studio with the Editorial Serif preset applied: serif headings, a red accent and a banner on a Starlight style guide page](docs/studio.png)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
+[![The studio with the Editorial Serif preset applied: serif headings, a red accent and a banner on a Starlight style guide page](docs/images/studio.png)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
 
 Starlight Visual Customizer is an independent, open-source project by Prisant Labs, released
 under the MIT license. It is not affiliated with or endorsed by the Astro team.
@@ -39,16 +39,16 @@ pages, in light mode and dark mode.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/studio-split.png" alt="Split view: the same page in light mode and dark mode, side by side"></td>
-    <td width="50%"><img src="docs/studio-colors.png" alt="The Colors group: accent and gray hue sliders, hex fields and the generated swatches"></td>
+    <td width="50%"><img src="docs/images/studio-split.png" alt="Split view: the same page in light mode and dark mode, side by side"></td>
+    <td width="50%"><img src="docs/images/studio-colors.png" alt="The Colors group: accent and gray hue sliders, hex fields and the generated swatches"></td>
   </tr>
   <tr>
     <td><b>Light and dark, side by side.</b> Split view renders the page in both modes from one theme.</td>
     <td><b>Colors that stay readable.</b> Pick a hue or type a hex value; Starlight's palette algorithm tunes lightness per role.</td>
   </tr>
   <tr>
-    <td><img src="docs/studio-export.png" alt="The Export dialog listing theme.css, APPLY-THEME.md and state.json"></td>
-    <td><img src="docs/studio-about.png" alt="The About dialog describing the project"></td>
+    <td><img src="docs/images/studio-export.png" alt="The Export dialog listing theme.css, APPLY-THEME.md and state.json"></td>
+    <td><img src="docs/images/studio-about.png" alt="The About dialog describing the project"></td>
   </tr>
   <tr>
     <td><b>Export in one click.</b> Copy or download each file, or get all three in a zip.</td>
