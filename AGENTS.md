@@ -46,7 +46,7 @@ the server that was started from this folder. Do not start a foreground `npm run
 `npm run preview`, because it blocks until it is stopped.
 
 ```bash
-npm test                        # 273 unit tests in Node; no browser or server needed
+npm test                        # unit tests in Node; no browser or server needed
 node tests/e2e/<suite>.mjs      # one browser suite, against the preview on port 4420
 npm run test:roundtrip          # apply a real export to a fresh Starlight site and compare
 npm run golden:update           # rewrite the golden export files after an intended change
