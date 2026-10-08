@@ -109,6 +109,8 @@ const SHOTS = [
 		run: async (page) => {
 			await applyPreset(page, 'Designer: Ocean');
 			await page.locator('#svc-topbar button[aria-label="Export"]').click();
+			// The dialog renders its small screenshot after it opens; the shot waits for that picture.
+			await page.waitForFunction(() => !!document.querySelector('sl-customizer')?.shadowRoot?.querySelector('.svc-xp-thumb-pic img'), undefined, { timeout: 20000 });
 			await page.waitForTimeout(600);
 		},
 	},

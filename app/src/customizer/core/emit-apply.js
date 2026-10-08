@@ -3,7 +3,9 @@
  * @file Generates APPLY-THEME.md: a deterministic, idempotent, model-agnostic set of
  * instructions an AI coding agent executes against the user's own Starlight repo to apply a
  * theme designed in this tool. Generated from the same `state` as `emit-css.js`'s `theme.css`,
- * so the two documents never drift apart. Pure, DOM-free, no filesystem access: every fact this
+ * so the two documents never drift apart. The same steps also make the agent message: one text
+ * to paste into a coding agent, with the CSS inside it (`delivery: 'message'`).
+ * Pure, DOM-free, no filesystem access: every fact this
  * module states about "Starlight's defaults" comes from `state.js`/`manifest.js`, never from
  * reading `node_modules` at generation time (the *generated document* tells the executing agent
  * to check the installed version itself -- that check has to happen in the target repo, not
@@ -176,11 +178,15 @@ function summarizeTheme(state, base) {
 // steps
 // ---------------------------------------------------------------------------
 
-function buildCssStep(cssFileName) {
+function buildCssStep(cssFileName, delivery) {
 	const cssPath = `src/styles/${cssFileName}`;
+	const source =
+		delivery === 'message'
+			? `Write the CSS from the "${cssFileName}" section at the end of this message, line for line,`
+			: `Copy the \`${cssFileName}\` file (exported alongside this document)`;
 	return [
 		'1. **Add the theme CSS.**',
-		`   - Copy the \`${cssFileName}\` file (exported alongside this document) to \`${cssPath}\` in the target repo, creating \`src/styles/\` if it does not exist.`,
+		`   - ${source} to \`${cssPath}\` in the target repo, creating \`src/styles/\` if it does not exist.`,
 		'   - Open `astro.config.mjs` (or `astro.config.ts`) and find the `starlight({ ... })` options object.',
 		`   - If \`customCss\` does not exist yet, add \`customCss: ['./${cssPath}']\`.`,
 		`   - If \`customCss\` already exists, **keep every entry already there** and add \`'./${cssPath}'\` **as the LAST item in the array** -- only if it is not already present (idempotent: do not add a duplicate entry on a re-run). This theme's CSS is intentionally unlayered, so for any selector another stylesheet also styles, array order decides the tie; adding it last is what makes it win.`,
@@ -580,18 +586,53 @@ function buildRollback(cssFileName, fontStepIncluded, configStepIncluded, iaStep
 // ---------------------------------------------------------------------------
 
 /**
- * @param {import('./state.js').ThemeState} state
- * @param {{cssFileName?: string}} [options]
- * @returns {string} the full APPLY-THEME.md content
+ * A code fence for `text`: one backtick longer than the longest run of backticks inside it, and
+ * never shorter than three. No run inside the text can then close the fence, so nothing in the CSS
+ * can end the code block early and be read as instructions.
+ * @param {string} text
+ * @returns {string}
  */
-export function emitApplyTheme(state, { cssFileName = 'theme.css' } = {}) {
+export function fenceFor(text) {
+	const runs = text.match(/`+/g) || [];
+	return '`'.repeat(Math.max(3, ...runs.map((run) => run.length + 1)));
+}
+
+/** The CSS section at the end of the agent message. @param {string} cssFileName @param {string} css */
+function buildInlineCssSection(cssFileName, css) {
+	const body = css.trimEnd();
+	const lines = body.split('\n');
+	const fence = fenceFor(body);
+	return [
+		`## ${cssFileName}`,
+		'',
+		`Write this to \`src/styles/${cssFileName}\` with these exact lines and LF line endings. Then check it: the file has ${lines.length} lines, and its first line is \`${lines[0]}\`.`,
+		'',
+		`${fence}css`,
+		body,
+		fence,
+	].join('\n');
+}
+
+/**
+ * Two deliveries share every step. `'files'` (the default) is the APPLY-THEME.md that sits beside
+ * `theme.css` in the zip, or is downloaded on its own. `'message'` is the agent message: one text to
+ * paste into a coding agent, with the CSS in a fenced section at the end, so `css` is required.
+ * @param {import('./state.js').ThemeState} state
+ * @param {{cssFileName?: string, delivery?: 'files'|'message', css?: string}} [options]
+ * @returns {string} the full APPLY-THEME.md content, or the agent message
+ */
+export function emitApplyTheme(state, { cssFileName = 'theme.css', delivery = 'files', css = '' } = {}) {
 	const base = defaultState();
 
 	const sections = [];
 
+	const intro =
+		delivery === 'message'
+			? `> **Apply this Starlight theme to the project you have open. Follow every step below in order. The theme's CSS is in the last section of this message, "${cssFileName}".**`
+			: `> **Use these steps with the \`${cssFileName}\` file in this folder. Make the changes yourself, or ask a coding agent in your Starlight project to read this file and follow every step in order.**`;
 	sections.push(
 		[
-			'> **Paste this whole file to your coding agent inside the target Starlight repo, then let it execute every step below in order.**',
+			intro,
 			'',
 			'# Apply theme',
 			'',
@@ -616,7 +657,7 @@ export function emitApplyTheme(state, { cssFileName = 'theme.css' } = {}) {
 	// Each step is numbered sequentially by actual inclusion, not by a fixed slot -- a state with
 	// no font changes but a config-option change must see that as step 2, not step 3.
 	let stepNumber = 1;
-	const orderedSteps = [buildCssStep(cssFileName)];
+	const orderedSteps = [buildCssStep(cssFileName, delivery)];
 
 	const fontData = fontStepData(state);
 	if (fontData) orderedSteps.push(renderFontStep(++stepNumber, fontData));
@@ -636,6 +677,7 @@ export function emitApplyTheme(state, { cssFileName = 'theme.css' } = {}) {
 	sections.push(
 		buildRollback(cssFileName, !!fontData, !!configLines, !!iaStep, iaStep ? iaStep.frontmatterFiles : [])
 	);
+	if (delivery === 'message') sections.push(buildInlineCssSection(cssFileName, css));
 	sections.push(`Made with the Starlight Visual Customizer: ${TOOL_URL}`);
 
 	return sections.join('\n\n') + '\n';

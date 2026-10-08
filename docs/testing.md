@@ -4,8 +4,8 @@ The project has three kinds of test. All commands run from the `app/` folder.
 
 | Command | What it checks | Needs a running server |
 |---|---|---|
-| `npm test` | 273 unit tests of the logic that runs without a browser | No |
-| `npm run test:e2e` | 13 browser suites that drive the real studio with a real mouse and keyboard | Yes: the production preview on port 4420, by default |
+| `npm test` | 291 unit tests of the logic that runs without a browser | No |
+| `npm run test:e2e` | 14 browser suites that drive the real studio with a real mouse and keyboard | Yes: the production preview on port 4420, by default |
 | `npm run test:roundtrip` | That an export, applied to a fresh Starlight site, reproduces the studio's preview | Yes: the app's own production preview, plus a preview of the fresh site that the suite starts on port 4431 |
 
 CI runs `npm test` and a production build on every pull request, and a pull request cannot merge
@@ -14,11 +14,14 @@ cover your change, and list them in the pull request.
 
 ## Unit tests
 
-`npm test` runs every `app/tests/core/**/*.test.js` file with Node's built-in test runner. The 273
+`npm test` runs every `app/tests/core/**/*.test.js` file with Node's built-in test runner. The 291
 tests cover:
 
 - **The CSS emitter,** through golden files, with a guard that `golden:update` covers every one.
-- **The `APPLY-THEME.md` emitter,** including the site title's config line.
+- **The `APPLY-THEME.md` emitter,** including the site title's config line, and its agent-message
+  delivery, including `fenceFor`'s code-fence rule.
+- **`export-files.js`:** `slugifyThemeName`, the name every file is built from, `buildExportFiles`
+  naming every file after the theme, and `buildZip` holding only `theme.css` and `APPLY-THEME.md`.
 - **The control manifest.**
 - **Theme state:** decoding a state saved before an upgrade (`starlight: '0.42.3'`), the strict
   `tryDecodeState`, `sameTheme` and `snapToStep`.
@@ -43,11 +46,13 @@ tests cover:
 
 ## Golden files
 
-`app/tests/golden/` holds the exact expected output of the two exporters for five cases. The case
-list is `app/tests/golden/cases.js`, and the unit tests read the same list.
+`app/tests/golden/` holds the exact expected output of the two exporters for six cases: three
+`theme.css` cases, the shortest and the fullest `APPLY-THEME.md`, and the agent message for that
+same full theme. The case list is `app/tests/golden/cases.js`, and the unit tests read the same
+list.
 
 After an intended change to `emit-css.js` or `emit-apply.js`, run `npm run golden:update`. It
-rewrites the five golden files from the current emitters. Read the diff before you commit it. The
+rewrites the six golden files from the current emitters. Read the diff before you commit it. The
 script trusts the emitters, so it would write a regression into the golden files as faithfully as
 an improvement.
 
@@ -72,9 +77,9 @@ npm run preview:bg
 node tests/e2e/shell.mjs
 ```
 
-`npm run test:e2e` runs all 13 suites in this order:
+`npm run test:e2e` runs all 14 suites in this order:
 `home`, `smoke`, `ui-round2`, `treatments`, `targets`, `tiles`, `studio`, `shell`, `sizing`,
-`share`, `inspect`, `editors`, `screenshot`.
+`share`, `inspect`, `editors`, `screenshot`, `export`.
 
 Every suite drives real `page.mouse` and `page.keyboard` input at element centers. It does not
 call `.click()` from a script. Some behavior only reproduces under a real click: for example, a
@@ -91,12 +96,13 @@ real click blurs a focused field, and a scripted click does not.
 | `targets.mjs` | Every control's target selector | 78 |
 | `tiles.mjs` | Tiled controls | 264 |
 | `studio.mjs` | The studio's frame, pages and export | 60 |
-| `shell.mjs` | The studio's chrome, contrast and layout | 156 |
+| `shell.mjs` | The studio's chrome, contrast and layout | 178 |
 | `sizing.mjs` | Studio sizing | 32 |
-| `share.mjs` | Share links | 43 |
+| `share.mjs` | Share links | 44 |
 | `inspect.mjs` | Inspect | 32 |
-| `editors.mjs` | Hex entry, the color popover and the Structure editor | 128 |
+| `editors.mjs` | Hex entry, the color popover and the Structure editor | 129 |
 | `screenshot.mjs` | PNG screenshot export | 54 |
+| `export.mjs` | The Export dialog | 62 |
 
 **`home.mjs`** checks the product page at `/`:
 
@@ -151,7 +157,9 @@ still do.
   `logo.svg`.
 - The About dialog, opened and closed by real clicks and keys, with the shortcuts standing down
   behind it, and the `/about/` page with its logo.
-- No top-bar overflow at five widths.
+- No top-bar overflow at ten widths, each chosen on one side of a width step in `studio.astro`:
+  1119 (Screenshot and Share's labels), 839 (the other labels), and 519 (Screenshot and Share leave
+  the bar; Export still opens the same dialog at either export).
 - A Footer rail click on a page with an empty pagination wrapper (Landing) opens the Style guide.
 
 **`sizing.mjs`** checks Studio sizing:
@@ -180,9 +188,11 @@ still do.
 - A theme name that carries markup shows as text and runs nothing.
 - A shared sidebar's `javascript:` links render as `#`, including ones hidden behind a space and a
   tab. An `https` link is kept.
-- A crafted link's values reach neither `APPLY-THEME.md` nor `theme.css`. The suite tries config
-  code in the table-of-contents and pagination values, a multi-line site title, and CSS in a role
-  color.
+- A crafted link's values reach neither `APPLY-THEME.md` nor the agent message, and neither
+  `theme.css` nor the agent message's own `theme.css` section. The suite tries config code in the
+  table-of-contents and pagination values, a multi-line site title, and CSS in a role color. A
+  separate check confirms the agent message still carries the real `theme.css` whole, inside its
+  fence.
 
 **`inspect.mjs`** checks turning Inspect on by button and by the `I` key. It also checks hover
 outlines, click-to-select and the panel state it sets, the Elements list, Split lanes, and `Esc`.
@@ -205,6 +215,25 @@ outlines, click-to-select and the panel state it sets, the Elements list, Split 
 
 **`screenshot.mjs`** checks the Export dialog's PNG capture, Full page and Visible area, in light
 and dark mode. It decodes each image and compares it pixel by pixel with the live page.
+
+**`export.mjs`** checks the Export dialog as a whole, against `export-files.js`'s own output run in
+Node on the studio's own state:
+
+- Each of the five outcomes takes one click: the agent message onto the clipboard, the zip, the
+  settings file, the share link, and the PNG.
+- Every file tab downloads its own file, by name and content, including the agent message as a
+  `.md` file, and its Copy icon copies the same text.
+- The zip holds one folder with `theme.css` and `APPLY-THEME.md`, and nothing else.
+- The small screenshot renders on open, opens the Screenshot tab, and renders again after a theme
+  change.
+- A status replaces the line of the action it confirms, and the previous line returns.
+- Focus, Escape, Tab and the arrow keys behave as in any modal dialog.
+- A dark capture leaves the preview's mode, the stored `starlight-theme` and the toolbar as they
+  were, and Split view captures from its dark lane without switching anything.
+- A downloaded settings file imports back to the same theme.
+- A theme name shows as text, never as markup.
+- The dialog fits a phone-width window, and the overlay panel's dialog works without the small
+  screenshot.
 
 ### Against the dev server
 
@@ -229,7 +258,7 @@ slash, such as `` `${SVC_BASE_URL}/studio/` ``, so a trailing slash would double
 
 ### On Firefox and WebKit
 
-Six of the 13 suites also run on Firefox or WebKit: `home`, `smoke`, `studio`, `shell`, `sizing`
+Six of the 14 suites also run on Firefox or WebKit: `home`, `smoke`, `studio`, `shell`, `sizing`
 and `share`. They use the same `playwright-core` package through a shared launcher,
 `app/tests/e2e/browser.mjs`. Install the two engines once, then set `SVC_BROWSER`:
 
@@ -245,7 +274,7 @@ Remove-Item Env:SVC_BROWSER
   the clipboard for "Copy share link", but Firefox grants neither permission, and WebKit lacks
   `clipboard-write`. Under Firefox or WebKit, such a check prints `SKIP - <check> (<reason>)`. A
   skip counts as neither a pass nor a failure, and the suite's summary line counts its skips.
-- The other seven suites have not been checked on Firefox or WebKit. Under either engine, each one
+- The other eight suites have not been checked on Firefox or WebKit. Under either engine, each one
   prints `SKIP - <suite> runs on Chromium only` and exits successfully. So `npm run test:e2e` still
   runs the six, and never reports a Chromium run as another engine's pass.
 - Playwright's WebKit build on Windows is not Apple's Safari. It is WebKit's upstream Windows port,

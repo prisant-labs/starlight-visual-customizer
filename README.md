@@ -47,29 +47,32 @@ pages, in light mode and dark mode.
     <td><b>Colors that stay readable.</b> Pick a hue or type a hex value; Starlight's palette algorithm tunes lightness per role.</td>
   </tr>
   <tr>
-    <td><img src="docs/images/studio-export.png" alt="The Export dialog listing theme.css, APPLY-THEME.md and state.json"></td>
+    <td><img src="docs/images/studio-export.png" alt="The Export dialog, with the agent message, the files for your site, and the customizer's own settings and screenshot"></td>
     <td><img src="docs/images/studio-about.png" alt="The About dialog describing the project"></td>
   </tr>
   <tr>
-    <td><b>Export in one click.</b> Copy or download each file, or get all three in a zip.</td>
+    <td><b>Export in one click.</b> Copy a message for your coding agent, or download theme.css and the setup steps as a zip.</td>
     <td><b>About the project.</b> What the studio does and where to learn more about Starlight.</td>
   </tr>
 </table>
 
 ## How export works
 
-Export gives you three files. The theme uses Starlight's own `customCss` option, so there is no
-plugin to install.
+Export gives you two ways to get a theme onto your own site, each one click. The theme uses
+Starlight's own `customCss` option, so there is no plugin to install.
 
-| File | What it holds |
-|---|---|
-| `theme.css` | Only the values that differ from Starlight's defaults, as plain unlayered CSS |
-| `APPLY-THEME.md` | Numbered steps for adding the theme to your project, which a coding agent can follow too |
-| `state.json` | The theme's settings, so you can import it later and keep editing |
+- **Copy for your coding agent** copies one message with the setup steps and the whole stylesheet,
+  to paste into Claude Code, Codex, Cursor or similar.
+- **Download the files (.zip)** downloads `theme.css` and `APPLY-THEME.md`, numbered setup steps
+  you can follow yourself, in one folder.
 
-`APPLY-THEME.md` is generated for each theme, and its steps are the same every time:
+The studio also exports its own settings, so you can import a theme later and keep editing, and a
+PNG screenshot of the preview.
 
-1. Copy the exported `theme.css` into `src/styles/` in your project.
+The steps inside `APPLY-THEME.md` (or the pasted message) are generated for each theme, and they
+are the same every time:
+
+1. Add the theme's CSS to `src/styles/theme.css` in your project.
 2. In `astro.config.mjs`, add that file as the **last** entry of Starlight's `customCss` array.
    The theme's CSS is unlayered, so the last entry wins any tie with another stylesheet.
 3. If you picked a non-default web font, `npm install` each `@fontsource-variable/<font>`
@@ -116,8 +119,8 @@ commands.
 
 | Suite | What it checks |
 |---|---|
-| `npm test` (273 unit tests) | The CSS and `APPLY-THEME.md` emitters, the manifest, state, share-link decoding, the checks on every theme that comes from outside the studio, sidebar-link safety, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
-| `npm run test:e2e` (13 browser suites) | The product page, every control's visual effect and target, the studio shell, Studio sizing, share links, Inspect, hex color entry, the structure editor and PNG screenshot export, against a running preview |
+| `npm test` (291 unit tests) | The CSS, `APPLY-THEME.md` and agent-message emitters, the manifest, state, share-link decoding, the checks on every theme that comes from outside the studio, sidebar-link safety, color math, the sidebar parser, undo and redo, and the base-path helper. No browser needed. |
+| `npm run test:e2e` (14 browser suites) | The product page, every control's visual effect and target, the studio shell, Studio sizing, share links, Inspect, hex color entry, the structure editor, PNG screenshot export and the Export dialog, against a running preview |
 | `npm run test:roundtrip` | Applies a real export to a freshly scaffolded Starlight site and compares its computed styles with the studio's live preview |
 
 Every pull request runs the unit tests and a production build in CI. The suite-by-suite
@@ -162,10 +165,10 @@ release. [`CHANGELOG.md`](CHANGELOG.md) lists the notable changes in each releas
 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 **Your exported themes are yours.** The MIT license covers the studio's own source code. The
-files you export (`theme.css`, `APPLY-THEME.md` and the state file) are yours to use, change and
-publish however you like, with no attribution or license notice required. `theme.css` names
-this tool, with a link, in its header comment, and `APPLY-THEME.md` ends with the same line;
-keep them or delete them.
+files you export (`theme.css`, `APPLY-THEME.md`, the agent message and the settings file) are
+yours to use, change and publish however you like, with no attribution or license notice required.
+`theme.css` names this tool, with a link, in its header comment, and `APPLY-THEME.md` and the
+agent message each end with the same line; keep them or delete them.
 
 Starlight Visual Customizer is an independent, open-source project by Prisant Labs. It is not
 affiliated with or endorsed by the Astro team.

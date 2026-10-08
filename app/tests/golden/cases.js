@@ -1,5 +1,6 @@
 /**
- * @file The golden-file cases, in one place. `tests/core/emit-css.test.js` and
+ * @file The golden-file cases, in one place. The `.md` cases cover `APPLY-THEME.md` and the agent
+ * message. `tests/core/emit-css.test.js` and
  * `tests/core/emit-apply.test.js` compare emitter output with the files in this folder, and
  * `npm run golden:update` (`scripts/update-golden.mjs`) rewrites those files from this list after an
  * intended change to an emitter. `tests/core/golden-cases.test.js` checks that every file here has
@@ -49,4 +50,6 @@ export const goldenCases = [
 	{ file: 'dense-technical.css', emit: () => emitCss(applyPreset(defaultState(), 'dense-technical')) },
 	{ file: 'apply-default.md', emit: () => emitApplyTheme(defaultState()) },
 	{ file: 'apply-full.md', emit: () => emitApplyTheme(buildRichState()) },
+	// The agent message: the same steps as apply-full.md, with the stylesheet inside.
+	{ file: 'agent-message-full.md', emit: () => emitApplyTheme(buildRichState(), { delivery: 'message', css: emitCss(buildRichState()) }) },
 ];

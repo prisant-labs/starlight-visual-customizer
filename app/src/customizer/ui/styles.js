@@ -845,21 +845,6 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 }
 .svc-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid #2c2f38; }
 .svc-dialog-header h3 { margin: 0; font-size: 1rem; }
-.svc-tabs { display: flex; gap: 0.25rem; padding: 0.5rem 1rem 0; }
-.svc-tab {
-	padding: 0.35rem 0.7rem;
-	border-radius: 6px 6px 0 0;
-	border: 1px solid #33363f;
-	border-bottom: none;
-	background: #101217;
-	cursor: pointer;
-	font-size: 0.8125rem;
-}
-.svc-tab[aria-selected='true'] { background: #1a1c22; color: #fff; }
-.svc-tab-panels { flex: 1 1 auto; overflow: hidden; padding: 0 1rem 1rem; display: flex; flex-direction: column; }
-.svc-tab-panel { flex: 1 1 auto; display: none; flex-direction: column; gap: 0.5rem; min-height: 0; }
-.svc-tab-panel[data-active='true'] { display: flex; }
-.svc-export-textarea { flex: 1 1 auto; min-height: 240px; }
 .svc-dialog-footer { display: flex; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #2c2f38; flex-wrap: wrap; }
 
 /* ---- Share-link dialog (share-dialog.js): a short question, so narrower than the export dialog,
@@ -869,12 +854,6 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-share-body p { margin: 0 0 0.75rem; }
 .svc-share-dialog .svc-dialog-footer { justify-content: flex-end; }
 
-/* Items 2/3: "Download all (.zip)" + "Screenshot (PNG)", between the file view and the footer. */
-.svc-export-extra { flex: 0 0 auto; display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid #2c2f38; }
-.svc-export-extra-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-.svc-export-extra-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #b7bcc7; flex: 0 0 auto; }
-.svc-export-extra-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.svc-export-hint { margin: 0; font-size: 0.75rem; color: #8a90a0; line-height: 1.4; }
 
 .svc-sr-only {
 	position: absolute;
@@ -1272,50 +1251,128 @@ label.svc-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-
 .svc-result-pass { background: #e3f5e8; color: #074a1e; }
 .svc-result-fail { background: #fbe4e1; color: #7a170f; }
 
-/* ---- Export dialog, restyled light + Codex's two-pane shape (S14): a file list on the left, the
-   selected file's content (with Copy/Download) on the right, instead of B's top tab strip. ---- */
+/* ---- Dialogs, restyled light in the studio. ---- */
 :host([data-docked='true']) .svc-dialog-backdrop { background: rgba(27, 33, 48, 0.45); }
 :host([data-docked='true']) .svc-dialog { background: var(--ui-panel); border-color: var(--ui-line); color: var(--ui-text); }
 :host([data-docked='true']) .svc-dialog-header { border-color: var(--ui-line); }
 :host([data-docked='true']) .svc-dialog-header h3 { color: var(--ui-ink); }
 :host([data-docked='true']) .svc-dialog-footer { border-color: var(--ui-line); }
-:host([data-docked='true']) .svc-export-extra { border-color: var(--ui-line); }
-:host([data-docked='true']) .svc-export-extra-label { color: var(--ui-muted); }
-:host([data-docked='true']) .svc-export-hint { color: var(--ui-muted); }
-.svc-dialog[data-shape='files'] { height: min(calc(80vh / var(--svc-chrome-zoom, 1)), 640px); }
-.svc-files-row { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: row; }
-.svc-file-list {
-	flex: 0 0 180px;
-	border-inline-end: 1px solid var(--ui-line);
-	overflow-y: auto;
-	padding: 0.5rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.2rem;
+
+/* ---- The Export dialog (export.js): the main export for the site on the left, the other exports
+   in a quieter column on the right, and a tab for every file below the main export. It is light in
+   both modes, so outside the studio it brings the studio's light tokens with it. ---- */
+:host(:not([data-docked='true'])) .svc-xp-backdrop {
+	--ui-ink: #1b2130;
+	--ui-text: #343b4a;
+	--ui-muted: #566072;
+	--ui-line: #dde1e8;
+	--ui-bg: #f5f6f8;
+	--ui-panel: #ffffff;
+	--ui-accent: #4453c9;
+	--ui-accent-fg: #ffffff;
+	--ui-accent-tint: rgba(68, 83, 201, 0.08);
+	--ui-accent-ink: #3a46b0;
+	--ui-pass: #0b5c26;
+	--ui-fail: #8f1d17;
+	background: rgba(27, 33, 48, 0.45);
+	color-scheme: light;
 }
-.svc-file-item {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 0.05rem;
-	width: 100%;
-	text-align: start;
-	background: transparent;
-	border: 0;
-	border-radius: 6px;
-	padding: 0.45rem 0.55rem;
-	cursor: pointer;
+.svc-dialog.svc-xp {
+	width: min(70rem, calc(100vw / var(--svc-chrome-zoom, 1) - 2rem));
+	height: min(calc(100vh / var(--svc-chrome-zoom, 1) - 4rem), 46rem);
+	max-height: none;
+	background: var(--ui-panel);
 	color: var(--ui-text);
-	font: inherit;
+	border: 1px solid var(--ui-line);
+	border-radius: 14px;
+	box-shadow: 0 24px 60px rgba(27, 33, 48, 0.28);
+	font-size: 0.875rem;
+	line-height: 1.5;
 }
-.svc-file-item:hover { background: var(--ui-bg); }
-.svc-file-item[aria-selected='true'] { background: var(--ui-accent-tint); color: var(--ui-accent-ink); }
-.svc-file-item-name { font-size: 0.8125rem; font-weight: 700; }
-.svc-file-item-size { font-size: 0.6875rem; color: var(--ui-muted); }
-.svc-file-item[aria-selected='true'] .svc-file-item-size { color: var(--ui-accent-ink); }
-.svc-file-pane { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0.75rem; gap: 0.5rem; }
-.svc-file-pane .svc-tab-panels { padding: 0; min-height: 0; }
-.svc-file-pane-actions { display: flex; gap: 0.5rem; }
+.svc-xp p { margin: 0; }
+.svc-xp h2, .svc-xp h3 { margin: 0; color: var(--ui-ink); }
+.svc-xp button { font: inherit; }
+.svc-xp :focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.svc-dialog-header.svc-xp-head { align-items: flex-start; gap: 1rem; padding: 0.95rem 0.85rem 0.85rem 1.35rem; border-bottom: 1px solid var(--ui-line); flex: 0 0 auto; }
+.svc-xp-head h2 { font-size: 1.125rem; line-height: 1.3; }
+.svc-xp-sub { color: var(--ui-muted); font-size: 0.8125rem; margin-top: 0.1rem !important; }
+.svc-xp-close { width: 2rem; height: 2rem; border-radius: 8px; border: 0; background: transparent; color: var(--ui-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex: 0 0 auto; }
+.svc-xp-close:hover { background: var(--ui-bg); color: var(--ui-ink); }
+/* Buttons: the same look in both modes, whatever the panel's own buttons look like. */
+.svc-dialog.svc-xp .svc-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: var(--ui-panel); border: 1px solid var(--ui-line); color: var(--ui-ink); font-weight: 600; }
+.svc-dialog.svc-xp .svc-btn:hover { background: var(--ui-bg); border-color: var(--ui-accent); }
+.svc-dialog.svc-xp .svc-btn.svc-btn-primary { background: var(--ui-accent); border-color: var(--ui-accent); color: var(--ui-accent-fg); }
+.svc-dialog.svc-xp .svc-btn.svc-btn-primary:hover { background: #38439e; border-color: #38439e; }
+.svc-xp-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 19rem; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: 'main other' 'view other'; }
+/* The main export. */
+.svc-xp-main { grid-area: main; padding: 1.1rem 1.35rem 1.15rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.svc-xp-main-title { font-size: 1.1875rem; line-height: 1.3; }
+.svc-xp-ways { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+.svc-xp-way { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.85rem 0.95rem 0.95rem; border: 1px solid var(--ui-line); border-radius: 14px; background: var(--ui-panel); }
+.svc-xp-way-head { display: flex; align-items: center; gap: 0.55rem; color: var(--ui-accent-ink); }
+.svc-xp-way-head b { font-size: 1rem; color: var(--ui-ink); }
+.svc-xp-way .svc-xp-line { flex: 1 1 auto; }
+.svc-dialog.svc-xp .svc-xp-go { width: 100%; height: 2.5rem; justify-content: center; gap: 0.5rem; margin-top: 0.35rem; padding: 0 1.1rem; border-radius: 8px; font-size: 0.875rem; }
+.svc-xp-line { font-size: 0.8125rem; color: var(--ui-text); }
+.svc-xp-line:empty { display: none; }
+.svc-xp-line.is-done { color: var(--ui-pass); font-weight: 600; }
+.svc-xp-line.is-fail { color: var(--ui-fail); font-weight: 600; }
+.svc-xp-line svg { vertical-align: -3px; margin-right: 0.3rem; }
+/* The other exports. */
+.svc-xp-other { grid-area: other; background: var(--ui-bg); border-left: 1px solid var(--ui-line); overflow: auto; display: flex; flex-direction: column; gap: 1.15rem; padding: 1.1rem 1.1rem 1.2rem; }
+.svc-xp-other-title { font-size: 0.6875rem !important; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ui-muted) !important; }
+.svc-xp-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.svc-xp-group-head { display: flex; align-items: center; gap: 0.45rem; color: var(--ui-muted); }
+.svc-xp-group-head b { font-size: 0.875rem; color: var(--ui-ink); }
+.svc-xp-group-line { font-size: 0.8125rem; }
+.svc-xp-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.svc-xp-opt .svc-xp-line, .svc-xp-pngline { font-size: 0.75rem; color: var(--ui-muted); }
+.svc-dialog.svc-xp .svc-xp-quiet { height: 2rem; padding: 0 0.7rem; border-radius: 7px; font-size: 0.8125rem; }
+.svc-xp-acts { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.svc-xp-link { border: 0; background: none; padding: 0.2rem 0.3rem; font-size: 0.8125rem; font-weight: 600; color: var(--ui-accent-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.svc-xp-thumb { display: block; width: 100%; padding: 0; border: 1px solid var(--ui-line); border-radius: 8px; background: var(--ui-panel); cursor: pointer; overflow: hidden; }
+.svc-xp-thumb[hidden] { display: none; }
+.svc-xp-thumb:hover { border-color: var(--ui-accent); }
+.svc-xp-thumb-pic { display: block; aspect-ratio: 3 / 2; }
+.svc-xp-thumb-pic img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.svc-xp-thumb-wait { display: flex; height: 100%; align-items: center; justify-content: center; padding: 0.5rem; text-align: center; font-size: 0.75rem; color: var(--ui-muted); background: var(--ui-bg); }
+.svc-xp-shotopts { display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem; }
+.svc-xp-shotopts[hidden] { display: none; }
+.svc-xp-ctl { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--ui-muted); }
+.svc-xp-seg { display: inline-flex; border: 1px solid var(--ui-line); border-radius: 8px; padding: 2px; background: var(--ui-bg); }
+.svc-xp-seg button { border: 0; background: transparent; font-size: 0.75rem; font-weight: 600; color: var(--ui-text); padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer; }
+.svc-xp-seg button[aria-checked='true'] { background: var(--ui-panel); color: var(--ui-ink); box-shadow: 0 1px 2px rgba(27, 33, 48, 0.14); }
+/* A tab for every file. */
+.svc-xp-view { grid-area: view; display: flex; flex-direction: column; min-height: 0; padding: 0 1.35rem 1.25rem; }
+.svc-xp-viewer { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--ui-line); border-radius: 12px; overflow: hidden; }
+.svc-xp-tabs { display: flex; align-items: stretch; border-bottom: 1px solid var(--ui-line); background: var(--ui-bg); overflow-x: auto; flex: 0 0 auto; }
+.svc-xp-tab { display: inline-flex; align-items: center; border: 0; border-bottom: 2px solid transparent; background: transparent; font-size: 0.8125rem; font-weight: 600; color: var(--ui-text); padding: 0.65rem 0.9rem 0.55rem; cursor: pointer; white-space: nowrap; }
+.svc-xp-tab[aria-selected='true'] { border-bottom-color: var(--ui-accent); color: var(--ui-accent-ink); background: var(--ui-panel); }
+.svc-xp-divider { align-self: stretch; width: 1px; margin: 0.6rem 0.45rem; background: var(--ui-line); flex: 0 0 auto; }
+.svc-xp-panel { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.svc-xp-panel[hidden] { display: none; }
+/* One height for every file's header, so the dialog never moves between tabs. */
+.svc-xp-panel-head { display: flex; align-items: center; gap: 0.75rem; min-height: calc(3.2rem + 1px); padding: 0.6rem 0.75rem 0.6rem 0.9rem; border-bottom: 1px solid var(--ui-line); flex: 0 0 auto; }
+.svc-xp-fileid { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.svc-xp-fname { font-family: var(--svc-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); font-size: 0.8125rem; font-weight: 700; color: var(--ui-ink); }
+.svc-xp-fmeta { color: var(--ui-muted); font-size: 0.75rem; margin-left: 0.5rem; }
+.svc-xp-tools { display: flex; gap: 0.3rem; flex: 0 0 auto; }
+.svc-xp-tool { width: 2rem; height: 2rem; border-radius: 7px; border: 1px solid var(--ui-line); background: var(--ui-panel); color: var(--ui-text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.svc-xp-tool:hover { color: var(--ui-ink); border-color: var(--ui-accent); }
+.svc-dialog.svc-xp .svc-xp-dl { height: 2rem; padding: 0 0.7rem; border-radius: 7px; font-size: 0.8125rem; }
+.svc-xp-pre { margin: 0; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0.75rem 0.9rem; background: #fbfbfc; font-family: var(--svc-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace); font-size: 0.75rem; line-height: 1.55; color: var(--ui-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.svc-xp-img { flex: 1 1 auto; min-height: 0; overflow: auto; background: #eef0f4; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; padding: 0.85rem; }
+.svc-xp-img img { max-width: 100%; height: auto; border: 1px solid var(--ui-line); border-radius: 6px; box-shadow: 0 4px 14px rgba(27, 33, 48, 0.12); }
+.svc-xp-img .svc-xp-thumb-wait { background: transparent; margin: auto; }
+.svc-xp-imgnote { align-self: flex-start; font-size: 0.75rem; color: var(--ui-muted); }
+/* Narrow windows: one column, in the order main export, other exports, files. */
+@media (max-width: 640px) {
+	.svc-xp-body { display: block; overflow: auto; }
+	.svc-xp-other { border-left: 0; border-top: 1px solid var(--ui-line); border-bottom: 1px solid var(--ui-line); margin-bottom: 1rem; overflow: visible; }
+	.svc-xp-ways { grid-template-columns: 1fr; }
+	.svc-xp-main, .svc-xp-view { padding-left: 1rem; padding-right: 1rem; }
+	.svc-xp-pre, .svc-xp-img { height: 14rem; flex: 1 1 auto; }
+}
 
 /* Below 900px (S1): the panel column becomes a drawer over the workarea instead of an in-flow
    sibling, toggled from the top bar - the rail stays visible (it's the entry point to reopen it). */

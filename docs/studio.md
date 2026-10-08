@@ -14,13 +14,27 @@ tokens, whatever mode the preview shows. `app/src/pages/studio.astro` builds the
   `state.meta.name`. The count's tooltip says "from Starlight default". The count comes after undo
   and redo, so a change in its number of digits never moves the buttons.
 - **On the right:** About (an info button that opens the About dialog), a labeled GitHub pill that
-  opens the repository in a new tab, Import, and Export. Export is the primary button.
+  opens the repository in a new tab, then Import, Screenshot, Share and Export, in that order.
+  Export is the primary button. Screenshot and Share each open the Export dialog already showing
+  their own export; "The Export dialog" below says which. Import loads a settings file exported
+  earlier, as one undo step.
 - **Saving shows nothing while it works.** If the browser blocks storage, "Not saved (storage
   blocked)" appears in amber right after the theme name.
-- **The bar sheds text, not controls, as the window narrows.** Below 900 pixels it drops the brand
-  name. Below 720 pixels it drops the change count, the labels on GitHub, Import and Export, and
-  the separators. The failure text shortens to "Not saved" but stays. Below 480 pixels it narrows
-  the theme name.
+- **The bar sheds text, not controls, as the window narrows.** Below 1120 pixels it drops the
+  labels on Screenshot and Share, leaving their icons. Below 1000 pixels it drops the brand name.
+  Below 840 pixels it drops the change count, the labels on GitHub, Import, Screenshot, Share and
+  Export, and the separators; the failure text shortens to "Not saved" but stays. Below 520 pixels
+  Screenshot and Share leave the bar entirely, because Export still opens the same dialog at every
+  export. Below 480 pixels it narrows the theme name.
+
+### The Export dialog
+
+The top bar's **Export** button, or `Ctrl+E` (`Cmd+E` on a Mac), opens the Export dialog: the main
+export for the user's own Astro site, the customizer's own settings and screenshot exports, and a
+file viewer with a tab for every file. [`docs/export-format.md`](export-format.md) describes every
+file it offers. Inside the dialog, Tab cycles through its controls without leaving it, Escape
+closes it, and the arrow keys, Home and End move across the file tabs and the screenshot's
+Appearance and Page area choices.
 
 ## Rail
 

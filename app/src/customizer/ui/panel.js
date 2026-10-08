@@ -652,7 +652,10 @@ function initCustomizer(host) {
 	// ---- export dialog -------------------------------------------------------------------------
 	const exportDialog = createExportDialog({
 		getState: () => state,
-		onImportState: importStateFromJson,
+		getChangeCount: () => computeChangeCount(state),
+		// A dark screenshot switches the preview to dark and back, through the same path as the
+		// toolbar's Light and Dark buttons.
+		setPreviewTheme: (mode) => host.__svc.setPreviewTheme(mode),
 	});
 	shadow.appendChild(exportDialog.root);
 	// The contrast-warnings dialog (opened from the context line's contrast check) lives here (not in studio.js's light
@@ -777,6 +780,30 @@ function initCustomizer(host) {
 		resetAllBtn.textContent = 'Reset all';
 		resetAllBtn.addEventListener('click', () => onResetAll());
 		toolbar.appendChild(resetAllBtn);
+		// Import lives here in the overlay panel, as it does in the studio's top bar; the Export
+		// dialog only exports.
+		const importInput = document.createElement('input');
+		importInput.type = 'file';
+		importInput.accept = 'application/json,.json';
+		importInput.hidden = true;
+		importInput.addEventListener('change', async () => {
+			const file = importInput.files?.[0];
+			importInput.value = '';
+			if (!file) return;
+			try {
+				importStateFromJson(JSON.parse(await file.text()));
+			} catch (err) {
+				window.alert(`Could not import the settings file: ${err instanceof Error ? err.message : String(err)}`);
+			}
+		});
+		const importOpenBtn = document.createElement('button');
+		importOpenBtn.type = 'button';
+		importOpenBtn.className = 'svc-btn';
+		importOpenBtn.textContent = 'Import…';
+		importOpenBtn.title = 'Import customizer settings (.json)';
+		importOpenBtn.addEventListener('click', () => importInput.click());
+		toolbar.appendChild(importOpenBtn);
+		toolbar.appendChild(importInput);
 		const exportOpenBtn = document.createElement('button');
 		exportOpenBtn.type = 'button';
 		exportOpenBtn.className = 'svc-btn svc-btn-primary';
@@ -1432,7 +1459,8 @@ function initCustomizer(host) {
 			},
 			getName: () => getName(state),
 			getSaveStatus: () => ({ ok: lastSaveOk, at: lastSaveAt }),
-			openExport: () => exportDialog.open(),
+			// `where` is 'screenshot' or 'share' for the top bar's buttons of those names.
+			openExport: (where) => exportDialog.open(where),
 			importState: importStateFromJson,
 			getChangeCount: () => computeChangeCount(state),
 			getContrastReport: () => computeStatusContrastReport(state),

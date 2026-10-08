@@ -522,7 +522,7 @@ async function main() {
 		await page.waitForTimeout(150);
 		const exportCss = await page.evaluate(() => {
 			const host = document.querySelector('sl-customizer');
-			return host.shadowRoot.querySelector('.svc-export-textarea')?.value ?? null;
+			return host.shadowRoot.querySelector('pre.svc-xp-pre[data-file="css"]')?.textContent ?? null;
 		});
 		check('export still produces non-empty CSS in the studio', !!exportCss && exportCss.trim().length > 0);
 	}

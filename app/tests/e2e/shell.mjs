@@ -817,14 +817,16 @@ async function main() {
 			return { total, failed, failures };
 		});
 		check(
-			'every interactive element inside the open export dialog (including Download all/.zip and Screenshot buttons) hit-tests to itself',
+			'every interactive element inside the open export dialog (including the .zip and Download PNG buttons) hit-tests to itself',
 			exportHitTest.total > 0 && exportHitTest.failed === 0,
 			JSON.stringify(exportHitTest)
 		);
 		const exportButtonLabels = await page.evaluate(() =>
 			Array.from(document.querySelector('sl-customizer').shadowRoot.querySelectorAll('.svc-dialog-backdrop:not([hidden]) button')).map((b) => b.textContent.trim())
 		);
-		check('the export dialog shows the "Download all (.zip)" button', exportButtonLabels.includes('Download all (.zip)'), JSON.stringify(exportButtonLabels));
+		check('the export dialog shows the "Copy for your coding agent" button', exportButtonLabels.includes('Copy for your coding agent'), JSON.stringify(exportButtonLabels));
+		check('the export dialog shows the "Download the files (.zip)" button', exportButtonLabels.includes('Download the files (.zip)'), JSON.stringify(exportButtonLabels));
+		check('the export dialog shows the "Download PNG" button', exportButtonLabels.includes('Download PNG'), JSON.stringify(exportButtonLabels));
 		check('the export dialog shows the "Visible area" screenshot button', exportButtonLabels.includes('Visible area'), JSON.stringify(exportButtonLabels));
 		check('the export dialog shows the "Full page" screenshot button', exportButtonLabels.includes('Full page'), JSON.stringify(exportButtonLabels));
 
@@ -973,7 +975,7 @@ async function main() {
 		await blocked.setViewportSize({ width: 600, height: 800 });
 		await blocked.waitForTimeout(200);
 		const narrowText = await blocked.evaluate(() => document.getElementById('svc-save-status').innerText.trim());
-		check('below 720px the failure text shortens to "Not saved" instead of disappearing', narrowText === 'Not saved', narrowText);
+		check('below 840px the failure text shortens to "Not saved" instead of disappearing', narrowText === 'Not saved', narrowText);
 		await blockedCtx.close();
 	}
 
@@ -1846,7 +1848,9 @@ async function main() {
 		await stable.close();
 	}
 
-	for (const width of [1280, 1024, 820, 600, 390]) {
+	// The widths sit on each side of the top bar's steps in studio.astro: 1119 (Screenshot and Share
+	// labels), 839 (the other labels) and 519 (Screenshot and Share leave; the Export dialog has both).
+	for (const width of [1280, 1120, 1119, 1024, 840, 839, 600, 520, 519, 390]) {
 		const narrow = await browser.newPage({ viewport: { width, height: 800 } });
 		trackErrors(narrow);
 		await narrow.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
@@ -1865,12 +1869,24 @@ async function main() {
 				aboutOn: onScreen('#svc-about-btn'),
 				githubOn: onScreen('#svc-github-link'),
 				githubLabel: document.getElementById('svc-github-link')?.innerText.trim(),
+				shotOn: onScreen('#svc-screenshot-btn'),
+				shotLabel: document.getElementById('svc-screenshot-btn')?.innerText.trim(),
+				shareOn: onScreen('#svc-share-btn'),
+				shareLabel: document.getElementById('svc-share-btn')?.innerText.trim(),
 			};
 		});
 		check(`top bar at ${width}px: no overflow, and Export, About and GitHub are on screen`, bar.overflow <= 0 && bar.exportOn && bar.aboutOn && bar.githubOn, JSON.stringify(bar));
-		// The GitHub pill keeps its label down to 720px, then sheds it with Import and Export.
-		const wantLabel = width >= 720 ? 'GitHub' : '';
+		// The GitHub pill keeps its label down to 840px, then sheds it with Import and Export.
+		const wantLabel = width >= 840 ? 'GitHub' : '';
 		check(`top bar at ${width}px: GitHub pill label is ${wantLabel ? 'shown' : 'hidden'}`, bar.githubLabel === wantLabel, JSON.stringify(bar.githubLabel));
+		// Screenshot and Share show their labels down to 1120px, their icons down to 520px, and then leave.
+		const wantShot = width >= 520;
+		const wantShotLabels = width >= 1120;
+		check(
+			`top bar at ${width}px: Screenshot and Share are ${wantShot ? (wantShotLabels ? 'shown with labels' : 'shown as icons') : 'hidden'}`,
+			bar.shotOn === wantShot && bar.shareOn === wantShot && (!wantShot || (bar.shotLabel === (wantShotLabels ? 'Screenshot' : '') && bar.shareLabel === (wantShotLabels ? 'Share' : ''))),
+			JSON.stringify(bar)
+		);
 		await narrow.close();
 	}
 

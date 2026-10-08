@@ -47,7 +47,7 @@ describe('emitApplyTheme: determinism', () => {
 describe('emitApplyTheme: structure', () => {
 	test('always includes header, preconditions, CSS step, verification, and rollback', () => {
 		const out = emitApplyTheme(defaultState());
-		assert.match(out, /^> \*\*Paste this whole file/);
+		assert.match(out, /^> \*\*Use these steps with the `theme\.css` file in this folder\./);
 		assert.match(out, /## Preconditions/);
 		assert.match(out, /\*\*Add the theme CSS\.\*\*/);
 		assert.match(out, /## Verification/);

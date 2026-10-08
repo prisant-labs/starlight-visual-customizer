@@ -412,18 +412,23 @@ async function main() {
 		await open(page, studioLink(hostile));
 		await page.evaluate(() => /** @type {any} */ (document.querySelector('sl-customizer')).__svc.openExport());
 		await page
-			.waitForFunction(() => !!(/** @type {HTMLTextAreaElement | null | undefined} */ (document.querySelector('sl-customizer')?.shadowRoot?.querySelector('textarea[aria-label="APPLY-THEME.md"]'))?.value), undefined, { timeout: 5000 })
+			.waitForFunction(() => !!document.querySelector('sl-customizer')?.shadowRoot?.querySelector('pre.svc-xp-pre[data-file="apply"]')?.textContent, undefined, { timeout: 5000 })
 			.catch(() => {});
+		// The export dialog fills every file panel when it opens, so hidden panels read the same.
 		const files = await page.evaluate(() => {
 			const root = /** @type {ShadowRoot} */ (document.querySelector('sl-customizer')?.shadowRoot);
-			const read = (/** @type {string} */ label) => /** @type {HTMLTextAreaElement | null} */ (root.querySelector(`textarea[aria-label="${label}"]`))?.value ?? '';
-			return { apply: read('APPLY-THEME.md'), css: read('theme.css') };
+			const read = (/** @type {string} */ id) => root.querySelector(`pre.svc-xp-pre[data-file="${id}"]`)?.textContent ?? '';
+			return { apply: read('apply'), css: read('css'), message: read('message') };
 		});
-		const stepLines = files.apply.split('\n').filter((line) => /^\s*(#{1,6}\s|\d+\.\s)/.test(line) && /Extra step|curl/.test(line));
+		const stepLines = [files.apply, files.message].flatMap((text) => text.split('\n')).filter((line) => /^\s*(#{1,6}\s|\d+\.\s)/.test(line) && /Extra step|curl/.test(line));
 		check('a crafted link still opens, and its theme exports', files.apply.includes('# Apply theme') && files.css.length > 0, files.apply.slice(0, 80));
-		check('no config code from a link reaches APPLY-THEME.md', !files.apply.includes("head: [{ tag: 'script'") && !files.apply.includes('alert(1)'), files.apply.match(/tableOfContents[^\n]*/)?.[0] ?? '');
-		check('a site title from a link cannot add a step or heading to APPLY-THEME.md', stepLines.length === 0, JSON.stringify(stepLines));
-		check('no CSS from a link reaches theme.css', !files.css.includes('attacker.example'), files.css.match(/--sl-color-bg:[^\n]*/)?.[0] ?? '');
+		check('no config code from a link reaches APPLY-THEME.md or the agent message', [files.apply, files.message].every((text) => !text.includes("head: [{ tag: 'script'") && !text.includes('alert(1)')), files.apply.match(/tableOfContents[^\n]*/)?.[0] ?? '');
+		check('a site title from a link cannot add a step or heading to APPLY-THEME.md or the agent message', stepLines.length === 0, JSON.stringify(stepLines));
+		// The site title from the link appears in both documents as quoted text, so only the message's CSS
+		// section is searched for the link's CSS.
+		const messageCss = files.message.slice(files.message.indexOf('\n## theme.css'));
+		check('no CSS from a link reaches theme.css or the agent message\'s CSS section', files.message.includes('\n## theme.css') && ![files.css, messageCss].some((text) => text.includes('attacker.example')), files.css.match(/--sl-color-bg:[^\n]*/)?.[0] ?? '');
+		check('the agent message carries theme.css whole, inside its fence', files.message.includes(files.css.trimEnd()), files.message.slice(-120));
 		await context.close();
 	}
 
