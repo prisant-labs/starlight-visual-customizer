@@ -349,10 +349,12 @@ iframe[data-svc-preview] {
 
 /* ---- The top bar keeps its controls on one row at any width by shedding text: first the labels
    of Screenshot and Share, then the brand name (the mark stays), then the change count, the other
-   button labels and the separators, then some of the theme name's width. Below 520px, Screenshot
+   button labels and the separators, then some of the theme name's width. Below 540px, Screenshot
    and Share go, because they only open the Export dialog at those exports, and Export still opens
-   it. Measured from 360 to 1920. The save-failure text is never shed (it is the only sign that
-   changes are not being kept); below 840px it shortens to "Not saved". ---- */
+   it. Measured from 360 to 1920. Firefox sets the same labels slightly wider than Chromium and
+   WebKit: with Screenshot and Share as icons it needs 528px, so the step leaves a margin above
+   that. The save-failure text is never shed (it is the only sign that changes are not being kept);
+   below 840px it shortens to "Not saved". ---- */
 @media (max-width: 1119px) {
 	#svc-screenshot-btn span, #svc-share-btn span { display: none; }
 	#svc-screenshot-btn, #svc-share-btn { padding: 0.4rem; }
@@ -372,7 +374,7 @@ iframe[data-svc-preview] {
 	#svc-change-count, .svc-save-long { display: none; }
 	.svc-save-short { display: inline; }
 }
-@media (max-width: 519px) {
+@media (max-width: 539px) {
 	#svc-screenshot-btn, #svc-share-btn { display: none; }
 }
 @media (max-width: 479px) {

@@ -114,6 +114,44 @@ function restoreLazyImages(images) {
 }
 
 /**
+ * `modern-screenshot` copies each element with `node.cloneNode(false)`, so every copy starts with no
+ * children. A copy made in the page's own document becomes a custom element at once: its constructor
+ * runs on the empty copy, and Starlight's `<site-search>` and `<starlight-tabs>` look up their own
+ * children there and throw. A document without a browsing context never upgrades a custom element,
+ * so for the capture each defined custom element copies itself into such a document instead. The
+ * copy stays plain markup, which is all a picture needs, and the library never attaches it to a live
+ * page (it serializes the clone to an SVG image). `restoreCustomElementCopies` removes the override.
+ * The library copies open shadow roots too, so the search follows them: on a page with the overlay
+ * panel, the panel's tiles hold Starlight's own search, theme select and table of contents.
+ * @param {Document} doc
+ * @returns {Element[]} The elements that copy themselves elsewhere until restored.
+ */
+function copyCustomElementsInert(doc) {
+	const registry = doc.defaultView?.customElements;
+	if (!registry) return [];
+	const inert = doc.implementation.createHTMLDocument('');
+	/** @type {Element[]} */
+	const elements = [];
+	/** @param {ParentNode} root */
+	const collect = (root) => {
+		for (const el of root.querySelectorAll('*')) {
+			if (el.localName.includes('-') && registry.get(el.localName)) elements.push(el);
+			if (el.shadowRoot) collect(el.shadowRoot);
+		}
+	};
+	collect(doc.body);
+	for (const el of elements) {
+		Object.defineProperty(el, 'cloneNode', { configurable: true, value: (/** @type {boolean} */ deep) => inert.importNode(el, deep) });
+	}
+	return elements;
+}
+
+/** @param {Element[]} elements */
+function restoreCustomElementCopies(elements) {
+	for (const el of elements) delete (/** @type {any} */ (el)).cloneNode;
+}
+
+/**
  * Item 3: screenshot the primary preview lane's page (`page-doc.js`'s `getPageDoc()`/`getPageWin()`)
  * at its natural width W, current light/dark mode, current theme - `modern-screenshot` is dynamically
  * imported here so it costs nothing on a normal page load.
@@ -177,24 +215,12 @@ function restoreLazyImages(images) {
  * parent), set `selected` on the one matching option clone and clear it from the rest. This touches
  * only the CLONE's `<option>`s, never the live ones, so there's nothing to restore on them at all.
  *
- * W9a fix - the three page errors: Starlight's `<site-search>` (and a couple of other inline-script
- * custom elements) read `this.querySelector(...)` synchronously in their constructor and call a
- * method on the result without a null check. `modern-screenshot` clones every element (including
- * already-upgraded custom elements) via a shallow, native `node.cloneNode(false)`; per the custom
- * element spec this re-invokes the constructor on the new (still childless) clone, so those
- * `querySelector` calls return `null` and the follow-on call throws. The browser's own "create an
- * element" algorithm already catches that exception (it substitutes a plain unknown-element stand-in
- * and reports the error) - rendering isn't affected: this library's `cloneChildNodes` walk populates
- * the clone's children itself, independent of whether the native upgrade succeeded, and CSS matches
- * on tag/class regardless of the JS interface behind it. There's no public API to opt an element out
- * of the custom-element-upgrade-on-clone behavior (it's a synchronous, unconditional step of
- * `cloneNode`'s own spec algorithm), so preventing the throw itself isn't cheap - but the resulting
- * `error` event IS cancelable (that's what "report the exception" fires), and cancelling it suppresses
- * the browser's console logging without changing anything about the capture. So: install a scoped
- * `error` listener for the duration of the capture only - round 2: narrowed to only the specific
- * known message shapes this failure mode produces (`KNOWN_CLONE_ERROR_FRAGMENTS` below), so a real,
- * unrelated error during the same window still surfaces normally instead of being silently eaten; the
- * number actually suppressed is logged once via `console.info` after the capture finishes.
+ * The page errors from custom elements: Starlight's `<site-search>` and `<starlight-tabs>` look up
+ * their own children in their constructors and use the result without a null check. The library's
+ * shallow copy ran those constructors on empty copies, so both threw on every capture. An earlier fix
+ * cancelled the resulting `error` events by matching Chromium's wording of the message, which missed
+ * Firefox's and WebKit's wording. `copyCustomElementsInert` now stops the constructors from running at
+ * all, so there is nothing to cancel on any engine.
  * The capture takes a lane: by default the primary one, but the Export dialog passes Split's
  * dark lane for a dark picture, so it never has to switch a lane that the studio holds in one mode.
  * @param {'visible'|'full'} kind
@@ -238,23 +264,8 @@ async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: ge
 	// Requirement 2: make every <select> (theme, language) clone show its LIVE value, not
 	// whatever SSR marked `selected` in the static markup - see the doc comment above.
 	const markedSelects = markSelectsForClone(doc);
-
-	// Requirement 4 (round 2 - narrowed): only the specific, known clone-time failures get
-	// suppressed (custom element constructors re-running on a still-childless shallow clone - see
-	// the doc comment above); anything else propagates and logs normally, so a REAL bug during a
-	// capture is never silently hidden. Counted and reported once, after the capture, rather than
-	// swallowed outright.
-	const KNOWN_CLONE_ERROR_FRAGMENTS = ["reading 'addEventListener'", "reading 'querySelectorAll'"];
-	let suppressedErrorCount = 0;
-	/** @param {ErrorEvent} event */
-	const suppressCloneErrors = (event) => {
-		const msg = event?.message || event?.error?.message || '';
-		if (KNOWN_CLONE_ERROR_FRAGMENTS.some((fragment) => msg.includes(fragment))) {
-			suppressedErrorCount++;
-			event.preventDefault();
-		}
-	};
-	win.addEventListener('error', suppressCloneErrors, true);
+	// Custom elements copy themselves without running their constructors - see the doc comment above.
+	const inertCopies = copyCustomElementsInert(doc);
 
 	try {
 		const blob = await domToBlob(doc.body, {
@@ -303,10 +314,7 @@ async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: ge
 		});
 		return { blob, width, height, doc };
 	} finally {
-		win.removeEventListener('error', suppressCloneErrors, true);
-		if (suppressedErrorCount > 0) {
-			console.info(`[svc] screenshot: suppressed ${suppressedErrorCount} error(s) from cloned custom elements`);
-		}
+		restoreCustomElementCopies(inertCopies);
 		unmarkSelectsAfterClone(markedSelects);
 		restoreLazyImages(lazyImages);
 		for (const el of marked) el.removeAttribute(FIXED_MARK);

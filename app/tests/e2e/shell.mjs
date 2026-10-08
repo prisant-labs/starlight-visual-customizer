@@ -1849,8 +1849,9 @@ async function main() {
 	}
 
 	// The widths sit on each side of the top bar's steps in studio.astro: 1119 (Screenshot and Share
-	// labels), 839 (the other labels) and 519 (Screenshot and Share leave; the Export dialog has both).
-	for (const width of [1280, 1120, 1119, 1024, 840, 839, 600, 520, 519, 390]) {
+	// labels), 839 (the other labels) and 539 (Screenshot and Share leave; the Export dialog has both).
+	// 520 stays in the list: Firefox overflowed there by 8px while Screenshot and Share still showed.
+	for (const width of [1280, 1120, 1119, 1024, 840, 839, 600, 540, 539, 520, 390]) {
 		const narrow = await browser.newPage({ viewport: { width, height: 800 } });
 		trackErrors(narrow);
 		await narrow.goto(`${SVC_BASE_URL}/studio/`, { waitUntil: 'networkidle' });
@@ -1879,8 +1880,8 @@ async function main() {
 		// The GitHub pill keeps its label down to 840px, then sheds it with Import and Export.
 		const wantLabel = width >= 840 ? 'GitHub' : '';
 		check(`top bar at ${width}px: GitHub pill label is ${wantLabel ? 'shown' : 'hidden'}`, bar.githubLabel === wantLabel, JSON.stringify(bar.githubLabel));
-		// Screenshot and Share show their labels down to 1120px, their icons down to 520px, and then leave.
-		const wantShot = width >= 520;
+		// Screenshot and Share show their labels down to 1120px, their icons down to 540px, and then leave.
+		const wantShot = width >= 540;
 		const wantShotLabels = width >= 1120;
 		check(
 			`top bar at ${width}px: Screenshot and Share are ${wantShot ? (wantShotLabels ? 'shown with labels' : 'shown as icons') : 'hidden'}`,
