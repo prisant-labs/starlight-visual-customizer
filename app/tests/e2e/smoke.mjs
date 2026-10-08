@@ -165,8 +165,8 @@ async function main() {
 	await page.waitForTimeout(100);
 	const cssText = await page.evaluate(() => {
 		const host = document.querySelector('sl-customizer');
-		const textarea = host.shadowRoot.querySelector('.svc-export-textarea');
-		return textarea ? textarea.value : null;
+		const pre = host.shadowRoot.querySelector('pre.svc-xp-pre[data-file="css"]');
+		return pre ? pre.textContent : null;
 	});
 	check('export dialog theme.css tab is non-empty', !!cssText && cssText.trim().length > 0);
 

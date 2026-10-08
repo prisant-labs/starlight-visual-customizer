@@ -182,6 +182,18 @@ async function openExportDialog(page) {
 	await page.waitForTimeout(200);
 }
 
+/** Opens the screenshot options, picks the area, and presses "Download PNG", each with a real click.
+ * The dialog sets the light or dark choice from the preview when it opens, so a scenario sets its mode
+ * in the frame first. The caller arms `waitForEvent('download')` before calling this.
+ * @param {string} areaSelector `.svc-export-shot-visible-btn` or `.svc-export-shot-full-btn` */
+async function downloadPng(page, areaSelector) {
+	await realClick(page, await shadowQuery(page, '.svc-xp-link[aria-controls="svc-xp-shotopts"]'));
+	await page.waitForTimeout(100);
+	await realClick(page, await shadowQuery(page, areaSelector));
+	await page.waitForTimeout(100);
+	await realClick(page, await shadowQuery(page, '.svc-xp-quiet[data-export="png"]'));
+}
+
 /** Escape closes the dialog (its backdrop's own keydown handler) - focus lands on the dialog's close
  * button when it opens, so this is a genuine keyboard interaction, not a scripted shortcut - and,
  * post-capture, a regression check in its own right: the capture button held focus when the click
@@ -462,7 +474,7 @@ async function runVisibleAreaScenario(page, { label, scrollY, themeLabel }) {
 
 	await openExportDialog(page);
 	const downloadEvent = page.waitForEvent('download', { timeout: 60000 });
-	await realClick(page, await shadowQuery(page, '.svc-export-shot-visible-btn'));
+	await downloadPng(page, '.svc-export-shot-visible-btn');
 	const download = await downloadEvent;
 	const oursBuffer = readFileSync(await download.path());
 	await closeExportDialog(page, label);
@@ -556,7 +568,7 @@ async function runFullPageScenario(page, { label, regions, header }) {
 
 	await openExportDialog(page);
 	const downloadEvent = page.waitForEvent('download', { timeout: 90000 });
-	await realClick(page, await shadowQuery(page, '.svc-export-shot-full-btn'));
+	await downloadPng(page, '.svc-export-shot-full-btn');
 	const download = await downloadEvent;
 	const oursBuffer = readFileSync(await download.path());
 	await closeExportDialog(page, label);

@@ -3,7 +3,7 @@
  * @file Acceptance suite: hex color entry, preset cards,
  * the restyled structure editor, and the site title text control. Also owns two later,
  * unrelated export-dialog additions kept here rather than a new suite:
- * "Download all (.zip)" and "Screenshot (PNG)" (Visible area / Full page). Complements
+ * "Download the files (.zip)" with the settings file, and "Download PNG" (Visible area / Full page). Complements
  * `shell.mjs` (which this suite's contrast/hit-test extensions also live in)
  * rather than duplicating its shell-level checks.
  *
@@ -694,10 +694,9 @@ async function main() {
 		// --- APPLY-THEME.md reflects the new order. ---
 		await page.keyboard.press('Control+e');
 		await page.waitForTimeout(250);
-		const applyItem = await shadowQueryByText(page, '.svc-file-item', 'APPLY-THEME.md');
-		await realClick(page, applyItem);
+		await realClick(page, await shadowQuery(page, '#svc-xp-tab-apply'));
 		await page.waitForTimeout(150);
-		const applyContent = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector("textarea[aria-label='APPLY-THEME.md']")?.value || '');
+		const applyContent = await page.evaluate(() => document.querySelector('sl-customizer').shadowRoot.querySelector('pre.svc-xp-pre[data-file="apply"]')?.textContent || '');
 		check('APPLY-THEME.md contains a sidebar replacement step', applyContent.includes('Replace the sidebar navigation'), applyContent.slice(0, 200));
 		// `ia.js`'s round-trip omits a `label:` key when it equals `titleCase(lastSlugSegment(slug))` -
 		// true for the "Getting Started"/slug 'guides/getting-started' fixture item, but no longer for
@@ -1132,8 +1131,9 @@ async function main() {
 	}
 
 	// =============================================================================================
-	// Item 2: export dialog - "Download all (.zip)" - a real click triggers a download; unzip it in
-	// Node (fflate) and assert the three files' text equals exactly what the dialog itself shows.
+	// Item 2: export dialog - "Download the files (.zip)" - a real click triggers a download; unzip it
+	// in Node (fflate) and assert that its one folder holds theme.css and APPLY-THEME.md, each equal to
+	// what the dialog itself shows. The settings file is not in the zip; it has its own button.
 	// =============================================================================================
 	{
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openExport());
@@ -1141,33 +1141,34 @@ async function main() {
 
 		const dialogContents = await page.evaluate(() => {
 			const root = document.querySelector('sl-customizer').shadowRoot;
-			return {
-				css: root.querySelector("textarea[aria-label='theme.css']").value,
-				apply: root.querySelector("textarea[aria-label='APPLY-THEME.md']").value,
-				json: root.querySelector("textarea[aria-label='state.json']").value,
-			};
+			const read = (id) => root.querySelector(`pre.svc-xp-pre[data-file="${id}"]`)?.textContent ?? '';
+			return { css: read('css'), apply: read('apply'), json: read('settings') };
 		});
 
-		const zipBtn = await shadowQueryByText(page, '.svc-btn', 'Download all (.zip)');
 		const zipDownloadEvent = page.waitForEvent('download', { timeout: 15000 });
-		await realClick(page, zipBtn);
+		await realClick(page, await shadowQuery(page, '.svc-xp-go[data-export="files"]'));
 		const zipDownload = await zipDownloadEvent;
 		check('the zip downloads as "untitled-theme.zip" (default theme name, slugified)', zipDownload.suggestedFilename() === 'untitled-theme.zip', zipDownload.suggestedFilename());
 
 		const zipPath = await zipDownload.path();
 		const unzipped = unzipSync(new Uint8Array(readFileSync(zipPath)));
 		const zipEntryNames = Object.keys(unzipped).sort();
-		check('the zip contains exactly theme.css, APPLY-THEME.md and starlight-theme.json', JSON.stringify(zipEntryNames) === JSON.stringify(['APPLY-THEME.md', 'starlight-theme.json', 'theme.css']), zipEntryNames.join(', '));
-		check('theme.css inside the zip matches the dialog exactly', unzipped['theme.css'] && strFromU8(unzipped['theme.css']) === dialogContents.css);
-		check('APPLY-THEME.md inside the zip matches the dialog exactly', unzipped['APPLY-THEME.md'] && strFromU8(unzipped['APPLY-THEME.md']) === dialogContents.apply);
-		check('starlight-theme.json inside the zip matches the dialog exactly', unzipped['starlight-theme.json'] && strFromU8(unzipped['starlight-theme.json']) === dialogContents.json);
+		check('the zip holds exactly untitled-theme/APPLY-THEME.md and untitled-theme/theme.css', JSON.stringify(zipEntryNames) === JSON.stringify(['untitled-theme/APPLY-THEME.md', 'untitled-theme/theme.css']), zipEntryNames.join(', '));
+		check('theme.css inside the zip matches the dialog exactly', unzipped['untitled-theme/theme.css'] && strFromU8(unzipped['untitled-theme/theme.css']) === dialogContents.css);
+		check('APPLY-THEME.md inside the zip matches the dialog exactly', unzipped['untitled-theme/APPLY-THEME.md'] && strFromU8(unzipped['untitled-theme/APPLY-THEME.md']) === dialogContents.apply);
+
+		const jsonDownloadEvent = page.waitForEvent('download', { timeout: 15000 });
+		await realClick(page, await shadowQuery(page, '.svc-xp-quiet[data-export="settings"]'));
+		const jsonDownload = await jsonDownloadEvent;
+		check('the settings file downloads as "untitled-theme.customizer.json"', jsonDownload.suggestedFilename() === 'untitled-theme.customizer.json', jsonDownload.suggestedFilename());
+		check('the settings file matches the dialog exactly', readFileSync(await jsonDownload.path(), 'utf8') === dialogContents.json);
 
 		await page.keyboard.press('Escape');
 		await page.waitForTimeout(150);
 	}
 
 	// =============================================================================================
-	// Item 3: export dialog - "Screenshot (PNG)" (Visible area / Full page) - captures the primary
+	// Item 3: export dialog - "Download PNG" (Visible area / Full page) - captures the primary
 	// preview lane's page at its natural width W, current mode, current theme. Style guide (specimen)
 	// has real scrollable height (~3200px, vs. an ~681px viewport here) and a real fixed header, so
 	// scroll it before the "Visible area" click to exercise the interesting (scrolled) case, not just
@@ -1202,11 +1203,16 @@ async function main() {
 		await page.evaluate(() => document.querySelector('sl-customizer').__svc.openExport());
 		await page.waitForTimeout(200);
 
+		// The area choice sits behind "Options", which stays open between the two captures.
+		await realClick(page, await shadowQuery(page, '.svc-xp-link[aria-controls="svc-xp-shotopts"]'));
+		await page.waitForTimeout(100);
+
 		/** @param {'visible'|'full'} kind @param {string} btnLabel @param {number} expectedHeight */
 		async function captureAndVerify(kind, btnLabel, expectedHeight) {
-			const btn = await shadowQueryByText(page, '.svc-btn', btnLabel);
+			await realClick(page, await shadowQuery(page, `.svc-export-shot-${kind}-btn`));
+			await page.waitForTimeout(100);
 			const downloadEvent = page.waitForEvent('download', { timeout: 60000 });
-			await realClick(page, btn);
+			await realClick(page, await shadowQuery(page, '.svc-xp-quiet[data-export="png"]'));
 			const download = await downloadEvent;
 			const filename = download.suggestedFilename();
 			check(`"${btnLabel}" filename follows <theme>-<page>-<mode>-<width>.png`, /^untitled-theme-specimen-light-\d+\.png$/.test(filename), filename);
