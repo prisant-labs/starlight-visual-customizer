@@ -87,6 +87,32 @@ function unmarkSelectsAfterClone(marked) {
 	for (const select of marked) select.removeAttribute(SELECT_VALUE_MARK);
 }
 
+/** How long a capture waits for lazy images to load before it goes ahead without them. */
+const LAZY_IMAGE_WAIT_MS = 5000;
+/** `modern-screenshot`'s own limit on each image load and each fetch. Its default is 30 seconds. */
+const CAPTURE_RESOURCE_TIMEOUT_MS = 15000;
+
+/**
+ * `modern-screenshot` waits for every image in the page to load before it clones anything, up to its
+ * `timeout`. A lazy image below the fold has never loaded, so it held every capture of the Document
+ * demo page for the full 30 seconds. A capture therefore asks each such image to load now, and
+ * `restoreLazyImages` puts its `loading` attribute back afterward.
+ * @param {Document} doc
+ * @returns {Promise<HTMLImageElement[]>} The images whose attribute changed.
+ */
+async function loadLazyImages(doc) {
+	const images = [.../** @type {NodeListOf<HTMLImageElement>} */ (doc.body.querySelectorAll('img[loading="lazy"]'))].filter((img) => !img.complete);
+	for (const img of images) img.loading = 'eager';
+	const loaded = Promise.all(images.map((img) => img.decode().catch(() => undefined)));
+	await Promise.race([loaded, new Promise((resolve) => setTimeout(resolve, LAZY_IMAGE_WAIT_MS))]);
+	return images;
+}
+
+/** @param {HTMLImageElement[]} images */
+function restoreLazyImages(images) {
+	for (const img of images) img.setAttribute('loading', 'lazy');
+}
+
 /**
  * Item 3: screenshot the primary preview lane's page (`page-doc.js`'s `getPageDoc()`/`getPageWin()`)
  * at its natural width W, current light/dark mode, current theme - `modern-screenshot` is dynamically
@@ -186,6 +212,7 @@ async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: ge
 			/* best-effort - proceed with whatever is loaded */
 		}
 	}
+	const lazyImages = await loadLazyImages(doc);
 
 	const width = Math.max(1, Math.round(win.innerWidth));
 	const viewportHeight = Math.max(1, Math.round(win.innerHeight));
@@ -234,6 +261,7 @@ async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: ge
 			width,
 			height,
 			scale: 1, // never devicePixelRatio-scale - the PNG's own pixel dimensions must equal W (and the frame's height)
+			timeout: CAPTURE_RESOURCE_TIMEOUT_MS,
 			backgroundColor: bg,
 			features: { restoreScrollPosition: true }, // honors any element with its OWN internal scroll (e.g. an overflowing sidebar)
 			// W9a round 2 - the ~8px offset bug: `modern-screenshot` unconditionally strips every
@@ -280,6 +308,7 @@ async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: ge
 			console.info(`[svc] screenshot: suppressed ${suppressedErrorCount} error(s) from cloned custom elements`);
 		}
 		unmarkSelectsAfterClone(markedSelects);
+		restoreLazyImages(lazyImages);
 		for (const el of marked) el.removeAttribute(FIXED_MARK);
 	}
 }
@@ -328,8 +357,8 @@ const WORDS = {
 		appearance: 'Appearance',
 		area: 'Page area',
 		rendering: 'Rendering the picture…',
-		renderingFull: 'Rendering the full page. A long page can take up to a minute.',
-		slow: 'A full page can take up to a minute on a long page.',
+		renderingFull: 'Rendering the full page. This can take several seconds.',
+		slow: 'A full page can take several seconds.',
 		done: 'Download started.',
 		fail: 'Could not create the screenshot.',
 		thumbWait: 'Rendering a preview…',

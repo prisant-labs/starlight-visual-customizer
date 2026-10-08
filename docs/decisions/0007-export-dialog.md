@@ -39,10 +39,11 @@ toolbar, since it loads a theme rather than exporting one.
 
 - The settings file's download name changes, from `starlight-theme.json` to
   `<theme-name>.customizer.json`. Any instructions that name the old file no longer match.
-- The small screenshot preview costs one capture when the dialog opens. On a long page, such as
-  the Document demo page, that capture takes about 30 seconds. Reusing that same capture for
-  Download PNG, and skipping a capture that is no longer wanted by the time its turn comes, keeps
-  that cost to one render instead of two.
+- The small screenshot preview costs one capture when the dialog opens. On the Document demo
+  page, that capture first took about 30 seconds: the screenshot library waited for a lazy image
+  below the fold that never loads on its own. A capture now loads such images first, which brings
+  that page to about 3 seconds. Reusing the same capture for Download PNG, and skipping a capture
+  that is no longer wanted by the time its turn comes, keeps the cost to one render instead of two.
 - A capture can now run after the dialog closes, so the preview can move to another page during
   one. A capture of a page that has gone away never finishes, so the dialog gives it up when the
   page fires `pagehide`. Otherwise every later capture would wait behind it.

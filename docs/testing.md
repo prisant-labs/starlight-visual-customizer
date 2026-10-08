@@ -102,7 +102,7 @@ real click blurs a focused field, and a scripted click does not.
 | `inspect.mjs` | Inspect | 32 |
 | `editors.mjs` | Hex entry, the color popover and the Structure editor | 129 |
 | `screenshot.mjs` | PNG screenshot export | 54 |
-| `export.mjs` | The Export dialog | 62 |
+| `export.mjs` | The Export dialog | 65 |
 
 **`home.mjs`** checks the product page at `/`:
 
@@ -230,6 +230,9 @@ Node on the studio's own state:
 - Focus, Escape, Tab and the arrow keys behave as in any modal dialog.
 - A dark capture leaves the preview's mode, the stored `starlight-theme` and the toolbar as they
   were, and Split view captures from its dark lane without switching anything.
+- A page switch during a capture does not hold up the next page's picture.
+- The Document page's lazy image does not hold up its picture, which shows within 10 seconds, and
+  the image keeps its `loading` attribute.
 - A downloaded settings file imports back to the same theme.
 - A theme name shows as text, never as markup.
 - The dialog fits a phone-width window, and the overlay panel's dialog works without the small

@@ -1173,8 +1173,8 @@ async function main() {
 	// has real scrollable height (~3200px, vs. an ~681px viewport here) and a real fixed header, so
 	// scroll it before the "Visible area" click to exercise the interesting (scrolled) case, not just
 	// the trivial scrollY=0 one - Long doc (kitchen-sink) has the same properties but ~3x the DOM size,
-	// which pushes a full-document DOM-to-image render well past a minute; Style guide keeps this
-	// suite's own runtime sane while still testing the identical scroll/fixed-header code path.
+	// which makes a full-document DOM-to-image render several times slower; Style guide keeps this
+	// suite's own runtime short while still testing the identical scroll/fixed-header code path.
 	// =============================================================================================
 	{
 		await realClick(page, await lightQueryByText(page, '.svc-page-tab', 'Style guide'));
