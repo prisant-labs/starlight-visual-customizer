@@ -1,4 +1,4 @@
-> **Paste this whole file to your coding agent inside the target Starlight repo, then let it execute every step below in order.**
+> **Use these steps with the `theme.css` file in this folder. Make the changes yourself, or ask a coding agent in your Starlight project to read this file and follow every step in order.**
 
 # Apply theme
 

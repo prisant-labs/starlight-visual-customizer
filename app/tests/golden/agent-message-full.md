@@ -1,4 +1,4 @@
-> **Use these steps with the `theme.css` file in this folder. Make the changes yourself, or ask a coding agent in your Starlight project to read this file and follow every step in order.**
+> **Apply this Starlight theme to the project you have open. Follow every step below in order. The theme's CSS is in the last section of this message, "theme.css".**
 
 # Apply theme
 
@@ -17,7 +17,7 @@ This applies the "Demo Rich" theme with an accent color at OKLCH hue 200° / chr
 ## Steps
 
 1. **Add the theme CSS.**
-   - Copy the `theme.css` file (exported alongside this document) to `src/styles/theme.css` in the target repo, creating `src/styles/` if it does not exist.
+   - Write the CSS from the "theme.css" section at the end of this message, line for line, to `src/styles/theme.css` in the target repo, creating `src/styles/` if it does not exist.
    - Open `astro.config.mjs` (or `astro.config.ts`) and find the `starlight({ ... })` options object.
    - If `customCss` does not exist yet, add `customCss: ['./src/styles/theme.css']`.
    - If `customCss` already exists, **keep every entry already there** and add `'./src/styles/theme.css'` **as the LAST item in the array** -- only if it is not already present (idempotent: do not add a duplicate entry on a re-run). This theme's CSS is intentionally unlayered, so for any selector another stylesheet also styles, array order decides the tie; adding it last is what makes it win.
@@ -96,5 +96,68 @@ Files touched by these steps (revert with `git checkout -- <file>` or `git diff`
 - `astro.config.mjs` (or `.ts`): `customCss` entry, config options, and `sidebar`
 - `package.json` / `package-lock.json`: Fontsource packages added via `npm i` (run `npm uninstall <pkg>` for each to fully roll back)
 - Frontmatter in 1 content file under `src/content/docs/` (listed in the sidebar step above)
+
+## theme.css
+
+Write this to `src/styles/theme.css` with these exact lines and LF line endings. Then check it: the file has 56 lines, and its first line is `/*`.
+
+```css
+/*
+ * Starlight Visual Customizer
+ * Target: Starlight 0.42.4 (@astrojs/starlight)
+ * Load via the `customCss` option in astro.config.mjs.
+ * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.
+ * Made with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/
+ */
+
+@import '@fontsource-variable/fira-code';
+@import '@fontsource-variable/lora';
+@import '@fontsource-variable/playfair-display';
+
+:root {
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #eceef2;
+	--sl-color-gray-2: #c0c2c7;
+	--sl-color-gray-3: #888b96;
+	--sl-color-gray-4: #545861;
+	--sl-color-gray-5: #353841;
+	--sl-color-gray-6: #24272f;
+	--sl-color-black: #17181c;
+	--sl-color-accent-low: #002a2c;
+	--sl-color-accent: #00797e;
+	--sl-color-accent-high: #94d6da;
+	--sl-font: 'Lora Variable', ui-serif, Georgia, 'Times New Roman', serif;
+	--sl-font-mono: 'Fira Code Variable', var(--sl-font-system-mono);
+}
+
+:root[data-theme='light'] {
+	--sl-color-white: #17181c;
+	--sl-color-gray-1: #24272f;
+	--sl-color-gray-2: #353841;
+	--sl-color-gray-3: #545861;
+	--sl-color-gray-4: #888b96;
+	--sl-color-gray-5: #c0c2c7;
+	--sl-color-gray-6: #eceef2;
+	--sl-color-gray-7: #f5f6f8;
+	--sl-color-black: #ffffff;
+	--sl-color-accent-low: #b1e1e4;
+	--sl-color-accent: #007479;
+	--sl-color-accent-high: #003a3d;
+}
+
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6), h1#_top, .site-title {
+	font-family: 'Playfair Display Variable', ui-serif, Georgia, 'Times New Roman', serif;
+}
+
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background-color: transparent;
+	color: var(--sl-color-text-accent);
+	border-inline-start: 2px solid var(--sl-color-text-accent);
+	border-radius: 0;
+	padding-inline-start: calc(var(--sl-sidebar-item-padding-inline, 0.5rem) - 2px);
+}
+```
 
 Made with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/
