@@ -1,25 +1,40 @@
 # Export format
 
-The studio exports a theme as three text files, an optional zip of all three, a share link, and
-optional PNG screenshots. This page describes each one and the code that writes it.
-[`docs/security-model.md`](security-model.md) explains how the studio keeps untrusted input out of
-these files.
+The studio exports a theme as a set of files for the user's own Astro site, a settings file and a
+share link for the customizer itself, and optional PNG screenshots. This page describes each one
+and the code that writes it. [`docs/security-model.md`](security-model.md) explains how the studio
+keeps untrusted input out of these files.
 
 ## The Export dialog
 
-The top bar's **Export** button, or `Ctrl+E` (`Cmd+E` on a Mac), opens the Export dialog. The
-dialog is built in `app/src/customizer/ui/export.js`. It shows each file in its own tab, with
-**Copy** and **Download**, and it adds these actions:
+The top bar's **Export** button, or `Ctrl+E` (`Cmd+E` on a Mac), opens the Export dialog. The top
+bar's **Screenshot** and **Share** buttons open the same dialog, each already showing its own
+export: Screenshot selects the Screenshot file tab and focuses Download PNG, and Share selects the
+Settings file tab and focuses Copy share link. The dialog is built in
+`app/src/customizer/ui/export.js`, from files that `app/src/customizer/core/export-files.js` builds
+and names. The dialog's title reads `Export "<theme name>"`, with a subtitle made of the preset's
+label and the change count, such as `Editorial Serif · 12 changes`.
 
-- **Download all (.zip)** puts the three files in one zip, named after the theme, such as
-  `ocean-breeze.zip`. The zip holds exactly the text that the tabs show. The `fflate` package
-  builds it in the browser.
-- **Copy share link** copies a link that carries the whole theme. See "Share links" below.
-- **Screenshot (PNG)** captures the previewed page. See "PNG screenshots" below.
-- **Import state.json** loads a state file exported earlier. The import is one undo step.
+The dialog has three parts:
 
-The dialog also carries a short privacy note: "Your theme stays in your browser; web fonts load
-from jsDelivr".
+1. **"For your Astro site"**, the main export, in two ways, each one click:
+   - **"Copy for your coding agent"** copies the agent message: one Markdown message that holds the
+     `APPLY-THEME.md` steps, with the whole stylesheet inlined at the end. See "The agent message"
+     below.
+   - **"Download the files (.zip)"** downloads `theme.css` and `APPLY-THEME.md` in one folder. See
+     "The zip" below.
+2. **"Other exports"**, in a quieter column: the customizer's own settings, as a settings file or a
+   share link, and a screenshot of the preview. See "The settings file", "Share links" and "PNG
+   screenshots" below.
+3. **A file viewer with a tab for every file:** Agent message, Stylesheet, Setup steps, a divider,
+   Settings file, and Screenshot. Each text tab has a Copy icon and a Download button; the
+   Screenshot tab has Download only.
+
+A status line replaces the line under the action it confirms, returns to that line after seven
+seconds, and is announced through a live region for assistive technology.
+
+**Import** is not in this dialog. It lives in the studio's top bar, and in the overlay panel's own
+toolbar as "Import…".
 
 ## `theme.css`
 
@@ -48,23 +63,41 @@ The header of every export looks like this:
 
 Below the header, colors become Starlight's own custom properties on `:root`, such as
 `--sl-color-accent`. Other controls become rules on the selectors that Starlight's components use.
-`app/tests/golden/` holds five complete examples.
+`app/tests/golden/` holds six complete examples.
 
 ## `APPLY-THEME.md`
 
 `app/src/customizer/core/emit-apply.js` writes `APPLY-THEME.md`. It is a set of numbered steps
-that a person or a coding agent follows inside the target Starlight project. Its first line asks
-the reader to paste the whole file to a coding agent.
+that a person or a coding agent follows inside the target Starlight project.
 
-The steps are idempotent: applying them twice gives the same result as applying them once. Each
-document has these parts, and it includes a step only when the theme needs it:
+`emitApplyTheme` builds two deliveries from the same steps, through its `delivery` option:
+
+- **`'files'`** (the default) is the document that sits beside `theme.css` in the zip, or is
+  downloaded on its own. It opens with this line:
+
+  > **Use these steps with the `theme.css` file in this folder. Make the changes yourself, or ask
+  > a coding agent in your Starlight project to read this file and follow every step in order.**
+
+  Its first step tells the reader to copy that file.
+
+- **`'message'`** is the agent message (see "The agent message" below). It opens with this line:
+
+  > **Apply this Starlight theme to the project you have open. Follow every step below in order.
+  > The theme's CSS is in the last section of this message, "theme.css".**
+
+  Its first step tells the reader to write the CSS from that section, line for line, instead of
+  copying a file.
+
+Every other step is identical between the two. The steps are idempotent: applying them twice gives
+the same result as applying them once. Each document has these parts, and it includes a step only
+when the theme needs it:
 
 1. **A version gate.** The document names the Starlight version it was generated for. It tells
    the reader to stop and ask if the installed minor version differs.
 2. **Preconditions.** Confirm that the project uses Starlight, find `astro.config.mjs` or
    `astro.config.ts`, and note whether a `customCss` array exists.
-3. **Add the theme CSS.** Copy `theme.css` to `src/styles/theme.css`, then add it as the **last**
-   entry of `customCss`, without a duplicate on a re-run.
+3. **Add the theme CSS.** Add `theme.css` to `src/styles/theme.css`, by the method its delivery
+   calls for, then add it as the **last** entry of `customCss`, without a duplicate on a re-run.
 4. **Install the chosen fonts,** when the theme uses a web font other than the default. Each font
    is an `@fontsource-variable/<font>` package plus its CSS import.
 5. **Update Starlight config options,** for settings that only work at build time. Examples are
@@ -76,17 +109,59 @@ document has these parts, and it includes a step only when the theme needs it:
    show.
 8. **Rollback.** The document lists every file that the steps touch.
 
-The document ends with the same link line as `theme.css`.
+The `'files'` delivery ends with the same link line as `theme.css`. The `'message'` delivery adds
+one more section first: see "The agent message" below.
 
-`app/tests/golden/apply-default.md` shows the shortest document, and
+`app/tests/golden/apply-default.md` shows the shortest `'files'` document, and
 `app/tests/golden/apply-full.md` shows one that uses every step.
 
-## The state file
+## The agent message
 
-The state file is the theme's settings as JSON, for importing later. The dialog's tab is labeled
-`state.json`, but **Download** saves the file as `starlight-theme.json`.
+**"Copy for your coding agent"** copies one Markdown message to the clipboard: the `'message'`
+delivery of `emitApplyTheme`. It is meant to be pasted whole into a coding agent such as Claude
+Code, Codex or Cursor, with the user's Starlight project open. It holds the same steps as
+`APPLY-THEME.md`, worded for that delivery, plus one more section at the end:
 
-The state is a `ThemeState` object, defined in `app/src/customizer/core/state.js`:
+````markdown
+## theme.css
+
+Write this to `src/styles/theme.css` with these exact lines and LF line endings. Then check it:
+the file has N lines, and its first line is `...`.
+
+```css
+...the whole stylesheet...
+```
+````
+
+The code fence around the CSS is chosen by `fenceFor`, exported from `emit-apply.js`: at least
+three backticks, and one more than the longest run of backticks already inside the CSS. So no run
+inside the CSS can close the fence early. [`docs/security-model.md`](security-model.md) covers why
+this matters.
+
+The message downloads as `<slug>.agent-message.md`, from its own tab in the file viewer.
+`app/tests/golden/agent-message-full.md` shows the agent message for the same theme as
+`apply-full.md`.
+
+## The zip
+
+**"Download the files (.zip)"** downloads `<slug>.zip`, built in the browser by the `fflate`
+package's `zipSync`. The zip holds one folder, named after the theme, with exactly two files
+inside it: `theme.css` and `APPLY-THEME.md`. The settings file is not in the zip, because the
+site that receives the export never reads it. `buildZip` in
+`app/src/customizer/core/export-files.js` builds it from the same files the dialog's tabs show.
+
+## The settings file
+
+**"Download settings file"** downloads the theme's settings as JSON, named `<slug>.customizer.json`.
+This file is for the customizer itself, not for the user's Astro site: reopening it with **Import**
+loads the same theme back into the studio for further editing.
+
+The slug comes from `slugifyThemeName` in `app/src/customizer/core/export-files.js`: the theme name,
+lowercased, with each run of characters that are not `a`-`z` or `0`-`9` turned into one hyphen, and
+leading or trailing hyphens trimmed. A name that leaves nothing usable, such as an empty name or one
+made only of punctuation, falls back to `starlight-theme`.
+
+The settings file is a `ThemeState` object, defined in `app/src/customizer/core/state.js`:
 
 | Field | Meaning |
 |---|---|
@@ -98,8 +173,9 @@ The state is a `ThemeState` object, defined in `app/src/customizer/core/state.js
 | `meta.name` | The theme's name, which the top bar edits |
 
 The control ids, and the range or options each control accepts, come from the control manifest in
-`app/src/customizer/core/manifest.js`. An imported file passes through `sanitizeState` first, so a
-value outside its control's range or options never reaches the studio.
+`app/src/customizer/core/manifest.js`. **Import**, in the studio's top bar and in the overlay
+panel's own toolbar, reads a settings file back in. An imported file passes through
+`sanitizeState` first, so a value outside its control's range or options never reaches the studio.
 
 ## Share links
 
@@ -129,21 +205,34 @@ before the page paints.
 
 ## PNG screenshots
 
-**Screenshot (PNG)** in the Export dialog captures the previewed page at its real width, in its
-current light or dark mode. It offers two modes:
+The "Screenshot" group in "Other exports" captures the previewed page at its real width. In the
+studio, a small preview picture renders as soon as the dialog opens, and the Screenshot tab shows
+a larger copy of it. Outside the studio, neither one renders a preview; a note says so, and
+**Download PNG** still works. **Options** folds open **Appearance** (Light or Dark) and
+**Page area** (Visible area or Full page). The dialog opens with Visible area selected, in the
+mode the preview currently shows.
 
-- **Full page** captures the whole scroll height. It is the accurate choice.
 - **Visible area** captures what the frame shows now, including a scrolled position. The fixed
   header, the left sidebar with its own scroll position and the right table of contents all keep
   their real places. The theme and language menus show their current values.
+- **Full page** captures the whole scroll height. It is the accurate choice, and it can take up to a
+  minute on a long page such as the Document demo page.
 
-The file is named from the theme, the page, the mode and the width, such as
+**Download PNG** names the file from the theme, the page, the mode and the width, such as
 `ocean-breeze-specimen-dark-1440.png`.
 
+The small preview picture is itself a visible-area capture, kept together with what it depends on:
+the CSS, the mode, the page, the scroll position and the window size. When the view has not
+changed since, **Download PNG** for the visible area reuses that same picture instead of rendering
+the page a second time, which is what keeps a long page's capture to one render, not two. A dark
+picture of a light preview switches the preview to dark for the capture and switches it back
+afterward, restoring the saved `starlight-theme` value; in Split view, the dark lane is captured
+directly and nothing switches. Captures run one at a time, and a small preview that is still
+queued when the dialog closes is skipped rather than run after the fact.
+
 The capture draws the page into an image inside the browser, with the `modern-screenshot`
-package, which loads only when it is first used. So it has limits: a large page such as Document
-can take 30 seconds or more, and an effect such as `backdrop-filter` may be missing. For a
-pixel-exact image, use the browser's own screenshot tool.
+package, which loads only when it is first used. So it has limits: an effect such as
+`backdrop-filter` may be missing. For a pixel-exact image, use the browser's own screenshot tool.
 
 ## How the export is proven
 

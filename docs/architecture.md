@@ -50,8 +50,9 @@ tests import these modules directly in Node, through `node --test "tests/core/**
 |---|---|
 | `base-path.js` | `withBase()` and `stripBase()` convert between internal paths and real paths, so the app works at `/` or under a sub-path. |
 | `color.js` | A port of the color algorithm from Starlight's own theme designer. It builds the light and dark palettes from hue and chroma, and it holds the hex, HSL and RGB conversions and the contrast math. |
-| `emit-apply.js` | Writes `APPLY-THEME.md`. |
+| `emit-apply.js` | Writes `APPLY-THEME.md`, in its `'files'` delivery, or the agent message, in its `'message'` delivery. Also exports `fenceFor`, the code-fence rule the agent message uses around the inlined stylesheet. |
 | `emit-css.js` | Writes `theme.css`. |
+| `export-files.js` | Builds and names every file the Export dialog offers, from one theme state: `theme.css`, `APPLY-THEME.md`, the agent message, the settings file, and a zip of `theme.css` and `APPLY-THEME.md`. Also holds `slugifyThemeName`, which every file name is built from. |
 | `history.js` | The undo and redo stack over theme snapshots. It merges edits that share a key within a short time window. |
 | `ia.js` | Converts between Starlight's `sidebar` config, the editor's own tree, and pasted text. It also holds the link filters `safeLinkHref` and `safeLinkAttrs`. |
 | `manifest.js` | The control manifest: every control's id, type, default, options and `target` selector, as data only. |
@@ -69,7 +70,7 @@ tests import these modules directly in Node, through `node --test "tests/core/**
 |---|---|
 | `color-picker.js` | The hex-first color popover. It wraps `vanilla-colorful`'s `<hex-color-picker>` with a hex field, a format switch and an eyedropper button. |
 | `controls.js` | Builds the panel's body: the preset gallery, the collapsible sections, each control, and the contrast readout. |
-| `export.js` | The Export dialog, with the zip download and the PNG screenshot capture. |
+| `export.js` | The Export dialog: the two ways for the site, the customizer's own settings and share link, the screenshot capture, and a file viewer with a tab for every file. It presents the files `export-files.js` builds; it does not build them itself. |
 | `ia-editor.js` | The Structure editor for the sidebar tree. |
 | `inspect.js` | Inspect: click an element on the preview to reach the controls that style it. |
 | `page-doc.js` | `getPageDoc()`, `getPageWin()` and `getPageDocs()`: the one route from any code to the previewed page. |
@@ -111,8 +112,10 @@ tests import these modules directly in Node, through `node --test "tests/core/**
    the page appears. So a navigation never flashes the default theme.
 6. **The exporters write the files.** `emitCss` in `app/src/customizer/core/emit-css.js` writes
    `theme.css`, and `emitApplyTheme` in `app/src/customizer/core/emit-apply.js` writes
-   `APPLY-THEME.md`. Both read the same state, manifest and `treatments.js` data, so the two files
-   cannot disagree. `app/src/customizer/ui/export.js` presents them.
+   `APPLY-THEME.md`, or the agent message when its `delivery` option is `'message'`. Both read the
+   same state, manifest and `treatments.js` data, so the files cannot disagree.
+   `app/src/customizer/core/export-files.js`'s `buildExportFiles` calls both and names every file
+   and the zip; `app/src/customizer/ui/export.js` presents what it builds.
 7. **Share links carry the state.** A share link holds the encoded state after `#svc=`.
    `app/src/customizer/core/share-link.js` decides whether an arriving link opens directly or asks
    first, and `app/src/customizer/ui/share-dialog.js` asks.
@@ -220,7 +223,7 @@ exports `TOOL_URL`, the product page's address. The header of `theme.css` and th
 ## Tests
 
 `app/tests/core/` holds the unit tests, which run in Node with no DOM. `app/tests/e2e/` holds the
-13 browser suites. `app/tests/golden/` holds the expected export files, which
+14 browser suites. `app/tests/golden/` holds the expected export files, which
 `app/scripts/update-golden.mjs` rewrites after an intended change. `app/tests/roundtrip/` applies a
 real export to a freshly scaffolded Starlight site and compares the result with the preview.
 [`testing.md`](testing.md) explains how to run each one.
@@ -231,7 +234,8 @@ real export to a freshly scaffolded Starlight site and compares the result with 
 |---|---|
 | A control, or add one | `app/src/customizer/core/manifest.js`, then `app/src/customizer/core/emit-css.js` or `treatments.js` for its CSS |
 | The exported CSS | `app/src/customizer/core/emit-css.js` and `app/src/customizer/core/treatments.js` |
-| The steps in `APPLY-THEME.md` | `app/src/customizer/core/emit-apply.js` |
+| The steps in `APPLY-THEME.md` or the agent message | `app/src/customizer/core/emit-apply.js` |
+| An export's file name, or the zip's layout | `app/src/customizer/core/export-files.js` |
 | A preset, or add one | `app/src/customizer/core/presets.js` |
 | The color algorithm or a color conversion | `app/src/customizer/core/color.js` |
 | A tile's sample | `app/src/customizer/ui/tiles/samples.js`, or `wireframes.js` for a diagram |

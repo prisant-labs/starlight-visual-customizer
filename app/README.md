@@ -40,7 +40,7 @@ browser, and `ui/` holds everything that touches a page.
 | Command | What it does |
 |---|---|
 | `npm test` | Runs the unit tests in Node |
-| `npm run test:e2e` | Runs the 13 browser suites against the preview on port 4420 |
+| `npm run test:e2e` | Runs the 14 browser suites against the preview on port 4420 |
 | `npm run test:roundtrip` | Applies a real export to a fresh Starlight site and compares it with the preview |
 | `npm run golden:update` | Rewrites the golden export files after an intended change |
 

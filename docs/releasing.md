@@ -48,7 +48,7 @@ CI runs the unit tests and a build on the pull request. It does not run the brow
 run the full set yourself before a release, as [`docs/testing.md`](testing.md) describes:
 
 - `npm test`
-- all 13 browser suites, one at a time, against the production preview
+- all 14 browser suites, one at a time, against the production preview
 - `npm run test:roundtrip`
 
 ### 3. Merge, then tag the merge commit

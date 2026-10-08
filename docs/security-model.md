@@ -8,7 +8,7 @@ The Starlight Visual Customizer is a static site. It has no server, no accounts 
 
 Because there is no server, the usual server-side risks do not apply. There is no session to hijack, no database to inject into and no server log to poison. The real risk sits elsewhere.
 
-A theme can arrive from outside the studio: a share link, a saved browser theme, or an imported file. That theme's values then flow into two kinds of output. One kind renders inside the browser, in the live preview. The other kind leaves the browser as files: `theme.css`, `APPLY-THEME.md` and the state file. A person or a coding agent follows `APPLY-THEME.md` step by step, inside whatever repository receives the export. [`SECURITY.md`](../SECURITY.md) names this as the scope that matters, and this document explains how the code protects it.
+A theme can arrive from outside the studio: a share link, a saved browser theme, or an imported file. That theme's values then flow into two kinds of output. One kind renders inside the browser, in the live preview. The other kind leaves the browser as files: `theme.css`, `APPLY-THEME.md`, the agent message and the settings file. A person or a coding agent follows `APPLY-THEME.md`, or the agent message, step by step, inside whatever repository receives the export. [`SECURITY.md`](../SECURITY.md) names this as the scope that matters, and this document explains how the code protects it.
 
 ## Untrusted inputs
 
@@ -19,9 +19,9 @@ Input from outside the studio arrives in four ways. Each way skips the studio's 
 | A share link's `#svc=` fragment | A whole encoded theme: values, sidebar structure, and the theme name | `tryDecodeState` in `app/src/customizer/core/state.js`, called from `resolveInitialTheme` in `app/src/customizer/core/share-link.js` |
 | A share link's `?page=` parameter | Only the page to open; nothing else in the query string survives | `buildShareUrl` in `app/src/customizer/core/share-link.js` |
 | The theme saved in this browser's `localStorage` | The same encoded theme a share link carries, written by an earlier visit to the studio | `loadInitialState` in `app/src/customizer/ui/panel.js`, which also calls `tryDecodeState` |
-| An imported `state.json` file | The same theme shape, as plain JSON | `importStateFromJson` in `app/src/customizer/ui/panel.js`, reached through the file input in `app/src/customizer/ui/export.js` |
+| An imported settings file | The same theme shape, as plain JSON | `importStateFromJson` in `app/src/customizer/ui/panel.js`, reached through the file input in `app/src/customizer/ui/studio.js`'s top bar, or in `app/src/customizer/ui/panel.js`'s own overlay toolbar |
 
-All four paths end at the same gate. That gate is `sanitizeState` in `app/src/customizer/core/state.js`. `tryDecodeState` calls it after decoding a share link or a saved theme. `importStateFromJson` calls it directly on a parsed `state.json`. No entry point may skip it.
+All four paths end at the same gate. That gate is `sanitizeState` in `app/src/customizer/core/state.js`. `tryDecodeState` calls it after decoding a share link or a saved theme. `importStateFromJson` calls it directly on a parsed settings file. No entry point may skip it.
 
 `state.js` offers two decoders, and a new entry point should pick the right one:
 
@@ -34,14 +34,15 @@ An imported state file gets the same treatment as a share link, not a lighter on
 
 ## What leaves the browser, and what reaches the page
 
-Four kinds of output carry a theme's values somewhere they could do harm if left unchecked.
+Five kinds of output carry a theme's values somewhere they could do harm if left unchecked.
 
 - **`theme.css`**, built by `emitCss` in `app/src/customizer/core/emit-css.js`. A visitor copies this file into their own site. It loads with no CSS layer, so it wins any tie against their own styles.
-- **`APPLY-THEME.md`**, built by `emitApplyTheme` in `app/src/customizer/core/emit-apply.js`. It opens by telling the reader to paste the whole file to a coding agent, then let the agent run every step in order. Anything this file can make an agent do is in scope here, not only what it can make a browser render.
-- **`state.json`**, the raw `ThemeState` object. The export dialog offers it for Copy and Download, and an import reads that same shape back in.
+- **`APPLY-THEME.md`**, built by `emitApplyTheme` in `app/src/customizer/core/emit-apply.js`. It opens by telling the reader to use its steps with the `theme.css` file in the same folder, themselves or through a coding agent. Anything this file can make an agent do is in scope here, not only what it can make a browser render.
+- **The agent message**, the same `emitApplyTheme` steps in its `'message'` delivery, with the whole stylesheet inlined at the end. It opens by telling the reader to apply the theme to the project they already have open, so it carries the same risk as `APPLY-THEME.md`, plus the inlined CSS itself.
+- **The settings file**, the raw `ThemeState` object, downloaded as `<slug>.customizer.json`. The export dialog's Settings file tab offers it for Copy and Download, and Import reads that same shape back in.
 - **Share links**, built by `buildShareUrl` in `app/src/customizer/core/share-link.js`. Anyone who receives a link can open it, and anyone can hand-craft one without ever touching the studio.
 
-A theme's values also reach the live preview's own DOM. The theme name shows in the top bar. The site title renders into `.site-title`. The sidebar's labels and links render through the Structure (advanced) editor. An unchecked value reaching any of these four outputs could inject CSS, add a Markdown step, add a script link, or add an event handler. PR #14 (share-link fixes) and PR #23 (export sanitizer) each found and fixed a real instance of this.
+A theme's values also reach the live preview's own DOM, and the Export dialog's own markup. The theme name shows in the top bar and in the dialog's title. The site title renders into `.site-title`. The sidebar's labels and links render through the Structure (advanced) editor. An unchecked value reaching any of these outputs could inject CSS, add a Markdown step, add a script link, or add an event handler. PR #14 (share-link fixes) and PR #23 (export sanitizer) each found and fixed a real instance of this.
 
 ## The defenses
 
@@ -70,12 +71,15 @@ A sidebar link's `href` and its `attrs` get their own filter. That filter runs i
 
 - `configBool` and `configInt`, in `app/src/customizer/core/emit-apply.js`, print only a real boolean or a real integer into a generated `astro.config.mjs` snippet. Any other value falls back to the control's own default instead of being printed as text.
 - `jsStringLiteral`, and `formatStringLiteral` in `app/src/customizer/core/ia.js`, escape backslashes, quotes, line breaks, and backticks. This runs before a value becomes a JS string literal inside a Markdown code span. A raw backtick would otherwise close that span; a raw line break would otherwise start a new line inside it.
-- `proseText`, in `app/src/customizer/core/emit-apply.js`, escapes Markdown's own special characters wherever a theme's own text appears in a sentence of `APPLY-THEME.md`. The site title is the clearest example. Without this, a title could open a link, a code span, or emphasis inside the generated document.
+- `proseText`, in `app/src/customizer/core/emit-apply.js`, escapes Markdown's own special characters wherever a theme's own text appears in a sentence of `APPLY-THEME.md` or the agent message. The site title is the clearest example. Without this, a title could open a link, a code span, or emphasis inside the generated document.
+- `fenceFor`, also in `app/src/customizer/core/emit-apply.js`, chooses the code fence the agent message wraps the inlined `theme.css` in. It is always at least three backticks, and one more than the longest run of backticks already inside the CSS. So no run of backticks inside the CSS, however long, can close the fence early and have the rest of the CSS read as further Markdown or further steps.
 - `emit-css.js` only writes a role-color token once `isHexColor` confirms the value is a real hex color. That check lives in `buildRootTokens`'s loop over `ROLE_IDS`, so nothing but a color can reach `theme.css` through that path.
 
 ### Text rendering of names
 
 A theme name can come from a share link. `app/src/customizer/ui/share-dialog.js` sets every name it shows - the shared theme's name, and the visitor's own saved theme's name - through `textContent`, never `innerHTML`. The file's own header comment states the reason directly. A crafted link must never be able to inject markup into the dialog that asks whether to open it.
+
+The Export dialog carries the same rule for the name in its own title, `Export "<theme name>"`. `app/src/customizer/ui/export.js`'s `h()` helper builds every element in the dialog from child nodes or plain text, and text is appended, never passed through `innerHTML`, so a theme name can never become markup there either.
 
 ### Ask before replacing a saved theme
 
@@ -86,7 +90,8 @@ A theme name can come from a share link. `app/src/customizer/ui/share-dialog.js`
 - `app/tests/core/sanitize.test.js` (31 tests) checks both directions. It confirms that every theme the studio itself can produce comes back from `sanitizeState` unchanged. That covers every preset, a rich hand-built theme, the demo site's own sidebar, and every control at its default and at each range's ends. It also confirms that a crafted theme loses exactly what it should. That includes wrong-typed values, unknown ids, unsafe sidebar paths, script links hidden behind whitespace, and unsafe `attrs`. Its last two `describe` blocks run a full attack payload through `emitApplyTheme` and `emitCss` directly. Each one then separately feeds the exporter a theme that skipped `sanitizeState` entirely, to confirm the exporters' own guards still hold on their own.
 - `app/tests/core/share-link.test.js` (12 tests) checks `resolveInitialTheme`'s rules. It checks when a link opens directly, and when it asks first. It also checks that a damaged link keeps the saved theme and reports the damage, rather than silently resetting it.
 - `app/tests/core/ia.test.js` carries one dedicated block, "safeLinkHref and safeLinkAttrs" (4 tests). It checks the scheme allowlist against safe and unsafe links, including `javascript:` attempts hidden behind whitespace and control characters. It also confirms `safeLinkAttrs` strips a `__proto__` key without the result inheriting anything through it.
-- `app/tests/e2e/share.mjs` sends a crafted link as part of its 43 browser checks. One section sends a theme carrying a `javascript:` sidebar link, both plain and hidden behind a space and a tab. It confirms the rendered link is `#`, while a real `https` link still works. A separate check in that section confirms a crafted link's config-code and extra-step payloads reach neither `APPLY-THEME.md` nor `theme.css`.
+- `app/tests/e2e/share.mjs` sends a crafted link as part of its 44 browser checks. One section sends a theme carrying a `javascript:` sidebar link, both plain and hidden behind a space and a tab. It confirms the rendered link is `#`, while a real `https` link still works. A separate check in that section confirms a crafted link's config-code and extra-step payloads reach neither `APPLY-THEME.md` nor the agent message, and that its CSS payload reaches neither `theme.css` nor the agent message's own `theme.css` section; one more check confirms the agent message still carries the real `theme.css` whole, inside its fence.
+- `app/tests/core/export-files.test.js` checks `slugifyThemeName`, `buildExportFiles`'s file names and settings-file round trip, and that `buildZip` holds only `theme.css` and `APPLY-THEME.md` in a folder named after the theme. The same file checks `fenceFor` directly: a short or absent backtick run gets a plain three-backtick fence, a longer run gets a longer one, and a stylesheet with a long run of its own still ends up fully inside the fence.
 
 `.github/workflows/ci.yml` runs `npm test` on every pull request into `main`, as a required check (the workflow's own header comment says so directly). That run covers `sanitize.test.js`, `share-link.test.js`, and `ia.test.js`, so a change that weakens any of these defenses fails CI before it can merge. The workflow does not run `share.mjs` or any other browser suite; those stay a manual step for whoever is preparing a release.
 

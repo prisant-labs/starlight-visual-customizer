@@ -7,6 +7,21 @@ and in [`docs/releases/`](docs/releases/README.md), one file per release. Versio
 
 ## Unreleased
 
+- **A redesigned Export dialog.** It leads with two one-click ways to get a theme onto your own
+  site: "Copy for your coding agent" copies one message with the setup steps and the whole
+  stylesheet inlined, ready to paste into Claude Code, Codex, Cursor or similar; "Download the
+  files (.zip)" downloads `theme.css` and `APPLY-THEME.md` in one folder. The customizer's own
+  settings and share link, and a screenshot of the preview, move to a quieter "Other exports"
+  section. A file viewer below shows every file in its own tab, each with its own Copy and
+  Download.
+- **The settings file has a new name.** Downloading it now saves `<theme-name>.customizer.json`
+  instead of `starlight-theme.json`, and it is no longer included in the zip, since your site
+  never reads it.
+- **A screenshot preview in the studio.** The Export dialog renders a small picture of the preview
+  as soon as it opens, and its Screenshot tab shows a larger copy. Options for Appearance (Light
+  or Dark) and Page area (Visible area or Full page) sit behind an "Options" toggle.
+- **Screenshot and Share move to the top bar,** next to Import and Export, each opening the Export
+  dialog already showing its own export. Import is no longer inside the dialog.
 - **The final logo.** The project's logo replaces the placeholder star in the studio's top bar,
   on the About page and as the favicon. The product page shows it too.
 - **A new social preview card** for links to the site and the repository.
