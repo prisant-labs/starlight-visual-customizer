@@ -49,7 +49,8 @@ export function defaultState() {
 /**
  * The theme name lives in `state.meta.name`, editable in the top bar. Emitted CSS
  * never reads `meta` (emit-css.js is untouched by this - its golden files stay byte-identical), so
- * this only affects the export dialog's `state.json` tab and the top bar's own input.
+ * the name reaches only the settings file, the download names that `export-files.js` derives from
+ * it, and the top bar's own input.
  * @param {ThemeState} state
  * @param {string} name
  * @returns {ThemeState}
@@ -340,7 +341,7 @@ function sanitizeIaItems(items, depth, budget) {
 
 /**
  * A full `ThemeState` built from a theme that came from outside the studio's own controls: a share
- * link, a saved theme in `localStorage`, or an imported `state.json`. Anyone can craft a share
+ * link, a saved theme in `localStorage`, or an imported settings file. Anyone can craft a share
  * link, and its theme flows into `theme.css`, into the `astro.config.mjs` lines in
  * `APPLY-THEME.md`, and into steps a coding agent follows. So every value is checked against its
  * control (`sanitizeValue`), unknown control ids and an unknown preset are dropped, text becomes

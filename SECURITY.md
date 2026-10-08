@@ -27,12 +27,13 @@ and in what it writes:
 
 - **Share links.** A share link carries a theme in its `#svc=` fragment, and anyone can craft one.
   Anything that a link can make the studio run or load is in scope.
-- **Imported theme files.** The same applies to a `state.json` file opened with **Import
-  state.json**.
-- **Exports.** `theme.css` and `APPLY-THEME.md` end up in other people's repositories, and coding
-  agents follow `APPLY-THEME.md` step by step. The site title, the sidebar labels and the preset's
-  name all end up in that file. Any theme that makes an export carry unexpected code,
-  configuration or instructions is in scope.
+- **Imported settings files.** The same applies to a settings file, `<theme-name>.customizer.json`,
+  opened with **Import**.
+- **Exports.** `theme.css` and `APPLY-THEME.md` end up in other people's repositories. Coding
+  agents follow `APPLY-THEME.md` step by step, or the agent message, which carries the same steps
+  and the whole stylesheet. The site title, the sidebar labels and the preset's name all end up in
+  those steps. Any theme that makes an export carry unexpected code, configuration or instructions
+  is in scope.
 
 [`docs/security-model.md`](docs/security-model.md) explains how the code checks these inputs and
 guards each export.
