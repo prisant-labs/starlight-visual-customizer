@@ -96,7 +96,7 @@ real click blurs a focused field, and a scripted click does not.
 | `targets.mjs` | Every control's target selector | 78 |
 | `tiles.mjs` | Tiled controls | 264 |
 | `studio.mjs` | The studio's frame, pages and export | 60 |
-| `shell.mjs` | The studio's chrome, contrast and layout | 178 |
+| `shell.mjs` | The studio's chrome, contrast and layout | 181 |
 | `sizing.mjs` | Studio sizing | 32 |
 | `share.mjs` | Share links | 44 |
 | `inspect.mjs` | Inspect | 32 |
@@ -157,9 +157,10 @@ still do.
   `logo.svg`.
 - The About dialog, opened and closed by real clicks and keys, with the shortcuts standing down
   behind it, and the `/about/` page with its logo.
-- No top-bar overflow at ten widths, each chosen on one side of a width step in `studio.astro`:
-  1119 (Screenshot and Share's labels), 839 (the other labels), and 519 (Screenshot and Share leave
-  the bar; Export still opens the same dialog at either export).
+- No top-bar overflow at eleven widths, each chosen on one side of a width step in `studio.astro`:
+  1119 (Screenshot and Share's labels), 839 (the other labels), and 539 (Screenshot and Share leave
+  the bar; Export still opens the same dialog at either export). The list also keeps 520, where
+  Firefox once overflowed by 8 pixels.
 - A Footer rail click on a page with an empty pagination wrapper (Landing) opens the Style guide.
 
 **`sizing.mjs`** checks Studio sizing:

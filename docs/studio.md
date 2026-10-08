@@ -23,9 +23,10 @@ tokens, whatever mode the preview shows. `app/src/pages/studio.astro` builds the
 - **The bar sheds text, not controls, as the window narrows.** Below 1120 pixels it drops the
   labels on Screenshot and Share, leaving their icons. Below 1000 pixels it drops the brand name.
   Below 840 pixels it drops the change count, the labels on GitHub, Import, Screenshot, Share and
-  Export, and the separators; the failure text shortens to "Not saved" but stays. Below 520 pixels
+  Export, and the separators; the failure text shortens to "Not saved" but stays. Below 540 pixels
   Screenshot and Share leave the bar entirely, because Export still opens the same dialog at every
-  export. Below 480 pixels it narrows the theme name.
+  export. Below 480 pixels it narrows the theme name. The 540-pixel step leaves a margin for
+  Firefox, which sets the labels slightly wider and needs 528 pixels with both icons showing.
 
 ### The Export dialog
 
