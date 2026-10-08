@@ -102,7 +102,7 @@ real click blurs a focused field, and a scripted click does not.
 | `inspect.mjs` | Inspect | 32 |
 | `editors.mjs` | Hex entry, the color popover and the Structure editor | 129 |
 | `screenshot.mjs` | PNG screenshot export | 54 |
-| `export.mjs` | The Export dialog | 65 |
+| `export.mjs` | The Export dialog | 67 |
 
 **`home.mjs`** checks the product page at `/`:
 
@@ -234,6 +234,9 @@ Node on the studio's own state:
 - A page switch during a capture does not hold up the next page's picture.
 - The Document page's lazy image does not hold up its picture, which shows within 10 seconds, and
   the image keeps its `loading` attribute.
+- A capture never runs a custom element's constructor on its copy. A probe element counts its own
+  constructor calls, so the check works on every engine, and afterward Starlight's custom elements
+  copy themselves normally again.
 - A downloaded settings file imports back to the same theme.
 - A theme name shows as text, never as markup.
 - The dialog fits a phone-width window, and the overlay panel's dialog works without the small

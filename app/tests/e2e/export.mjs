@@ -541,6 +541,54 @@ async function run(browser) {
 		await closeDialog(page);
 		await realClick(page, await pageTab('Style guide'));
 		await page.waitForTimeout(800);
+
+		// Starlight's search and tabs are custom elements that look up their children in their
+		// constructors. A capture used to copy them inside the page's own document, which ran each
+		// constructor again on an empty copy, and both threw (Firefox and WebKit reported it). A probe
+		// element counts its constructor calls, so the check does not depend on any engine's errors.
+		const sgFrame = await (await page.$('iframe[data-svc-preview][data-svc-lane="light"]'))?.contentFrame();
+		const ctorsBefore = await sgFrame?.evaluate(() => {
+			const w = /** @type {any} */ (window);
+			if (!customElements.get('svc-test-probe')) {
+				customElements.define(
+					'svc-test-probe',
+					class extends HTMLElement {
+						constructor() {
+							super();
+							w.__svcProbeCtors = (w.__svcProbeCtors ?? 0) + 1;
+						}
+					}
+				);
+			}
+			document.querySelector('main')?.append(document.createElement('svc-test-probe'));
+			// A new scroll position means a new picture, not the cached one.
+			window.scrollTo(0, 600);
+			return w.__svcProbeCtors;
+		});
+		await page.waitForTimeout(200);
+		await clickPage(page, EXPORT_BTN);
+		const probePicture = await waitForThumb(page, null, 20000);
+		const restored = await sgFrame
+			?.waitForFunction(() => ![...document.body.querySelectorAll('*')].some((el) => Object.hasOwn(el, 'cloneNode')), undefined, { timeout: 20000 })
+			.then(
+				() => true,
+				() => false
+			);
+		const probe = await sgFrame?.evaluate(() => ({
+			ctors: /** @type {any} */ (window).__svcProbeCtors,
+			defined: [...new Set([...document.body.querySelectorAll('*')].map((el) => el.localName).filter((name) => customElements.get(name)))],
+		}));
+		check("13. a capture never runs a custom element's constructor on its copy", probePicture && ctorsBefore === 1 && probe?.ctors === 1, JSON.stringify({ ctorsBefore, probe }));
+		check(
+			"13. after the capture, Starlight's custom elements copy themselves normally again",
+			!!restored && !!probe?.defined.includes('site-search') && !!probe?.defined.includes('starlight-tabs'),
+			JSON.stringify({ restored, defined: probe?.defined })
+		);
+		await sgFrame?.evaluate(() => {
+			document.querySelector('svc-test-probe')?.remove();
+			window.scrollTo(0, 0);
+		});
+		await closeDialog(page);
 	}
 
 	// =============================================================================================

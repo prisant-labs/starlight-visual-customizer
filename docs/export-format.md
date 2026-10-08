@@ -234,6 +234,13 @@ The capture draws the page into an image inside the browser, with the `modern-sc
 package, which loads only when it is first used. So it has limits: an effect such as
 `backdrop-filter` may be missing. For a pixel-exact image, use the browser's own screenshot tool.
 
+The package copies the page one element at a time, and each copy starts empty. Starlight's search
+and tabs are custom elements whose code looks for their own children as soon as one is created, so
+a copy made in the page itself would run that code on an empty element and raise an error. For
+the length of a capture, those elements copy themselves into a separate document where no custom
+element is registered, so their code never runs on a copy. That includes the Starlight elements in
+the overlay panel's tiles, which sit inside the panel's shadow root.
+
 ## How the export is proven
 
 `npm run test:roundtrip` applies a real export to a freshly scaffolded Starlight site. Then it
