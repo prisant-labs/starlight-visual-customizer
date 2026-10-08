@@ -20,6 +20,9 @@ and in [`docs/releases/`](docs/releases/README.md), one file per release. Versio
 - **A screenshot preview in the studio.** The Export dialog renders a small picture of the preview
   as soon as it opens, and its Screenshot tab shows a larger copy. Options for Appearance (Light
   or Dark) and Page area (Visible area or Full page) sit behind an "Options" toggle.
+- **Faster screenshots of long pages.** A screenshot of the Document demo page took about 30
+  seconds, because it waited for an image below the fold that never loads on its own. A capture now
+  loads such images first, so that page takes a few seconds.
 - **Screenshot and Share move to the top bar,** next to Import and Export, each opening the Export
   dialog already showing its own export. Import is no longer inside the dialog.
 - **The final logo.** The project's logo replaces the placeholder star in the studio's top bar,

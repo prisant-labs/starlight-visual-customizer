@@ -225,6 +225,8 @@ async function snapshotLiveState(frame) {
 		leftoverFixedMarks: document.body.querySelectorAll('[data-svc-shot-fixed]').length,
 		leftoverSelectMarks: document.body.querySelectorAll('[data-svc-shot-select-value]').length,
 		themeSelectOuterHTML: document.querySelector('starlight-theme-select select')?.outerHTML ?? null,
+		// A capture loads lazy images first, so each one's `loading` attribute must read as before.
+		imageLoadingAttrs: Array.from(document.body.querySelectorAll('img')).map((img) => img.getAttribute('loading')),
 	}));
 }
 

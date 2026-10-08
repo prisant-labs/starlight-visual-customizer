@@ -215,8 +215,8 @@ mode the preview currently shows.
 - **Visible area** captures what the frame shows now, including a scrolled position. The fixed
   header, the left sidebar with its own scroll position and the right table of contents all keep
   their real places. The theme and language menus show their current values.
-- **Full page** captures the whole scroll height. It is the accurate choice, and it can take up to a
-  minute on a long page such as the Document demo page.
+- **Full page** captures the whole scroll height. It is the accurate choice, and it can take several
+  seconds on a long page such as the Document demo page.
 
 **Download PNG** names the file from the theme, the page, the mode and the width, such as
 `ocean-breeze-specimen-dark-1440.png`.

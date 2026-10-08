@@ -14,6 +14,7 @@
  * - a dark capture leaves the preview's mode, the stored `starlight-theme` and the toolbar as they were,
  *   and Split view captures from its dark lane without switching anything;
  * - a page switch during a capture of a long page does not hold up the next page's picture;
+ * - a lazy image that has never loaded does not hold up a capture, and keeps its attribute;
  * - a downloaded settings file imports back to the same theme;
  * - a theme name shows as text, never as markup;
  * - the dialog fits a phone-width window, and the overlay panel's dialog works without the small
@@ -507,7 +508,8 @@ async function run(browser) {
 		await realClick(page, await pageTab('Document'));
 		await page.waitForTimeout(800);
 		await clickPage(page, EXPORT_BTN);
-		await page.waitForTimeout(800);
+		// The Document page's picture takes about 3 seconds, so it is still rendering at the switch.
+		await page.waitForTimeout(300);
 		await closeDialog(page);
 		await realClick(page, await pageTab('Style guide'));
 		await page.waitForTimeout(800);
@@ -520,6 +522,25 @@ async function run(browser) {
 		const fresh = await waitForThumb(page, null, 20000);
 		check("13. after a page switch interrupts a long page's picture, the next page's picture shows within 20 seconds", fresh, `${Date.now() - switchedAt} ms`);
 		await closeDialog(page);
+
+		// The Document page has a lazy image below the fold that never loads on its own. A capture
+		// used to wait 30 seconds for it; it now loads the image first and puts the attribute back.
+		await realClick(page, await pageTab('Document'));
+		await page.waitForTimeout(800);
+		const docFrame = await (await page.$('iframe[data-svc-preview][data-svc-lane="light"]'))?.contentFrame();
+		const lazyBefore = await docFrame?.evaluate(() => Array.from(document.querySelectorAll('img[loading="lazy"]')).filter((img) => !img.complete).length);
+		const attrsBefore = await docFrame?.evaluate(() => Array.from(document.querySelectorAll('img')).map((img) => img.getAttribute('loading')));
+		const openedOnDocument = Date.now();
+		await clickPage(page, EXPORT_BTN);
+		const docPicture = await waitForThumb(page, null, 20000);
+		const docMs = Date.now() - openedOnDocument;
+		const lazyAfter = await docFrame?.evaluate(() => Array.from(document.querySelectorAll('img')).map((img) => img.getAttribute('loading')));
+		check('13. the Document page holds an unloaded lazy image before the capture', (lazyBefore ?? 0) > 0, String(lazyBefore));
+		check("13. the Document page's small picture shows within 10 seconds", docPicture && docMs < 10000, `${docMs} ms`);
+		check("13. after the capture, every image on the Document page keeps its loading attribute", !!lazyAfter && JSON.stringify(lazyAfter) === JSON.stringify(attrsBefore), `${JSON.stringify(attrsBefore)} -> ${JSON.stringify(lazyAfter)}`);
+		await closeDialog(page);
+		await realClick(page, await pageTab('Style guide'));
+		await page.waitForTimeout(800);
 	}
 
 	// =============================================================================================
