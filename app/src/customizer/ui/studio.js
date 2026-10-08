@@ -94,6 +94,8 @@ const ICONS = {
 	wide: '<rect x="2" y="6" width="20" height="9" rx="1"/><path d="M9 19h6M12 15v4"/>',
 	ultrawide: '<rect x="1" y="7.5" width="22" height="6" rx="1"/><path d="M10 19h4M12 13.5v5.5"/>',
 	info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.75" r="0.6" fill="currentColor" stroke="none"/>',
+	camera: '<path d="M4 8.5h3.2l1.6-2.2h6.4l1.6 2.2H20v10.5H4z"/><circle cx="12" cy="13.6" r="3.4"/>',
+	link: '<path d="M10 14a4.5 4.5 0 0 0 6.36 0l3.18-3.18a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M14 10a4.5 4.5 0 0 0-6.36 0l-3.18 3.18a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/>',
 	check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
 };
 function icon(name, size = 16) {
@@ -237,16 +239,23 @@ export function initStudioShell() {
 			const parsed = JSON.parse(await file.text());
 			svc.importState(parsed);
 		} catch (err) {
-			window.alert(`Could not import state.json: ${err instanceof Error ? err.message : String(err)}`);
+			window.alert(`Could not import the settings file: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	});
-	// Explicit names: below 720px the studio's CSS hides these two buttons' text labels.
-	const importBtn = h('button', { type: 'button', class: 'svc-tb-btn', 'aria-label': 'Import', title: 'Import a saved state.json' }, `${icon('import')}<span>Import</span>`);
+	// Explicit names, because the studio's CSS hides these buttons' text labels on narrow windows.
+	// Screenshot and Share open the Export dialog at those exports; it holds every export.
+	const importBtn = h('button', { type: 'button', class: 'svc-tb-btn', 'aria-label': 'Import', title: 'Import customizer settings (.json)' }, `${icon('import')}<span>Import</span>`);
 	importBtn.addEventListener('click', () => importInput.click());
-	const exportBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-primary', 'aria-label': 'Export', title: 'Export (Ctrl/Cmd+E)' }, `${icon('export')}<span>Export</span>`);
+	const shotBtn = h('button', { type: 'button', class: 'svc-tb-btn', id: 'svc-screenshot-btn', 'aria-label': 'Screenshot', 'aria-haspopup': 'dialog', title: 'Save a screenshot of the preview' }, `${icon('camera')}<span>Screenshot</span>`);
+	shotBtn.addEventListener('click', () => svc.openExport('screenshot'));
+	const shareBtn = h('button', { type: 'button', class: 'svc-tb-btn', id: 'svc-share-btn', 'aria-label': 'Share', 'aria-haspopup': 'dialog', title: 'Share a link to this theme' }, `${icon('link')}<span>Share</span>`);
+	shareBtn.addEventListener('click', () => svc.openExport('share'));
+	const exportBtn = h('button', { type: 'button', class: 'svc-tb-btn svc-tb-btn-primary', 'aria-label': 'Export', 'aria-haspopup': 'dialog', title: 'Export (Ctrl/Cmd+E)' }, `${icon('export')}<span>Export</span>`);
 	exportBtn.addEventListener('click', () => svc.openExport());
 	actions.appendChild(importBtn);
 	actions.appendChild(importInput);
+	actions.appendChild(shotBtn);
+	actions.appendChild(shareBtn);
 	actions.appendChild(exportBtn);
 	topbar.appendChild(actions);
 

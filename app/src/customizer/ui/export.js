@@ -1,49 +1,31 @@
 /**
- * @file Export dialog (a modal rendered inside the customizer's shadow root): `theme.css`
- * (`emitCss(state)`, NOT `{forPreview:true}` - the real, distributable stylesheet),
- * `APPLY-THEME.md` (`emitApplyTheme(state)`), and `state.json` (the raw `ThemeState`), each with
- * Copy/Download, plus "Copy share link" and "Import state.json". Also: a "Download all (.zip)"
- * button (bundles the same three files via `fflate`) and a "Screenshot (PNG)" section (captures the
- * primary preview lane via `modern-screenshot`, dynamically imported only when clicked).
+ * @file The Export dialog, a modal inside the customizer's shadow root. It has three parts:
  *
- * In studio mode this renders as a two-pane shape - a file list (with sizes) on
- * the left, the selected file's content (with Copy/Download) on the right - instead of the overlay
- * panel's top tab strip. Both navigation UIs are built (small, and they drive the exact same
- * `selectTab`/textareas),
- * `dialog.dataset.shape` picks which one is visible via `styles.js`'s docked-scoped
- * `.svc-dialog[data-shape='files']` rules; overlay mode (S16) always gets `data-shape='tabs'`, the
- * same DOM/behavior as before.
+ * - **"For your Astro site"**, the main export, in two ways. "Copy for your coding agent" copies the
+ *   agent message, which holds the setup steps and the whole stylesheet. "Download the files (.zip)"
+ *   downloads `theme.css` and `APPLY-THEME.md` in one folder.
+ * - **"Other exports"**, in a quieter column: the customizer settings, as a settings file or a share
+ *   link, and a screenshot of the preview. A small picture of the preview renders when the dialog
+ *   opens, and the screenshot options (light or dark, visible area or full page) fold away.
+ * - **A tab for every file**, each with Copy and Download, so nothing is exported unseen.
+ *
+ * `core/export-files.js` builds every file and names it; this module only presents them. Screenshots
+ * come from `modern-screenshot`, which loads the first time a picture is needed. The top bar's
+ * Screenshot and Share buttons open this same dialog at the matching export (`open('screenshot')`,
+ * `open('share')`).
  */
-import { zipSync, strToU8 } from 'fflate';
-import { emitCss } from '../core/emit-css.js';
-import { emitApplyTheme } from '../core/emit-apply.js';
+import { buildExportFiles, buildZip } from '../core/export-files.js';
 import { encodeState, getName } from '../core/state.js';
+import { presets } from '../core/presets.js';
 import { buildShareUrl } from '../core/share-link.js';
-import { isStudio, getPageDoc, getPageWin } from './page-doc.js';
+import { isStudio, getPageDoc, getPageWin, getFrameEls } from './page-doc.js';
 import { stripBase } from '../core/base-path.js';
 import { DEMO_DIR } from '../../demo-site.mjs';
 
-/** @param {number} bytes @returns {string} e.g. "1.2 KB" - the studio's file-list sizing display. */
+/** @param {number} bytes @returns {string} e.g. "1.2 KB". */
 function formatSize(bytes) {
 	if (bytes < 1024) return `${bytes} B`;
 	return `${(bytes / 1024).toFixed(1)} KB`;
-}
-
-function textButton(label, onClick) {
-	const btn = document.createElement('button');
-	btn.type = 'button';
-	btn.className = 'svc-btn';
-	btn.textContent = label;
-	btn.addEventListener('click', onClick);
-	return btn;
-}
-
-function flash(btn, text, revertMs = 1200) {
-	const original = btn.textContent;
-	btn.textContent = text;
-	setTimeout(() => {
-		btn.textContent = original;
-	}, revertMs);
 }
 
 /** @param {string} filename @param {Blob} blob */
@@ -53,7 +35,8 @@ function downloadBlob(filename, blob) {
 	a.href = url;
 	a.download = filename;
 	a.click();
-	URL.revokeObjectURL(url);
+	// Revoked later, not at once: some browsers start the download after the click returns.
+	setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function downloadText(filename, text) {
@@ -69,17 +52,6 @@ async function copyToClipboard(text) {
 	}
 }
 
-/** Lowercase, hyphenated slug of the theme name for export filenames (item 2/3), matching
- * `core/ia.js`'s own slugify shape but with this feature's own fallback. @param {string} name */
-function slugifyThemeName(name) {
-	const s = String(name ?? '')
-		.toLowerCase()
-		.trim()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '');
-	return s || 'starlight-theme';
-}
-
 /** @param {string} pathname e.g. "/demo/specimen/" @returns {string} e.g. "specimen"; the demo's
  * home page ("/demo/") and the site root ("/") -> "landing" */
 function pageSlugFromPath(pathname) {
@@ -89,22 +61,6 @@ function pageSlugFromPath(pathname) {
 	const parts = trimmed.split('/').filter(Boolean);
 	if (parts[0] === DEMO_DIR) parts.shift();
 	return parts.length ? parts[parts.length - 1] : 'landing';
-}
-
-/**
- * Item 2: one zip containing the same three files the dialog shows, byte-identical to what
- * Copy/Download already use for each - built from the already-refreshed textareas, never
- * re-derived, so "exactly the contents the dialog shows" holds by construction.
- * @param {{id:string, filename:string}[]} tabDefs
- * @param {Record<string, HTMLTextAreaElement>} textareas
- * @returns {Blob}
- */
-function buildExportZipBlob(tabDefs, textareas) {
-	/** @type {Record<string, Uint8Array>} */
-	const files = {};
-	for (const def of tabDefs) files[def.filename] = strToU8(textareas[def.id].value);
-	const zipped = zipSync(files);
-	return new Blob([zipped], { type: 'application/zip' });
 }
 
 /** Throwaway attribute (requirement 2/5): records a live `<select>`'s current `.value` so
@@ -213,13 +169,15 @@ function unmarkSelectsAfterClone(marked) {
  * known message shapes this failure mode produces (`KNOWN_CLONE_ERROR_FRAGMENTS` below), so a real,
  * unrelated error during the same window still surfaces normally instead of being silently eaten; the
  * number actually suppressed is logged once via `console.info` after the capture finishes.
+ * The capture takes a lane: by default the primary one, but the Export dialog passes Split's
+ * dark lane for a dark picture, so it never has to switch a lane that the studio holds in one mode.
  * @param {'visible'|'full'} kind
- * @returns {Promise<{blob: Blob, width: number, height: number}>}
+ * @param {{doc: Document|null|undefined, win: Window|null|undefined}} [target]
+ * @returns {Promise<{blob: Blob, width: number, height: number, doc: Document}>}
  */
-async function capturePageScreenshot(kind) {
+async function capturePageScreenshot(kind, target = { doc: getPageDoc(), win: getPageWin() }) {
 	const { domToBlob } = await import('modern-screenshot');
-	const doc = getPageDoc();
-	const win = getPageWin();
+	const { doc, win } = target;
 	if (!doc || !win || !doc.body) throw new Error('The preview page is not available right now.');
 	if (doc.fonts && doc.fonts.ready) {
 		try {
@@ -315,7 +273,7 @@ async function capturePageScreenshot(kind) {
 				return cloned;
 			},
 		});
-		return { blob, width, height };
+		return { blob, width, height, doc };
 	} finally {
 		win.removeEventListener('error', suppressCloneErrors, true);
 		if (suppressedErrorCount > 0) {
@@ -326,276 +284,620 @@ async function capturePageScreenshot(kind) {
 	}
 }
 
+// ---------------------------------------------------------------------------------------------
+// The dialog
+// ---------------------------------------------------------------------------------------------
+
+/** Every sentence the dialog shows, written once. */
+const WORDS = {
+	title: (name) => `Export “${name}”`,
+	sub: (preset, n) => `${preset} · ${n} change${n === 1 ? '' : 's'}`,
+	main: 'For your Astro site',
+	agent: {
+		title: 'With a coding agent',
+		line: 'Paste one message into Claude Code, Codex or Cursor.',
+		label: 'Copy for your coding agent',
+		done: 'Copied. Paste it into your coding agent, with your project open.',
+		fail: 'Copy failed. Open the Agent message tab and download it instead.',
+	},
+	files: {
+		title: 'Download the files',
+		line: 'Get theme.css and the steps. You make the changes.',
+		label: 'Download the files (.zip)',
+		done: 'Download started. Unzip it in your project, then follow APPLY-THEME.md, or ask your agent to.',
+		fail: 'Could not build the zip. Download each file from its tab instead.',
+	},
+	other: 'Other exports',
+	custom: { title: 'Customizer settings', line: 'For this tool, not your website.' },
+	settings: {
+		label: 'Download settings file',
+		line: 'Reopen this theme here later.',
+		done: 'Download started. Open it with Import to keep editing.',
+	},
+	link: {
+		label: 'Copy share link',
+		line: 'Someone else opens an editable copy.',
+		done: 'Copied. Send the link to anyone.',
+		fail: 'Copy failed. The browser blocked the clipboard.',
+	},
+	shot: { title: 'Screenshot', line: 'A picture of the preview.' },
+	png: {
+		label: 'Download PNG',
+		options: 'Options',
+		hideOptions: 'Hide options',
+		appearance: 'Appearance',
+		area: 'Page area',
+		rendering: 'Rendering the picture…',
+		renderingFull: 'Rendering the full page. A long page can take up to a minute.',
+		slow: 'A full page can take up to a minute on a long page.',
+		done: 'Download started.',
+		fail: 'Could not create the screenshot.',
+		thumbWait: 'Rendering a preview…',
+		thumbNone: 'No preview here. Download PNG still works.',
+		thumbLabel: 'Show the screenshot in the file tabs',
+		fullNote: 'This preview shows the visible area. The download renders the full page.',
+	},
+	copy: 'Copy',
+	copied: 'Copied',
+	download: 'Download',
+	close: 'Close',
+	closeLabel: 'Close export dialog',
+};
+
+/** The file tabs, in order. The site's files come first; a thin rule separates the others. */
+const FILES = [
+	{ id: 'message', tab: 'Agent message', site: true },
+	{ id: 'css', tab: 'Stylesheet', site: true },
+	{ id: 'apply', tab: 'Setup steps', site: true },
+	{ id: 'settings', tab: 'Settings file', site: false },
+	{ id: 'png', tab: 'Screenshot', site: false },
+];
+
+/** Stroked 24px icons, in the studio top bar's style. */
+const ICON_PATHS = {
+	agent: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.5-3 2.5"/><path d="M12.5 15h4.5"/>',
+	zip: '<path d="M6 3.5h9l4 4V20.5H6z"/><path d="M14.5 3.5V8H19"/><path d="M10 6h1.5M10 9h1.5M10 12h1.5M9.5 15h2.5v3h-2.5z"/>',
+	copy: '<rect x="8.5" y="8.5" width="11.5" height="11.5" rx="1.5"/><path d="M15.5 8.5V5A1.5 1.5 0 0 0 14 3.5H5A1.5 1.5 0 0 0 3.5 5v9A1.5 1.5 0 0 0 5 15.5h3.5"/>',
+	download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M4 17v3h16v-3"/>',
+	link: '<path d="M10 14a4.5 4.5 0 0 0 6.36 0l3.18-3.18a4.5 4.5 0 0 0-6.36-6.36l-1.06 1.06"/><path d="M14 10a4.5 4.5 0 0 0-6.36 0l-3.18 3.18a4.5 4.5 0 0 0 6.36 6.36l1.06-1.06"/>',
+	sliders: '<path d="M5 4v16M12 4v16M19 4v16"/><path d="M3 9h4M10 15h4M17 7h4"/>',
+	camera: '<path d="M4 8.5h3.2l1.6-2.2h6.4l1.6 2.2H20v10.5H4z"/><circle cx="12" cy="13.6" r="3.4"/>',
+	check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+	close: '<path d="M6 6l12 12M18 6L6 18"/>',
+};
+
+/** @param {keyof typeof ICON_PATHS} name @param {number} [size] @returns {Node} */
+function iconNode(name, size = 16) {
+	const t = document.createElement('template');
+	t.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name]}</svg>`;
+	return /** @type {Node} */ (t.content.firstChild);
+}
+
 /**
- * @param {{getState: () => import('../core/state.js').ThemeState, onImportState: (parsed: any) => void}} handlers
- * @returns {{root: HTMLElement, open: () => void, close: () => void}}
+ * Builds an element. Children are nodes or plain text; text never goes through innerHTML, so a
+ * theme name can never become markup.
+ * @param {string} tag
+ * @param {Record<string, string|boolean|null|undefined>} [attrs]
+ * @param {(Node|string)[]} [children]
+ * @returns {HTMLElement}
+ */
+function h(tag, attrs = {}, children = []) {
+	const el = document.createElement(tag);
+	for (const [key, value] of Object.entries(attrs)) {
+		if (value == null || value === false) continue;
+		el.setAttribute(key, value === true ? '' : String(value));
+	}
+	el.append(...children);
+	return el;
+}
+
+/** @param {Document|null|undefined} doc @returns {'light'|'dark'} */
+const themeOf = (doc) => (doc?.documentElement?.dataset?.theme === 'dark' ? 'dark' : 'light');
+
+/** @param {Window|null} win Waits two frames and a moment, so a mode switch has painted. */
+async function settle(win) {
+	const w = win || window;
+	for (let i = 0; i < 2; i++) await new Promise((resolve) => w.requestAnimationFrame(() => resolve(undefined)));
+	await new Promise((resolve) => setTimeout(resolve, 120));
+}
+
+/**
+ * @param {{
+ *   getState: () => import('../core/state.js').ThemeState,
+ *   getChangeCount: () => number,
+ *   setPreviewTheme: (mode: 'light'|'dark') => void,
+ * }} handlers
+ * @returns {{root: HTMLElement, open: (where?: 'export'|'screenshot'|'share') => void, close: (restoreFocus?: boolean) => void}}
  */
 export function createExportDialog(handlers) {
-	const backdrop = document.createElement('div');
-	backdrop.className = 'svc-dialog-backdrop';
-	backdrop.hidden = true;
-	backdrop.addEventListener('click', (event) => {
-		if (event.target === backdrop) close();
-	});
-	backdrop.addEventListener('keydown', (event) => {
-		if (event.key === 'Escape') close();
-	});
+	let files = buildExportFiles(handlers.getState());
+	/** @type {HTMLElement|null} */
+	let opener = null;
+	/** @type {{mode: 'light'|'dark', area: 'visible'|'full', openedMode: 'light'|'dark', optsOpen: boolean, busy: boolean}} */
+	const shot = { mode: 'light', area: 'visible', openedMode: 'light', optsOpen: false, busy: false };
 
-	const dialog = document.createElement('div');
-	dialog.className = 'svc-dialog';
-	dialog.dataset.shape = isStudio() ? 'files' : 'tabs';
-	dialog.setAttribute('role', 'dialog');
-	dialog.setAttribute('aria-modal', 'true');
-	dialog.setAttribute('aria-label', 'Export theme');
-	backdrop.appendChild(dialog);
+	const backdrop = h('div', { class: 'svc-dialog-backdrop svc-xp-backdrop', hidden: true });
+	const dialog = h('div', { class: 'svc-dialog svc-xp', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'svc-xp-title' });
+	backdrop.append(dialog);
+	const live = h('p', { class: 'svc-sr-only', role: 'status' });
 
-	const tabDefs = [
-		{ id: 'css', label: 'theme.css', filename: 'theme.css' },
-		{ id: 'apply', label: 'APPLY-THEME.md', filename: 'APPLY-THEME.md' },
-		{ id: 'json', label: 'state.json', filename: 'starlight-theme.json' },
-	];
-	/** @type {Record<string, HTMLTextAreaElement>} */
-	const textareas = {};
-	/** @type {{id:string, btn:HTMLElement, panel:HTMLElement, fileItem:HTMLElement, sizeEl:HTMLElement}[]} */
-	const tabs = [];
+	// ---- Header: the theme's name, its preset and its change count. ----
+	const titleEl = h('h2', { id: 'svc-xp-title' });
+	const subEl = h('p', { class: 'svc-xp-sub' });
+	const closeBtn = h('button', { type: 'button', class: 'svc-xp-close', 'aria-label': WORDS.closeLabel, title: WORDS.close }, [iconNode('close', 18)]);
+	dialog.append(h('div', { class: 'svc-dialog-header svc-xp-head' }, [h('div', {}, [titleEl, subEl]), closeBtn]), live);
 
-	// ---- One shared header (title + close) for both shapes. ----
-	const header = document.createElement('div');
-	header.className = 'svc-dialog-header';
-	const titleEl = document.createElement('h3');
-	titleEl.textContent = 'Export';
-	header.appendChild(titleEl);
-	const closeBtn = document.createElement('button');
-	closeBtn.type = 'button';
-	closeBtn.className = 'svc-icon-btn';
-	closeBtn.textContent = '✕';
-	closeBtn.setAttribute('aria-label', 'Close export dialog');
-	closeBtn.addEventListener('click', () => close());
-	header.appendChild(closeBtn);
-	dialog.appendChild(header);
+	/** Each line that a status can replace, keyed by action, with its own resting text.
+	 * @type {Record<string, {el: HTMLElement, rest: () => string}>} */
+	const lines = {};
 
-	// ---- Overlay shape: a top tab strip above the tab panels (B's original layout, unchanged). ----
-	const tabsBar = document.createElement('div');
-	tabsBar.className = 'svc-tabs';
-	tabsBar.setAttribute('role', 'tablist');
-
-	// ---- Studio shape: a row of [file list | file pane] below the shared header. ----
-	const filesRow = document.createElement('div');
-	filesRow.className = 'svc-files-row';
-	const fileList = document.createElement('div');
-	fileList.className = 'svc-file-list';
-	fileList.setAttribute('role', 'tablist');
-	fileList.setAttribute('aria-label', 'Export files');
-	const filePane = document.createElement('div');
-	filePane.className = 'svc-file-pane';
-
-	const panelsWrap = document.createElement('div');
-	panelsWrap.className = 'svc-tab-panels';
-
-	if (isStudio()) {
-		filesRow.appendChild(fileList);
-		filePane.appendChild(panelsWrap);
-		filesRow.appendChild(filePane);
-		dialog.appendChild(filesRow);
-	} else {
-		dialog.appendChild(tabsBar);
-		dialog.appendChild(panelsWrap);
+	// ---- "For your Astro site": the two ways. ----
+	/** @param {'agent'|'files'} kind @param {'agent'|'zip'} iconName @param {'copy'|'download'} actionIcon */
+	function wayCard(kind, iconName, actionIcon) {
+		const words = WORDS[kind];
+		const line = h('p', { class: 'svc-xp-line' }, [words.line]);
+		lines[kind] = { el: line, rest: () => words.line };
+		const btn = h('button', { type: 'button', class: 'svc-btn svc-btn-primary svc-xp-go', 'data-export': kind }, [iconNode(actionIcon, 17), words.label]);
+		const card = h('div', { class: 'svc-xp-way' }, [h('div', { class: 'svc-xp-way-head' }, [iconNode(iconName, 20), h('b', {}, [words.title])]), line, btn]);
+		return { card, btn };
 	}
+	const agentWay = wayCard('agent', 'agent', 'copy');
+	const filesWay = wayCard('files', 'zip', 'download');
+	const main = h('section', { class: 'svc-xp-main', 'aria-labelledby': 'svc-xp-main-title' }, [
+		h('h3', { id: 'svc-xp-main-title', class: 'svc-xp-main-title' }, [WORDS.main]),
+		h('div', { class: 'svc-xp-ways' }, [agentWay.card, filesWay.card]),
+	]);
 
-	for (const def of tabDefs) {
-		// Tab-strip button (overlay).
-		const btn = document.createElement('button');
-		btn.type = 'button';
-		btn.className = 'svc-tab';
-		btn.textContent = def.label;
-		btn.setAttribute('role', 'tab');
-		btn.addEventListener('click', () => selectTab(def.id));
-		tabsBar.appendChild(btn);
-
-		// File-list item (studio).
-		const fileItem = document.createElement('button');
-		fileItem.type = 'button';
-		fileItem.className = 'svc-file-item';
-		fileItem.setAttribute('role', 'tab');
-		const nameEl = document.createElement('span');
-		nameEl.className = 'svc-file-item-name';
-		nameEl.textContent = def.label;
-		const sizeEl = document.createElement('span');
-		sizeEl.className = 'svc-file-item-size';
-		fileItem.appendChild(nameEl);
-		fileItem.appendChild(sizeEl);
-		fileItem.addEventListener('click', () => selectTab(def.id));
-		fileList.appendChild(fileItem);
-
-		const panel = document.createElement('div');
-		panel.className = 'svc-tab-panel';
-		const textarea = document.createElement('textarea');
-		textarea.className = 'svc-export-textarea';
-		textarea.readOnly = true;
-		textarea.setAttribute('aria-label', def.label);
-		textareas[def.id] = textarea;
-		panel.appendChild(textarea);
-
-		const actions = document.createElement('div');
-		actions.className = 'svc-ia-import-actions svc-file-pane-actions';
-		const copyBtn = textButton('Copy', async () => {
-			const ok = await copyToClipboard(textarea.value);
-			flash(copyBtn, ok ? 'Copied!' : 'Copy failed');
-		});
-		const downloadBtn = textButton('Download', () => downloadText(def.filename, textarea.value));
-		actions.appendChild(copyBtn);
-		actions.appendChild(downloadBtn);
-		panel.appendChild(actions);
-		panelsWrap.appendChild(panel);
-
-		tabs.push({ id: def.id, btn, panel, fileItem, sizeEl });
+	// ---- "Other exports": the customizer settings and the screenshot, one line per option. ----
+	/** @param {string} kind @param {keyof typeof ICON_PATHS} iconName @param {string} label */
+	const quietBtn = (kind, iconName, label) => h('button', { type: 'button', class: 'svc-btn svc-xp-quiet', 'data-export': kind }, [iconNode(iconName, 15), label]);
+	/** @param {'settings'|'link'} kind @param {keyof typeof ICON_PATHS} iconName */
+	function option(kind, iconName) {
+		const words = WORDS[kind];
+		const btn = quietBtn(kind, iconName, words.label);
+		const line = h('p', { class: 'svc-xp-line' }, [words.line]);
+		lines[kind] = { el: line, rest: () => words.line };
+		return { node: h('div', { class: 'svc-xp-opt' }, [btn, line]), btn };
 	}
+	/** @param {keyof typeof ICON_PATHS} iconName @param {string} title */
+	const groupHead = (iconName, title) => h('div', { class: 'svc-xp-group-head' }, [iconNode(iconName, 15), h('b', {}, [title])]);
+	const settingsOpt = option('settings', 'download');
+	const linkOpt = option('link', 'link');
 
-	function selectTab(id) {
-		for (const tab of tabs) {
-			const active = tab.id === id;
-			tab.btn.setAttribute('aria-selected', String(active));
-			tab.fileItem.setAttribute('aria-selected', String(active));
-			tab.panel.dataset.active = String(active);
+	const thumbPic = h('span', { class: 'svc-xp-thumb-pic' });
+	const thumbBtn = h('button', { type: 'button', class: 'svc-xp-thumb', 'aria-label': WORDS.png.thumbLabel }, [thumbPic]);
+	const pngBtn = quietBtn('png', 'download', WORDS.png.label);
+	const optsBtn = h('button', { type: 'button', class: 'svc-xp-link', 'aria-expanded': 'false', 'aria-controls': 'svc-xp-shotopts' }, [WORDS.png.options]);
+	/** @param {'mode'|'area'} key @param {string} label @param {[string, string, string?][]} choices */
+	function segGroup(key, label, choices) {
+		const labelId = `svc-xp-${key}-label`;
+		const buttons = choices.map(([value, text, extraClass]) => h('button', { type: 'button', role: 'radio', class: extraClass || null, 'data-value': value }, [text]));
+		for (const b of buttons) {
+			b.addEventListener('click', () => {
+				shot[key] = /** @type {any} */ (b.dataset.value);
+				paintShot();
+				if (key === 'mode') ensureThumb();
+			});
 		}
+		const node = h('div', { class: 'svc-xp-ctl' }, [h('span', { id: labelId }, [label]), h('span', { class: 'svc-xp-seg', role: 'radiogroup', 'aria-labelledby': labelId }, buttons)]);
+		return { node, buttons, key };
 	}
-	selectTab('css');
+	const modeGroup = segGroup('mode', WORDS.png.appearance, [['light', 'Light'], ['dark', 'Dark']]);
+	// The area buttons keep the old Export dialog's class names, which the screenshot suites use.
+	const areaGroup = segGroup('area', WORDS.png.area, [['visible', 'Visible area', 'svc-export-shot-visible-btn'], ['full', 'Full page', 'svc-export-shot-full-btn']]);
+	const shotOpts = h('div', { class: 'svc-xp-shotopts', id: 'svc-xp-shotopts', hidden: true }, [modeGroup.node, areaGroup.node]);
+	const pngLine = h('p', { class: 'svc-xp-line svc-xp-pngline' });
+	lines.png = { el: pngLine, rest: pngRestLine };
 
-	// ---- Item 2/3: "Download all (.zip)" and the "Screenshot (PNG)" section - shared by both
-	// dialog shapes, sitting between the file view and the footer's share/import row. ----
-	const extra = document.createElement('div');
-	extra.className = 'svc-export-extra';
+	const other = h('section', { class: 'svc-xp-other', 'aria-labelledby': 'svc-xp-other-title' }, [
+		h('h3', { id: 'svc-xp-other-title', class: 'svc-xp-other-title' }, [WORDS.other]),
+		h('div', { class: 'svc-xp-group' }, [groupHead('sliders', WORDS.custom.title), h('p', { class: 'svc-xp-group-line' }, [WORDS.custom.line]), settingsOpt.node, linkOpt.node]),
+		h('div', { class: 'svc-xp-group' }, [groupHead('camera', WORDS.shot.title), h('p', { class: 'svc-xp-group-line' }, [WORDS.shot.line]), thumbBtn, h('div', { class: 'svc-xp-acts' }, [pngBtn, optsBtn]), shotOpts, pngLine]),
+	]);
 
-	const zipRow = document.createElement('div');
-	zipRow.className = 'svc-export-extra-row';
-	const zipBtn = textButton('Download all (.zip)', () => {
-		try {
-			const slug = slugifyThemeName(getName(handlers.getState()));
-			downloadBlob(`${slug}.zip`, buildExportZipBlob(tabDefs, textareas));
-		} catch (err) {
-			window.alert(`Could not build the zip: ${err instanceof Error ? err.message : String(err)}`);
-		}
+	// ---- A tab for every file, each with Copy and Download. ----
+	const tablist = h('div', { class: 'svc-xp-tabs', role: 'tablist', 'aria-label': 'Every file' });
+	/** @type {Record<string, HTMLElement>} */
+	const tabs = {};
+	/** @type {Record<string, {panel: HTMLElement, nameEl: HTMLElement, metaEl: HTMLElement, copyBtn: HTMLElement|null, dlBtn: HTMLElement, content: HTMLElement}>} */
+	const panels = {};
+	FILES.forEach((f, i) => {
+		if (!f.site && FILES[i - 1]?.site) tablist.append(h('span', { class: 'svc-xp-divider', 'aria-hidden': 'true' }));
+		const tab = h('button', { type: 'button', role: 'tab', id: `svc-xp-tab-${f.id}`, class: 'svc-xp-tab', 'data-file': f.id, 'aria-controls': `svc-xp-panel-${f.id}` }, [f.tab]);
+		tab.addEventListener('click', () => selectFile(f.id));
+		tablist.append(tab);
+		tabs[f.id] = tab;
+		const nameEl = h('span', { class: 'svc-xp-fname' });
+		const metaEl = h('span', { class: 'svc-xp-fmeta' });
+		const copyBtn = f.id === 'png' ? null : h('button', { type: 'button', class: 'svc-xp-tool', 'data-file': f.id, title: WORDS.copy }, [iconNode('copy', 15)]);
+		const dlBtn = h('button', { type: 'button', class: 'svc-btn svc-xp-dl', 'data-file': f.id }, [iconNode('download', 15), WORDS.download]);
+		const content = f.id === 'png' ? h('div', { class: 'svc-xp-img' }) : h('pre', { class: 'svc-xp-pre', 'data-file': f.id, tabindex: '0' });
+		const panel = h('div', { class: 'svc-xp-panel', role: 'tabpanel', id: `svc-xp-panel-${f.id}`, 'aria-labelledby': `svc-xp-tab-${f.id}`, hidden: true }, [
+			h('div', { class: 'svc-xp-panel-head' }, [h('div', { class: 'svc-xp-fileid' }, [nameEl, metaEl]), h('div', { class: 'svc-xp-tools' }, copyBtn ? [copyBtn, dlBtn] : [dlBtn])]),
+			content,
+		]);
+		panels[f.id] = { panel, nameEl, metaEl, copyBtn, dlBtn, content };
+		if (copyBtn) copyBtn.addEventListener('click', () => copyFile(f.id, copyBtn));
+		dlBtn.addEventListener('click', () => (f.id === 'png' ? runPng() : downloadText(nameOf(f.id), textOf(f.id))));
 	});
-	zipBtn.classList.add('svc-btn-primary', 'svc-export-zip-btn');
-	zipRow.appendChild(zipBtn);
-	extra.appendChild(zipRow);
+	const viewer = h('div', { class: 'svc-xp-view' }, [h('div', { class: 'svc-xp-viewer' }, [tablist, ...FILES.map((f) => panels[f.id].panel)])]);
 
-	const shotRow = document.createElement('div');
-	shotRow.className = 'svc-export-extra-row svc-export-screenshot';
-	const shotLabel = document.createElement('span');
-	shotLabel.className = 'svc-export-extra-label';
-	shotLabel.textContent = 'Screenshot (PNG)';
-	shotRow.appendChild(shotLabel);
+	const body = h('div', { class: 'svc-xp-body' }, [main, other, viewer]);
+	dialog.append(body);
 
-	const shotButtons = document.createElement('div');
-	shotButtons.className = 'svc-export-extra-buttons';
-
-	/** @param {'visible'|'full'} kind @param {HTMLButtonElement} btn */
-	async function handleScreenshot(kind, btn) {
-		const original = btn.textContent;
-		// `btn` has focus (a real click always focuses the button it lands on) when this starts.
-		// Disabling a focused element unfocuses it (focus moves off to nothing in particular, usually
-		// the document body) - browsers never restore it just because the element becomes enabled
-		// again. Left alone, that silently breaks Escape-to-close afterward: the dialog's own keydown
-		// listener lives on the backdrop and only fires for events that bubble through it, so once
-		// focus has drifted outside the dialog, Escape does nothing and a later click can land on the
-		// backdrop instead of whatever the caller expected. Re-focusing the button once it's usable
-		// again (below) keeps the dialog's normal keyboard behavior intact through a long capture.
-		btn.disabled = true;
-		btn.textContent = 'Rendering…';
-		try {
-			const { blob, width, height } = await capturePageScreenshot(kind);
-			const state = handlers.getState();
-			const slug = slugifyThemeName(getName(state));
-			const doc = getPageDoc();
-			const pageSlug = pageSlugFromPath(doc?.location?.pathname);
-			const mode = doc?.documentElement?.dataset?.theme === 'dark' ? 'dark' : 'light';
-			downloadBlob(`${slug}-${pageSlug}-${mode}-${width}.png`, blob);
-			void height; // captured for completeness/logging only - not part of the filename (spec's own example)
-		} catch (err) {
-			window.alert(`Could not create the screenshot: ${err instanceof Error ? err.message : String(err)}`);
-		} finally {
-			btn.disabled = false;
-			btn.textContent = original;
-			btn.focus();
-		}
+	// ---- The files' text and names. ----
+	/** @param {string} id @returns {string} */
+	function textOf(id) {
+		return { message: files.message, css: files.css, apply: files.apply, settings: files.settings }[id] ?? '';
 	}
-	const visibleBtn = textButton('Visible area', (event) => handleScreenshot('visible', event.currentTarget));
-	visibleBtn.classList.add('svc-export-shot-visible-btn');
-	const fullBtn = textButton('Full page', (event) => handleScreenshot('full', event.currentTarget));
-	fullBtn.classList.add('svc-export-shot-full-btn');
-	shotButtons.appendChild(visibleBtn);
-	shotButtons.appendChild(fullBtn);
-	shotRow.appendChild(shotButtons);
-	extra.appendChild(shotRow);
+	/** @param {string} id @returns {string} */
+	function nameOf(id) {
+		if (id === 'png') {
+			const lane = laneFor(shot.mode);
+			const width = Math.max(1, Math.round(lane.win?.innerWidth || 0));
+			return `${files.slug}-${pageSlugFromPath(lane.doc?.location?.pathname)}-${shot.mode}-${width}.png`;
+		}
+		return { message: files.names.message, css: files.names.css, apply: files.names.apply, settings: files.names.settings }[id] ?? '';
+	}
 
-	const shotHint = document.createElement('p');
-	shotHint.className = 'svc-export-hint';
-	shotHint.textContent = 'Rendered from the page DOM, not a browser screenshot - effects like backdrop blur and sticky-positioned bars may not match exactly.';
-	extra.appendChild(shotHint);
-
-	// Privacy note: reuses the same muted-text style/token as the screenshot hint above, which the
-	// shell.mjs contrast walk already checks with this dialog open, so this text is covered too.
-	const privacyHint = document.createElement('p');
-	privacyHint.className = 'svc-export-hint';
-	privacyHint.textContent = 'Your theme stays in your browser; web fonts load from jsDelivr.';
-	extra.appendChild(privacyHint);
-
-	dialog.appendChild(extra);
-
-	const footer = document.createElement('div');
-	footer.className = 'svc-dialog-footer';
-	const shareBtn = textButton('Copy share link', async () => {
+	function refresh() {
 		const state = handlers.getState();
-		// The studio's `?page=` (studio.js's updateUrl keeps it current) travels with the link, so the
-		// recipient lands on the page the sender was looking at. Nothing else from the query does.
-		const url = buildShareUrl(location, encodeState(state));
-		const ok = await copyToClipboard(url);
-		flash(shareBtn, ok ? 'Link copied!' : 'Copy failed');
-	});
-	footer.appendChild(shareBtn);
-
-	const importLabel = document.createElement('label');
-	importLabel.className = 'svc-btn';
-	importLabel.textContent = 'Import state.json';
-	const fileInput = document.createElement('input');
-	fileInput.type = 'file';
-	fileInput.accept = 'application/json,.json';
-	fileInput.hidden = true;
-	fileInput.addEventListener('change', async () => {
-		const file = fileInput.files?.[0];
-		fileInput.value = '';
-		if (!file) return;
-		try {
-			const text = await file.text();
-			const parsed = JSON.parse(text);
-			handlers.onImportState(parsed);
-			refresh(handlers.getState());
-		} catch (err) {
-			window.alert(`Could not import state.json: ${err instanceof Error ? err.message : String(err)}`);
+		files = buildExportFiles(state);
+		titleEl.textContent = WORDS.title(getName(state));
+		const preset = presets.find((p) => p.id === state.preset)?.label || 'Starlight default';
+		subEl.textContent = WORDS.sub(preset, handlers.getChangeCount());
+		for (const id of ['message', 'css', 'apply', 'settings']) {
+			const text = textOf(id);
+			const name = nameOf(id);
+			const p = panels[id];
+			p.content.textContent = text;
+			p.content.setAttribute('aria-label', `${name} contents`);
+			p.nameEl.textContent = name;
+			p.metaEl.textContent = formatSize(new Blob([text]).size);
+			p.copyBtn?.setAttribute('aria-label', `Copy ${name}`);
+			p.dlBtn.setAttribute('aria-label', `Download ${name}`);
 		}
+		paintShot();
+	}
+
+	/** @param {string} id */
+	function selectFile(id) {
+		for (const f of FILES) {
+			const on = f.id === id;
+			tabs[f.id].setAttribute('aria-selected', String(on));
+			tabs[f.id].tabIndex = on ? 0 : -1;
+			panels[f.id].panel.hidden = !on;
+		}
+		if (id === 'png') ensureThumb();
+	}
+
+	// ---- Statuses: a confirmation replaces the line of the action it confirms, then fades back. ----
+	/** @type {string|null} */
+	let statusKey = null;
+	let statusTimer = 0;
+	/** @param {string} key @param {{text: string, tone: 'done'|'fail'|'busy'}|null} status */
+	function paintLine(key, status) {
+		const { el, rest } = lines[key];
+		el.classList.toggle('is-done', status?.tone === 'done');
+		el.classList.toggle('is-fail', status?.tone === 'fail');
+		const resting = rest();
+		el.replaceChildren(...(status ? (status.tone === 'done' ? [iconNode('check', 14), status.text] : [status.text]) : resting ? [resting] : []));
+	}
+	/** @param {string} key @param {string} text @param {'done'|'fail'|'busy'} tone */
+	function setStatus(key, text, tone) {
+		if (statusKey && statusKey !== key) paintLine(statusKey, null);
+		statusKey = key;
+		paintLine(key, { text, tone });
+		live.textContent = text;
+		clearTimeout(statusTimer);
+		if (tone !== 'busy') {
+			statusTimer = window.setTimeout(() => {
+				if (statusKey === key) {
+					paintLine(key, null);
+					statusKey = null;
+				}
+			}, 7000);
+		}
+	}
+	function clearStatus() {
+		clearTimeout(statusTimer);
+		if (statusKey) paintLine(statusKey, null);
+		statusKey = null;
+		live.textContent = '';
+	}
+
+	// ---- The actions. ----
+	/** @param {string} kind */
+	async function run(kind) {
+		if (kind === 'agent') {
+			const ok = await copyToClipboard(files.message);
+			setStatus('agent', ok ? WORDS.agent.done : WORDS.agent.fail, ok ? 'done' : 'fail');
+		} else if (kind === 'files') {
+			try {
+				downloadBlob(files.names.zip, new Blob([buildZip(files)], { type: 'application/zip' }));
+				setStatus('files', WORDS.files.done, 'done');
+			} catch {
+				setStatus('files', WORDS.files.fail, 'fail');
+			}
+		} else if (kind === 'settings') {
+			downloadText(files.names.settings, files.settings);
+			setStatus('settings', WORDS.settings.done, 'done');
+		} else if (kind === 'link') {
+			// The studio's `?page=` travels with the link, so the recipient lands on the same page.
+			const ok = await copyToClipboard(buildShareUrl(location, encodeState(handlers.getState())));
+			setStatus('link', ok ? WORDS.link.done : WORDS.link.fail, ok ? 'done' : 'fail');
+		} else if (kind === 'png') {
+			await runPng();
+		}
+	}
+	for (const btn of [agentWay.btn, filesWay.btn, settingsOpt.btn, linkOpt.btn, pngBtn]) {
+		btn.addEventListener('click', () => run(/** @type {string} */ (btn.dataset.export)));
+	}
+	/** @param {string} id @param {HTMLElement} btn */
+	async function copyFile(id, btn) {
+		const ok = await copyToClipboard(textOf(id));
+		btn.replaceChildren(iconNode(ok ? 'check' : 'close', 15));
+		btn.title = ok ? WORDS.copied : WORDS.copy;
+		setTimeout(() => {
+			btn.replaceChildren(iconNode('copy', 15));
+			btn.title = WORDS.copy;
+		}, 1400);
+	}
+
+	// ---- Screenshots. ----
+	/** The preview lanes on screen. Outside the studio, the page itself. */
+	function visibleLanes() {
+		if (!isStudio()) return [{ doc: getPageDoc(), win: getPageWin() }];
+		return getFrameEls()
+			.filter((frame) => frame.getClientRects().length > 0 && frame.contentDocument)
+			.map((frame) => ({ doc: frame.contentDocument, win: frame.contentWindow }));
+	}
+	/** A lane that already shows `mode` (in Split, each lane holds its own), or the main lane.
+	 * @param {'light'|'dark'} mode */
+	function laneFor(mode) {
+		return visibleLanes().find((lane) => themeOf(lane.doc) === mode) || { doc: getPageDoc(), win: getPageWin() };
+	}
+	/**
+	 * Captures one lane, and gives up when its page goes away: the preview moved to another page.
+	 * A capture of an unloaded page never finishes, and it would hold up every capture after it.
+	 * @param {'visible'|'full'} kind @param {{doc: Document|null|undefined, win: Window|null|undefined}} lane
+	 * @returns {Promise<{blob: Blob, width: number, height: number, doc: Document}>}
+	 */
+	function captureWhileShown(kind, lane) {
+		const { win } = lane;
+		return new Promise((resolve, reject) => {
+			const gone = () => reject(new Error('The preview moved to another page during the capture.'));
+			win?.addEventListener('pagehide', gone, { once: true });
+			capturePageScreenshot(kind, lane)
+				.then(resolve, reject)
+				.finally(() => win?.removeEventListener('pagehide', gone));
+		});
+	}
+	let captureQueue = Promise.resolve();
+	/**
+	 * Captures the preview in `mode`. When no lane shows that mode, the main lane switches to it for
+	 * the capture and switches back afterwards. Captures run one at a time, and nothing can stop one
+	 * that has started, so a capture that is no longer wanted when its turn comes is skipped instead.
+	 * @param {'light'|'dark'} mode @param {'visible'|'full'} kind
+	 * @param {() => boolean} [stillWanted] Checked when the capture's turn comes.
+	 * @returns {Promise<{blob: Blob, width: number, height: number, doc: Document}|null>} `null` when skipped.
+	 */
+	function captureIn(mode, kind, stillWanted = () => true) {
+		const runCapture = async () => {
+			if (!stillWanted()) return null;
+			const lane = visibleLanes().find((l) => themeOf(l.doc) === mode);
+			if (lane) return captureWhileShown(kind, lane);
+			const before = themeOf(getPageDoc());
+			handlers.setPreviewTheme(mode);
+			await settle(getPageWin());
+			try {
+				return await captureWhileShown(kind, { doc: getPageDoc(), win: getPageWin() });
+			} finally {
+				handlers.setPreviewTheme(before);
+			}
+		};
+		const next = captureQueue.then(runCapture, runCapture);
+		captureQueue = next.then(
+			() => undefined,
+			() => undefined
+		);
+		return next;
+	}
+	async function runPng() {
+		if (shot.busy) return;
+		shot.busy = true;
+		for (const b of [pngBtn, panels.png.dlBtn]) b.setAttribute('aria-busy', 'true');
+		setStatus('png', shot.area === 'full' ? WORDS.png.renderingFull : WORDS.png.rendering, 'busy');
+		try {
+			const mode = shot.mode;
+			// The small picture is a visible-area capture at full size. When the view has not changed
+			// since, it is the download, and a long page is rendered once instead of twice.
+			const thumb = shot.area === 'visible' ? thumbs.get(mode) : undefined;
+			const reused = thumb && thumb.key === viewKey(mode) ? await thumb.promise : null;
+			const result = reused || (await captureIn(mode, shot.area));
+			if (!result) throw new Error('The preview page is not available right now.');
+			const { blob, width, doc } = result;
+			downloadBlob(`${files.slug}-${pageSlugFromPath(doc?.location?.pathname)}-${mode}-${width}.png`, blob);
+			setStatus('png', WORDS.png.done, 'done');
+		} catch (err) {
+			setStatus('png', `${WORDS.png.fail} ${err instanceof Error ? err.message : String(err)}`, 'fail');
+		} finally {
+			shot.busy = false;
+			for (const b of [pngBtn, panels.png.dlBtn]) b.removeAttribute('aria-busy');
+		}
+	}
+
+	// The small pictures, one per mode. Each is kept with what it shows: the CSS, the page, the scroll
+	// position and the window size. A picture whose view has changed is rendered again.
+	/** @typedef {{key: string, url: string|null, failed: boolean, promise: Promise<{blob: Blob, width: number, height: number, doc: Document}|null>}} Thumb */
+	/** @type {Map<'light'|'dark', Thumb>} */
+	const thumbs = new Map();
+	/** What a visible-area picture in `mode` depends on. @param {'light'|'dark'} mode */
+	function viewKey(mode) {
+		const { doc, win } = laneFor(mode);
+		return [files.css, mode, doc?.location?.href || '', Math.round(win?.scrollX || 0), Math.round(win?.scrollY || 0), win?.innerWidth || 0, win?.innerHeight || 0].join('\n');
+	}
+	function ensureThumb() {
+		if (!isStudio()) return paintThumbs();
+		const mode = shot.mode;
+		const key = viewKey(mode);
+		const old = thumbs.get(mode);
+		if (old && old.key === key && !old.failed) return paintThumbs();
+		/** @type {Thumb} */
+		const entry = { key, url: null, failed: false, promise: Promise.resolve(null) };
+		const current = () => thumbs.get(mode) === entry;
+		// A dialog closed before this picture's turn, or a newer picture for this mode, skips it.
+		entry.promise = captureIn(mode, 'visible', () => !backdrop.hidden && current()).then(
+			(result) => {
+				if (!current()) return result;
+				if (result) entry.url = URL.createObjectURL(result.blob);
+				else thumbs.delete(mode);
+				paintThumbs();
+				return result;
+			},
+			() => {
+				// The line under the picture says there is none; Download PNG reports its own errors.
+				if (current()) {
+					entry.failed = true;
+					paintThumbs();
+				}
+				return null;
+			}
+		);
+		thumbs.set(mode, entry);
+		paintThumbs();
+		// Only now is the old picture off the page, so its address can go.
+		if (old?.url) URL.revokeObjectURL(old.url);
+	}
+	// Only the pictures are swapped, never the controls around them, so a click is never lost.
+	function paintThumbs() {
+		const entry = isStudio() ? thumbs.get(shot.mode) : undefined;
+		// A picture of an earlier view is never shown, even for the moment before it is replaced.
+		const url = entry && entry.key === viewKey(shot.mode) ? entry.url : null;
+		const waitText = !isStudio() || entry?.failed ? WORDS.png.thumbNone : WORDS.png.thumbWait;
+		thumbPic.replaceChildren(url ? h('img', { src: url, alt: '' }) : h('span', { class: 'svc-xp-thumb-wait' }, [waitText]));
+		const note = shot.area === 'full' && url ? [h('p', { class: 'svc-xp-imgnote' }, [WORDS.png.fullNote])] : [];
+		panels.png.content.replaceChildren(...note, url ? h('img', { src: url, alt: `The preview page in ${shot.mode} mode` }) : h('p', { class: 'svc-xp-thumb-wait' }, [waitText]));
+	}
+	/** The line under the screenshot buttons, when no status is showing. */
+	function pngRestLine() {
+		if (shot.optsOpen) return shot.area === 'full' ? WORDS.png.slow : '';
+		if (shot.mode === shot.openedMode && shot.area === 'visible') return '';
+		return `${shot.mode === 'dark' ? 'Dark' : 'Light'}, ${shot.area === 'full' ? 'full page' : 'visible area'}.`;
+	}
+	function paintShot() {
+		for (const group of [modeGroup, areaGroup]) {
+			for (const b of group.buttons) {
+				const on = b.dataset.value === shot[group.key];
+				b.setAttribute('aria-checked', String(on));
+				b.tabIndex = on ? 0 : -1;
+			}
+		}
+		optsBtn.textContent = shot.optsOpen ? WORDS.png.hideOptions : WORDS.png.options;
+		optsBtn.setAttribute('aria-expanded', String(shot.optsOpen));
+		shotOpts.hidden = !shot.optsOpen;
+		if (statusKey !== 'png') paintLine('png', null);
+		panels.png.nameEl.textContent = nameOf('png');
+		panels.png.metaEl.textContent = `${shot.mode}, ${shot.area === 'full' ? 'full page' : 'visible area'}`;
+		panels.png.dlBtn.setAttribute('aria-label', `Download ${nameOf('png')}`);
+		paintThumbs();
+	}
+	optsBtn.addEventListener('click', () => {
+		shot.optsOpen = !shot.optsOpen;
+		paintShot();
 	});
-	importLabel.appendChild(fileInput);
-	footer.appendChild(importLabel);
-	dialog.appendChild(footer);
+	thumbBtn.addEventListener('click', () => selectFile('png'));
 
-	/** @param {import('../core/state.js').ThemeState} state */
-	function refresh(state) {
-		textareas.css.value = emitCss(state);
-		textareas.apply.value = emitApplyTheme(state);
-		textareas.json.value = JSON.stringify(state, null, 2);
-		// S14: "file list on the left ... with sizes" - byte length of what Copy/Download actually use.
-		for (const tab of tabs) tab.sizeEl.textContent = formatSize(new Blob([textareas[tab.id].value]).size);
+	// ---- Opening, closing and the keyboard. ----
+	function deepActive() {
+		let a = document.activeElement;
+		while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
+		return /** @type {HTMLElement|null} */ (a);
 	}
-
-	function open() {
-		refresh(handlers.getState());
+	/** @param {'export'|'screenshot'|'share'} [where] */
+	function open(where = 'export') {
+		opener = deepActive();
+		clearStatus();
+		shot.mode = themeOf(getPageDoc());
+		shot.openedMode = shot.mode;
+		shot.area = 'visible';
+		shot.optsOpen = false;
+		// Only the studio renders the small picture: outside it, the page is the dialog's own page.
+		thumbBtn.hidden = !isStudio();
+		refresh();
 		backdrop.hidden = false;
-		closeBtn.focus();
+		if (where === 'screenshot') {
+			selectFile('png');
+			pngBtn.focus();
+		} else if (where === 'share') {
+			selectFile('settings');
+			linkOpt.btn.focus();
+		} else {
+			selectFile('message');
+			agentWay.btn.focus();
+		}
+		ensureThumb();
 	}
-	function close() {
+	/** @param {boolean} [restoreFocus] */
+	function close(restoreFocus = true) {
+		if (backdrop.hidden) return;
 		backdrop.hidden = true;
+		clearStatus();
+		if (restoreFocus && opener && opener.isConnected) opener.focus();
+		opener = null;
 	}
+	closeBtn.addEventListener('click', () => close());
+	// A press that starts inside the dialog and ends on the backdrop, such as selecting text in a
+	// file, does not close it.
+	let pressOnBackdrop = false;
+	backdrop.addEventListener('mousedown', (event) => {
+		pressOnBackdrop = event.target === backdrop;
+	});
+	backdrop.addEventListener('click', (event) => {
+		if (event.target === backdrop && pressOnBackdrop) close();
+	});
+
+	function focusables() {
+		return [.../** @type {NodeListOf<HTMLElement>} */ (dialog.querySelectorAll('button, [tabindex="0"]'))].filter(
+			(el) => el.tabIndex >= 0 && !(/** @type {HTMLButtonElement} */ (el).disabled) && el.getClientRects().length > 0
+		);
+	}
+	backdrop.addEventListener('keydown', (event) => {
+		const root = /** @type {ShadowRoot|Document} */ (dialog.getRootNode());
+		const active = /** @type {HTMLElement|null} */ (root.activeElement);
+		if (event.key === 'Escape') {
+			event.stopPropagation();
+			close();
+			return;
+		}
+		if (event.key === 'Tab') {
+			// Focus stays inside the dialog.
+			const items = focusables();
+			if (!items.length) return;
+			const first = items[0];
+			const last = items[items.length - 1];
+			if (event.shiftKey && (active === first || !dialog.contains(active))) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+				event.preventDefault();
+				first.focus();
+			}
+			return;
+		}
+		// Arrow keys, Home and End move along the file tabs and the screenshot options, and choose.
+		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+		const group = active?.closest('[role="tablist"], [role="radiogroup"]');
+		if (!group || !active) return;
+		const items = [.../** @type {NodeListOf<HTMLElement>} */ (group.querySelectorAll('[role="tab"], [role="radio"]'))];
+		const i = items.indexOf(active);
+		if (i < 0) return;
+		event.preventDefault();
+		const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+		const n = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (i + (forward ? 1 : -1) + items.length) % items.length;
+		items[n].click();
+		items[n].focus();
+	});
 
 	return { root: backdrop, open, close };
 }
