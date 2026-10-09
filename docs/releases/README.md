@@ -7,6 +7,7 @@ published from the file, so the two always match.
 
 | Version | Date | Targets | Notes | Release page |
 |---|---|---|---|---|
+| 0.1.1 | 2026-10-09 | Starlight 0.42.6, Astro 7.3.8 | [v0.1.1.md](v0.1.1.md) | [v0.1.1](https://github.com/prisant-labs/starlight-visual-customizer/releases/tag/v0.1.1) |
 | 0.1.0 | 2026-10-08 | Starlight 0.42.4, Astro 7.3.5 | [v0.1.0.md](v0.1.0.md) | [v0.1.0](https://github.com/prisant-labs/starlight-visual-customizer/releases/tag/v0.1.0) |
 
 ## How these files relate to the changelog
