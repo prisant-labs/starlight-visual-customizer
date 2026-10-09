@@ -31,7 +31,10 @@ Two kinds of change always need that agreement first, because users' sites depen
   and `APPLY-THEME.md` tells users which version it was built for. A unit test checks that
   `app/src/customizer/core/version.js` matches the installed Starlight. The docs, badges and
   issue form name the version too, so search the repository for the old version string and
-  update every match.
+  update every match. Search for the escaped form as well, such as `0\.42\.6`, because some
+  tests match the version with a regular expression. Dependabot opens a weekly pull request when
+  either package has a new version. That pull request fails CI on purpose, until someone does
+  the full upgrade.
 - **Changing what an export contains.** Golden files in `app/tests/golden/` pin the exact output,
   and the round-trip test checks that an export reproduces the studio's preview.
 

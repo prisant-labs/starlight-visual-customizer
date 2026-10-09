@@ -1,0 +1,23 @@
+# Tells the maintainers when Astro or Starlight ships a new version. Nothing else is watched.
+#
+# The studio pins both packages exactly, and `npm test` fails until `STARLIGHT_VERSION` in
+# app/src/customizer/core/version.js matches the installed Starlight. So a pull request from this
+# file is expected to fail CI: it is a signal to run a real upgrade, not an upgrade on its own.
+# CONTRIBUTING.md and docs/releasing.md describe what a Starlight upgrade involves.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-name: astro
+      - dependency-name: "@astrojs/starlight"
+    groups:
+      astro-and-starlight:
+        patterns:
+          - astro
+          - "@astrojs/starlight"
+    commit-message:
+      prefix: "chore(app)"
+    open-pull-requests-limit: 1
