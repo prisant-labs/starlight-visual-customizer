@@ -53,4 +53,4 @@ body:
     id: starlight-version
     attributes:
       label: Starlight version on your site
-      description: Only for problems with an exported theme. The studio targets Starlight 0.42.4.
+      description: Only for problems with an exported theme. The studio targets Starlight 0.42.6.

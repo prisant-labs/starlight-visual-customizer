@@ -5,7 +5,7 @@ description: Common questions about how Orbit works.
 
 ## Does this modify my Starlight version?
 
-No. The customizer pins against a specific Starlight version (0.42.4) and reads its DOM structure and CSS custom properties, but it doesn't patch or fork any Starlight source. If you upgrade Starlight and a selector changes, the customizer's treatment options may stop matching until it's updated for the new version.
+No. The customizer pins against a specific Starlight version (0.42.6) and reads its DOM structure and CSS custom properties, but it doesn't patch or fork any Starlight source. If you upgrade Starlight and a selector changes, the customizer's treatment options may stop matching until it's updated for the new version.
 
 ## Can I use it without the panel, just for the emitted CSS?
 

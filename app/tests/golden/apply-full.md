@@ -2,7 +2,7 @@
 
 # Apply theme
 
-Target: `@astrojs/starlight@0.42.4` (this document was generated against that version's config and sidebar schema).
+Target: `@astrojs/starlight@0.42.6` (this document was generated against that version's config and sidebar schema).
 
 **STOP** if the installed `@astrojs/starlight` minor version differs from `0.42` (check `node_modules/@astrojs/starlight/package.json`'s `"version"` field). Ask the user how to proceed rather than applying config/CSS shaped for a different minor version.
 

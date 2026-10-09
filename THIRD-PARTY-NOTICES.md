@@ -12,8 +12,8 @@ Full license text for each license family appears once, in [Appendix: full licen
 
 | Package | Version | License | Copyright |
 |---|---|---|---|
-| [astro](https://github.com/withastro/astro) | 7.3.5 | MIT | (c) 2021 Fred K. Schott |
-| [@astrojs/starlight](https://github.com/withastro/starlight) | 0.42.4 | MIT | (c) 2023 [Astro contributors](https://github.com/withastro/starlight/graphs/contributors) |
+| [astro](https://github.com/withastro/astro) | 7.3.8 | MIT | (c) 2021 Fred K. Schott |
+| [@astrojs/starlight](https://github.com/withastro/starlight) | 0.42.6 | MIT | (c) 2023 [Astro contributors](https://github.com/withastro/starlight/graphs/contributors) |
 | [@fontsource-variable/inter](https://github.com/fontsource/font-files) (the [Inter](https://github.com/rsms/inter) typeface) | 5.3.0 | SIL Open Font License 1.1 | (c) 2016 The Inter Project Authors |
 | [culori](https://github.com/Evercoder/culori) | 4.0.2 | MIT | (c) 2018 Dan Burzo |
 | [fflate](https://github.com/101arrowz/fflate) | 0.8.3 | MIT | (c) Arjun Barrett |

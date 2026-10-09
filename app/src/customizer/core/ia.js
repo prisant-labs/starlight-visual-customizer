@@ -72,9 +72,10 @@
  *    have `label: undefined`. If the IA editor later sets a `label` on an
  *    autogenerate item directly (not possible from a real parse), output
  *    wraps it as `{label, items: [{autogenerate: {...}}]}` so the exported
- *    config stays valid for Starlight 0.42.4 (re-verified for the upgrade: Starlight 0.42.4's
- *    changelog touches only sidebar *rendering* (`SidebarSublist.astro`) and FileTree icons,
- *    neither of which is the sidebar config schema this module parses/emits).
+ *    config stays valid for Starlight 0.42.6 (re-verified for each upgrade: Starlight 0.42.4's
+ *    changelog touches only sidebar *rendering* (`SidebarSublist.astro`) and FileTree icons, and
+ *    0.42.5 and 0.42.6 add translations and icon fixes; none of them changes the sidebar config
+ *    schema this module parses/emits).
  */
 
 // ---------------------------------------------------------------------------

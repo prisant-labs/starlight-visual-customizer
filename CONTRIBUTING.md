@@ -27,7 +27,7 @@ agree on the approach before you spend time on it.
 
 Two kinds of change always need that agreement first, because users' sites depend on them:
 
-- **Upgrading Starlight or Astro.** The studio targets one Starlight version, currently 0.42.4,
+- **Upgrading Starlight or Astro.** The studio targets one Starlight version, currently 0.42.6,
   and `APPLY-THEME.md` tells users which version it was built for. A unit test checks that
   `app/src/customizer/core/version.js` matches the installed Starlight. The docs, badges and
   issue form name the version too, so search the repository for the old version string and

@@ -18,7 +18,7 @@ import { isSafeDocPath, safeLinkAttrs, safeSingleLineHref, toSingleLine } from '
 /**
  * @typedef {{
  *  v: 1,
- *  starlight: '0.42.4',
+ *  starlight: '0.42.6',
  *  preset: string,
  *  values: Record<string, any>,
  *  ia: SidebarItem[] | null,
