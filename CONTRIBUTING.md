@@ -97,7 +97,12 @@ change, and list them in the pull request.
 - Add an entry under an "Unreleased" heading at the top of [`CHANGELOG.md`](CHANGELOG.md) for any
   change that users will notice. Create the heading if it is not there yet.
 - Update the documents that describe the behavior you changed, including any test counts.
-- Pull requests merge as merge commits once CI passes.
+- A pull request merges as a merge commit once two things are true: the "Unit tests and build"
+  check passes, and every review conversation is resolved. Your branch does not need to be up to
+  date with `main`.
+- If you work from a fork, a maintainer approves the workflow runs on your pull request before CI
+  starts. Until then, the check waits for approval. This applies to every pull request from
+  outside the organization, not only to a first one.
 
 ## License
 

@@ -53,8 +53,8 @@ run the full set yourself before a release, as [`docs/testing.md`](testing.md) d
 
 ### 3. Merge, then tag the merge commit
 
-Merge the pull request as a merge commit. Then tag that merge commit with an annotated tag, and
-push the tag:
+Merge the pull request as a merge commit, the only merge method the repository allows. Then tag
+that merge commit with an annotated tag, and push the tag:
 
 ```bash
 git switch main
@@ -67,6 +67,11 @@ git push origin v0.2.0
 Name the merge commit explicitly. If another pull request merged after the release-prep one, the
 tip of `main` is no longer the release.
 
+Only a repository admin can push the tag. The "Protect release tags" ruleset stops everyone else
+from creating, moving or deleting any tag whose name starts with `v`. Admins bypass the ruleset,
+because a release tag is pushed directly, not through a pull request. The same rule covers moving
+a tag later, for example to fold a fix into a release that is still a draft.
+
 ### 4. Publish the GitHub release from the notes file
 
 ```bash
@@ -74,7 +79,9 @@ gh release create v0.2.0 --verify-tag --title "v0.2.0: <the release title>" \
   --notes-file docs/releases/v0.2.0.md --draft
 ```
 
-The `--draft` flag lets you read the rendered page before anyone else can see it. Open the draft
+The `--verify-tag` flag stops the command if the tag is not on GitHub yet, so the release never
+creates a tag of its own. The `--draft` flag lets you read the rendered page before anyone else
+can see it. Open the draft
 on the Releases page and check the images and links. Then publish it:
 
 ```bash
