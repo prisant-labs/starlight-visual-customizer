@@ -37,7 +37,7 @@
     "culori": "4.0.2",
     "fflate": "0.8.3",
     "modern-screenshot": "4.7.0",
-    "sharp": "0.35.4",
+    "sharp": "0.35.5",
     "vanilla-colorful": "0.7.2"
   },
   "devDependencies": {

@@ -5,6 +5,13 @@ who use the studio: on the [Releases page](https://github.com/prisant-labs/starl
 and in [`docs/releases/`](docs/releases/README.md), one file per release. Version numbers follow
 [semantic versioning](https://semver.org/); before 1.0, a minor release can change behavior.
 
+## Unreleased
+
+- **Security: the build uses `sharp` 0.35.5.** Astro's image service runs `sharp` while the site
+  builds. Version 0.35.4 carried a flaw in its SVG library, librsvg. The build processes only the
+  project's own images, and `sharp` never runs in a visitor's browser, so the live site was not
+  exposed.
+
 ## [0.1.1] - 2026-10-09
 
 Release notes: [`docs/releases/v0.1.1.md`](docs/releases/v0.1.1.md).
