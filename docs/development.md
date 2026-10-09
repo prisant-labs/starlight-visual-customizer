@@ -8,7 +8,7 @@ the tests, and
 ## Requirements
 
 - **Node 22.** The CI and deploy workflows use the same version.
-- **The pinned packages.** `app/package.json` pins `@astrojs/starlight` 0.42.4 and Astro 7.3.5
+- **The pinned packages.** `app/package.json` pins `@astrojs/starlight` 0.42.6 and Astro 7.3.8
   exactly, because the studio targets one Starlight version. Do not upgrade either one without
   agreement first; [`CONTRIBUTING.md`](../CONTRIBUTING.md) explains why.
 

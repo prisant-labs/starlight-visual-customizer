@@ -193,7 +193,7 @@ The context line sits under the toolbar.
 - **On the right,** the contrast check comes first. It shows a green "Contrast AA" when every text
   pair passes WCAG AA in both light and dark mode. That check runs against the palette actually in
   effect. Otherwise it shows an amber "N contrast warnings". A click opens the full contrast table.
-- **Then** come "Real Starlight 0.42.4 build · CSS live" and the scale label.
+- **Then** come "Real Starlight 0.42.6 build · CSS live" and the scale label.
 
 ## Narrow windows
 

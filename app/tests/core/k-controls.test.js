@@ -1,6 +1,6 @@
 /**
  * @file Unit coverage for a set of controls with literal selector overrides, each independent of
- * `treatments.js`'s generic per-control CSS, on real Starlight 0.42.4 selectors (unchanged from
+ * `treatments.js`'s generic per-control CSS, on real Starlight 0.42.6 selectors (unchanged since
  * 0.42.3 - see `treatments.js`'s
  * file header for what the upgrade actually touched). `tests/core/emit-css.test.js`'s generic
  * "coverage" and "treatments.js completeness" suites already prove every id here is handled and

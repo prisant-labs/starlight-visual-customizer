@@ -84,7 +84,7 @@ describe('emitApplyTheme: structure', () => {
 	test('the STOP line names the correct target minor version', () => {
 		const out = emitApplyTheme(defaultState());
 		assert.match(out, /differs from `0\.42`/);
-		assert.match(out, /@astrojs\/starlight@0\.42\.4/);
+		assert.match(out, /@astrojs\/starlight@0\.42\.6/);
 	});
 
 	test('respects a custom cssFileName throughout', () => {

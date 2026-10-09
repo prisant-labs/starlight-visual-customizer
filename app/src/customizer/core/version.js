@@ -6,4 +6,4 @@
  * `tests/core/version.test.js` asserts it against the installed
  * `node_modules/@astrojs/starlight/package.json`, so `npm test` fails until it's bumped.
  */
-export const STARLIGHT_VERSION = '0.42.4';
+export const STARLIGHT_VERSION = '0.42.6';

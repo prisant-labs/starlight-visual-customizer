@@ -1,12 +1,14 @@
 /**
  * @file Tier-2 treatment library: exact CSS per non-default select option, keyed by manifest
  * control id and option value. Selectors are copied from the installed
- * `@astrojs/starlight@0.42.4` source (`node_modules/@astrojs/starlight/dist/components/*.astro`,
+ * `@astrojs/starlight@0.42.6` source (`node_modules/@astrojs/starlight/dist/components/*.astro`,
  * `dist/style/*.css`, `dist/user-components/*.astro`), not guessed - re-verified for the 0.42.4
  * upgrade: `dist/style/*.css` is byte-identical to 0.42.3, and `dist/components/*.astro` differs
  * only in `SidebarSublist.astro` (an internal `sidebarGroupHasCurrent()` helper swapped in for the
  * same `flattenSidebar(...).some(...)` check - no markup/class change, and unrelated to any
- * selector below). `emit-css.js` is the only
+ * selector below). Re-verified for the 0.42.6 upgrade: the only stylesheet change adds
+ * `overflow: visible` to icon rules (`anchor-links.css`, `asides.css`, `Icon.astro`,
+ * `FileTree.astro`), and `Footer.astro` changes only an import path - no selector below moves. `emit-css.js` is the only
  * consumer; it skips lookup entirely when a control's value equals the manifest default, so the
  * default option for each treatment intentionally has no entry here.
  *

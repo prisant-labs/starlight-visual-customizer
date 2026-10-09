@@ -54,7 +54,7 @@ The header of every export looks like this:
 ```css
 /*
  * Starlight Visual Customizer
- * Target: Starlight 0.42.4 (@astrojs/starlight)
+ * Target: Starlight 0.42.6 (@astrojs/starlight)
  * Load via the `customCss` option in astro.config.mjs.
  * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.
  * Made with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/
@@ -166,7 +166,7 @@ The settings file is a `ThemeState` object, defined in `app/src/customizer/core/
 | Field | Meaning |
 |---|---|
 | `v` | The state format's version, currently `1` |
-| `starlight` | The Starlight version the theme was made for, such as `'0.42.4'` |
+| `starlight` | The Starlight version the theme was made for, such as `'0.42.6'` |
 | `preset` | The id of the preset the theme started from |
 | `values` | Every control that differs from its default, keyed by control id |
 | `ia` | The sidebar tree from the Structure editor, or `null` when the theme keeps the default sidebar |

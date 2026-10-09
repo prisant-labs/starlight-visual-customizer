@@ -1,6 +1,6 @@
 /**
  * @file Pure CSS emitter. Given a `ThemeState` (see `state.js`), produces the exact `theme.css`
- * text a real `@astrojs/starlight@0.42.4` site would load via `customCss`. DOM-free, deterministic
+ * text a real `@astrojs/starlight@0.42.6` site would load via `customCss`. DOM-free, deterministic
  * (same state -> byte-identical output), unlayered (never wrapped in `@layer`, so it always wins
  * over Starlight's own `@layer starlight.*` rules whenever a selector matches),
  * and emits `!important` nowhere.
@@ -159,7 +159,8 @@ const TREATMENT_IDS = [
 
 // ---------------------------------------------------------------------------------------------
 // A set of controls with literal selector overrides, on real Starlight
-// 0.42.4 selectors (unchanged from 0.42.3 - dist/style/*.css is byte-identical between the two).
+// 0.42.6 selectors (unchanged since 0.42.3 - 0.42.6's only stylesheet change adds `overflow: visible`
+// to the icon rules in anchor-links.css and asides.css).
 // Each is a literal selector-based override (not a custom property Starlight
 // itself declares on :root), so - unlike PALETTE_IDS/HUE_IDS/ROLE_IDS above - there is nothing to
 // gate as a group: every id here is diffed independently against its own manifest default.
@@ -232,7 +233,7 @@ function fmtNum(n, precision = 4) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * Raw step name -> [Starlight 0.42.4 default size in px (props.css, byte-identical to 0.42.3), exponent relative to 'base'].
+ * Raw step name -> [Starlight 0.42.6 default size in px (props.css, byte-identical since 0.42.3), exponent relative to 'base'].
  * Starlight's ladder is not geometric: small steps are nearly flat (12/13/14) and large steps grow
  * ~1.2x, so the scale is anchored to these defaults rather than generated as base * ratio^n.
  */

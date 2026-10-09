@@ -158,7 +158,7 @@ function restoreCustomElementCopies(elements) {
  *
  * "Full page" renders the whole document top-to-bottom in one pass (`height` = full scroll height);
  * Starlight's header/sidebar/right-TOC are all `position: fixed` (verified against the installed
- * 0.42.4 sources - `dist/style/*.css` is byte-identical to 0.42.3, so this still holds), so -
+ * 0.42.6 sources - no `position` rule changed since 0.42.3, so this still holds), so -
  * exactly like a browser's own full-page screenshot algorithm - they render
  * once, pinned to the top of that tall render, never repeated.
  *

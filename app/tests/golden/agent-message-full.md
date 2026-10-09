@@ -2,7 +2,7 @@
 
 # Apply theme
 
-Target: `@astrojs/starlight@0.42.4` (this document was generated against that version's config and sidebar schema).
+Target: `@astrojs/starlight@0.42.6` (this document was generated against that version's config and sidebar schema).
 
 **STOP** if the installed `@astrojs/starlight` minor version differs from `0.42` (check `node_modules/@astrojs/starlight/package.json`'s `"version"` field). Ask the user how to proceed rather than applying config/CSS shaped for a different minor version.
 
@@ -104,7 +104,7 @@ Write this to `src/styles/theme.css` with these exact lines and LF line endings.
 ```css
 /*
  * Starlight Visual Customizer
- * Target: Starlight 0.42.4 (@astrojs/starlight)
+ * Target: Starlight 0.42.6 (@astrojs/starlight)
  * Load via the `customCss` option in astro.config.mjs.
  * Unlayered, deterministic output - only diffs from Starlight's own defaults are emitted.
  * Made with the Starlight Visual Customizer: https://projects.prisantlabs.com/starlight-visual-customizer/

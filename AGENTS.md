@@ -10,7 +10,7 @@ Instructions for coding agents that work in this repository. The documents under
   in a frame and exports `theme.css`, `APPLY-THEME.md` and a state file.
 - **It runs entirely in the browser.** There is no server, no account and no database. The site is
   a static build on GitHub Pages.
-- **The app lives in `app/`.** It uses Astro 7.3.5 and Starlight 0.42.4, both pinned exactly, on
+- **The app lives in `app/`.** It uses Astro 7.3.8 and Starlight 0.42.6, both pinned exactly, on
   Node 22.
 - **The live site** is <https://projects.prisantlabs.com/starlight-visual-customizer/>. It has the
   product page at `/`, the studio at `/studio/`, the About page at `/about/`, and the demo site

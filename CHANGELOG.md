@@ -5,6 +5,12 @@ who use the studio: on the [Releases page](https://github.com/prisant-labs/starl
 and in [`docs/releases/`](docs/releases/README.md), one file per release. Version numbers follow
 [semantic versioning](https://semver.org/); before 1.0, a minor release can change behavior.
 
+## Unreleased
+
+- **Starlight 0.42.6 and Astro 7.3.8.** The studio now previews Starlight 0.42.6, built with Astro
+  7.3.8, and every export names 0.42.6 as its target. Themes made with 0.1.0 still load and apply:
+  Starlight's stylesheets changed only to stop icons from being cut off in Firefox.
+
 ## [0.1.0] - 2026-10-08
 
 Release notes: [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md).

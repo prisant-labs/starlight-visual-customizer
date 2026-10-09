@@ -5,7 +5,7 @@ About page, and a Starlight demo site that the studio themes. The repository's
 [README](../README.md) introduces the project, and [`docs/`](../docs/README.md) documents it in
 full.
 
-- **Pinned:** `@astrojs/starlight` 0.42.4, Astro 7.3.5, Node 22, and `vanilla-colorful` 0.7.2 for the
+- **Pinned:** `@astrojs/starlight` 0.42.6, Astro 7.3.8, Node 22, and `vanilla-colorful` 0.7.2 for the
   color popover.
 
 ## Quick start

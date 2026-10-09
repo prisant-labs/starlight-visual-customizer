@@ -6,8 +6,8 @@ fonts, layout and components on real Starlight pages, then export one CSS file.*
 [![Try it live](https://img.shields.io/badge/Try_it_live-open_the_studio-4453c9?style=for-the-badge)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
 [![Latest release](https://img.shields.io/github/v/release/prisant-labs/starlight-visual-customizer?sort=semver&label=release)](https://github.com/prisant-labs/starlight-visual-customizer/releases)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Built for Starlight 0.42.4](https://img.shields.io/badge/Starlight-0.42.4-6d4aff)](https://starlight.astro.build/)
-[![Astro 7.3.5](https://img.shields.io/badge/Astro-7.3.5-ff5d01)](https://astro.build/)
+[![Built for Starlight 0.42.6](https://img.shields.io/badge/Starlight-0.42.6-6d4aff)](https://starlight.astro.build/)
+[![Astro 7.3.8](https://img.shields.io/badge/Astro-7.3.8-ff5d01)](https://astro.build/)
 
 [![The studio with the Editorial Serif preset applied: serif headings, a red accent and a banner on a Starlight style guide page](docs/images/studio.png)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
 

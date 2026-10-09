@@ -17,7 +17,8 @@ constant, `STARLIGHT_VERSION` in `app/src/customizer/core/version.js`. Both the 
 and the Node-based test suites read that one constant. A unit test,
 `app/tests/core/version.test.js`, compares it against the version actually installed in the
 Starlight package's own manifest, under `node_modules`. `npm test` fails if the two disagree. The
-current pinned version is 0.42.4, alongside Astro 7.3.5.
+pinned version was 0.42.4, alongside Astro 7.3.5, when this was decided. `version.js` holds the
+current one.
 
 `CONTRIBUTING.md` lists upgrading Starlight or Astro as one of two kinds of change that always
 need agreement before a pull request. Users' sites depend on them. A contributor who
