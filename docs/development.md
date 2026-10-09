@@ -1,7 +1,8 @@
 # Development
 
-This guide covers running the app on your machine, serving it under a sub-path, and how the live
-site deploys. [`docs/testing.md`](testing.md) covers the tests, and
+This guide covers running the app on your machine, serving it under a sub-path, how the live site
+deploys, and which GitHub Actions the workflows may use. [`docs/testing.md`](testing.md) covers
+the tests, and
 [`docs/architecture.md`](architecture.md) explains where the code lives.
 
 ## Requirements
@@ -130,3 +131,19 @@ So the base must equal the repository's name. Renaming the repository means chan
 
 The workflow's jobs run only in `prisant-labs/starlight-visual-customizer`. A fork deploys nothing
 until it changes that guard and the two variables for its own address.
+
+## Actions the workflows may use
+
+The repository runs only GitHub Actions on its allow-list. The list holds GitHub's own actions,
+such as `actions/checkout`, plus four others:
+
+- `withastro/action`, which `deploy.yml` uses to build the site.
+- `pnpm/action-setup`, `oven-sh/setup-bun` and `denoland/setup-deno`. No workflow here calls them
+  directly. `withastro/action` refers to them in its own steps, and GitHub checks every action
+  that a job refers to before the job starts, even one whose step will be skipped.
+
+A new third-party action must join the list before a workflow uses it, along with any action it
+refers to internally. Otherwise the job fails at its "Set up job" step, before anything runs. An
+admin edits the list under **Settings**, **Actions**, **General**.
+
+A fork has its own Actions settings, so this list applies only to this repository.
