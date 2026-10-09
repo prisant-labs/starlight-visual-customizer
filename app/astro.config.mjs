@@ -40,9 +40,6 @@ export default defineConfig({
 		starlight({
 			title: 'Orbit Docs',
 			head: [
-				// Prototype-stage: keep every page out of search engines until this is ready for a
-				// public launch. Remove once that decision is made.
-				{ tag: 'meta', attrs: { name: 'robots', content: 'noindex' } },
 				{ tag: 'script', content: noFlashPreloadScript },
 				// L-01 (social preview card): applies to every demo page too, so a link to any of
 				// them also renders the card. Starlight already emits og:title, og:description,
