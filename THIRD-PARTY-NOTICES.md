@@ -18,7 +18,7 @@ Full license text for each license family appears once, in [Appendix: full licen
 | [culori](https://github.com/Evercoder/culori) | 4.0.2 | MIT | (c) 2018 Dan Burzo |
 | [fflate](https://github.com/101arrowz/fflate) | 0.8.3 | MIT | (c) Arjun Barrett |
 | [modern-screenshot](https://github.com/qq15725/modern-screenshot) | 4.7.0 | MIT | (c) 2021-present wxm |
-| [sharp](https://github.com/lovell/sharp) | 0.35.4 | Apache-2.0 | (c) Lovell Fuller and contributors |
+| [sharp](https://github.com/lovell/sharp) | 0.35.5 | Apache-2.0 | (c) Lovell Fuller and contributors |
 | [vanilla-colorful](https://github.com/web-padawan/vanilla-colorful) | 0.7.2 | MIT | (c) 2020 Serhii Kulykov |
 
 Notes:
