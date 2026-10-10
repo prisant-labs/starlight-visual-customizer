@@ -212,7 +212,8 @@ web-font previews from jsDelivr.
 ### One source for the About text
 
 The About text lives in `app/src/about/about.md`. `app/src/about/AboutBody.astro` renders it and
-adds a facts line with the Starlight version and the repository and hub links. The About dialog in
+adds a facts line with the Starlight version, the repository and hub links, and a link to the
+issue chooser (`ISSUES_URL` in `app/src/customizer/core/project.js`). The About dialog in
 `app/src/pages/studio.astro` and the page `app/src/pages/about.astro` both render that one
 component at build time.
 

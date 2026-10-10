@@ -7,12 +7,13 @@
  */
 import { Content } from './about.md';
 import { STARLIGHT_VERSION } from '../customizer/core/version.js';
-import { REPO_URL, HUB_URL } from '../customizer/core/project.js';
+import { REPO_URL, ISSUES_URL, HUB_URL } from '../customizer/core/project.js';
 ---
 
 <Content />
 <p class="svc-about-facts">
 	Built for Starlight {STARLIGHT_VERSION}. The source code is on{' '}
 	<a href={REPO_URL} target="_blank" rel="noopener">GitHub</a>, and more projects are on the{' '}
-	<a href={HUB_URL}>Prisant Labs projects page</a>.
+	<a href={HUB_URL}>Prisant Labs projects page</a>.{' '}
+	<a href={ISSUES_URL} target="_blank" rel="noopener">Report a problem</a> or suggest a feature on GitHub.
 </p>

@@ -25,7 +25,7 @@
 import '@fontsource-variable/inter';
 import { Image } from 'astro:assets';
 import { withBase } from '../customizer/core/base-path.js';
-import { REPO_URL, HUB_URL, TOOL_URL } from '../customizer/core/project.js';
+import { REPO_URL, ISSUES_URL, HUB_URL, TOOL_URL } from '../customizer/core/project.js';
 import { presets } from '../customizer/core/presets.js';
 import { getPresetLightPalette } from '../customizer/core/color.js';
 import studioDefault from '../assets/home/studio-default.png';
@@ -231,7 +231,7 @@ const presetCount = COUNT_WORDS[presets.length] ?? String(presets.length);
 		<footer>
 			<div class="wrap row">
 				<span>An independent, open-source project by <a href={HUB_URL}>Prisant Labs</a>. Not affiliated with or endorsed by the Astro team.</span>
-				<span><a href={aboutUrl}>About</a> · <a href={REPO_URL}>GitHub</a> · MIT license</span>
+				<span><a href={aboutUrl}>About</a> · <a href={REPO_URL}>GitHub</a> · <a href={ISSUES_URL}>Report a problem</a> · MIT license</span>
 			</div>
 		</footer>
 

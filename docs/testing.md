@@ -89,14 +89,14 @@ real click blurs a focused field, and a scripted click does not.
 
 | Suite | Area | Checks |
 |---|---|---|
-| `home.mjs` | The product page at `/` | 30 |
+| `home.mjs` | The product page at `/` | 31 |
 | `smoke.mjs` | A quick end-to-end pass of the customizer | 11 |
 | `ui-round2.mjs` | The overlay panel's preload, filter and state | 22 |
 | `treatments.mjs` | Every treatment control's effect | 129 |
 | `targets.mjs` | Every control's target selector | 78 |
 | `tiles.mjs` | Tiled controls | 264 |
 | `studio.mjs` | The studio's frame, pages and export | 60 |
-| `shell.mjs` | The studio's chrome, contrast and layout | 181 |
+| `shell.mjs` | The studio's chrome, contrast and layout | 183 |
 | `sizing.mjs` | Studio sizing | 32 |
 | `share.mjs` | Share links | 44 |
 | `inspect.mjs` | Inspect | 32 |
@@ -108,7 +108,8 @@ real click blurs a focused field, and a scripted click does not.
 
 - It renders instead of forwarding, and it carries no robots meta.
 - It makes no third-party request, and it loads its self-hosted Inter font.
-- Its links respect the base path and reach a working studio.
+- Its links respect the base path and reach a working studio. The footer's "Report a problem" link
+  opens GitHub's issue chooser.
 - A real tab click swaps the screenshots.
 - It shows one chip per preset, in the order of `presets.js`.
 - It carries the social preview card's tags: `og:image` as an absolute URL built from `TOOL_URL`,
@@ -156,7 +157,8 @@ still do.
 - The top bar's branding and GitHub pill, including a logo that loads from the base-aware
   `logo.svg`.
 - The About dialog, opened and closed by real clicks and keys, with the shortcuts standing down
-  behind it, and the `/about/` page with its logo.
+  behind it, and the `/about/` page with its logo. Both link to the repository and to the issue
+  chooser.
 - No top-bar overflow at eleven widths, each chosen on one side of a width step in `studio.astro`:
   1119 (Screenshot and Share's labels), 839 (the other labels), and 539 (Screenshot and Share leave
   the bar; Export still opens the same dialog at either export). The list also keeps 520, where

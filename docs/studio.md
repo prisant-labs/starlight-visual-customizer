@@ -270,9 +270,9 @@ events share one merge key per item.
 ## The About dialog and the `/about/` page
 
 The About text lives in `app/src/about/about.md`; edit that file to change it.
-`app/src/about/AboutBody.astro` adds a facts line under it, with the Starlight version and the
-links to the repository and the projects hub. Both places that show the text render that one
-component at build time:
+`app/src/about/AboutBody.astro` adds a facts line under it, with the Starlight version, the
+links to the repository and the projects hub, and a "Report a problem" link to GitHub's issue
+chooser. Both places that show the text render that one component at build time:
 
 - **The About dialog.** The top bar's info button opens it as a native modal `<dialog>`. Escape,
   the close button and a click on the backdrop close it. Its external links open in a new tab. The

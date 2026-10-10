@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 
 import { launchBrowser } from './browser.mjs';
 import { withBase, stripBase } from '../../src/customizer/core/base-path.js';
-import { REPO_URL, TOOL_URL } from '../../src/customizer/core/project.js';
+import { REPO_URL, ISSUES_URL, TOOL_URL } from '../../src/customizer/core/project.js';
 import { presets } from '../../src/customizer/core/presets.js';
 import { defaultState, setName, encodeState } from '../../src/customizer/core/state.js';
 
@@ -131,11 +131,13 @@ async function main() {
 			github: document.querySelector('.btn-plain')?.getAttribute('href') ?? null,
 			about: document.querySelector('nav a[href$="/about/"]')?.getAttribute('href') ?? null,
 			brand: document.querySelector('.brand')?.getAttribute('href') ?? null,
+			report: Array.from(document.querySelectorAll('footer a')).find((a) => a.textContent.trim() === 'Report a problem')?.getAttribute('href') ?? null,
 		}));
 		check('"Open the studio" links to the base-aware /studio/', links.cta === withBase('/studio/', BASE_PATH), String(links.cta));
 		check('"View on GitHub" links to the repo', links.github === REPO_URL, String(links.github));
 		check('the About link is the base-aware /about/', links.about === withBase('/about/', BASE_PATH), String(links.about));
 		check('the brand links to the base-aware root', links.brand === withBase('/', BASE_PATH), String(links.brand));
+		check('the footer\'s "Report a problem" links to the issue chooser', links.report === ISSUES_URL, String(links.report));
 
 		const logoLoaded = await page.evaluate(() => {
 			const img = /** @type {HTMLImageElement | null} */ (document.querySelector('.brand img'));
