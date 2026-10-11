@@ -1709,7 +1709,8 @@ async function main() {
 	// =============================================================================================
 	{
 		const REPO_URL = 'https://github.com/prisant-labs/starlight-visual-customizer';
-		const ABOUT_LINKS = ['https://astro.build/', 'https://starlight.astro.build/', 'https://starlight.astro.build/guides/customization/', 'https://starlight.astro.build/resources/themes/', REPO_URL];
+		const ISSUES_URL = `${REPO_URL}/issues/new/choose`;
+		const ABOUT_LINKS = ['https://astro.build/', 'https://starlight.astro.build/', 'https://starlight.astro.build/guides/customization/', 'https://starlight.astro.build/resources/themes/', REPO_URL, ISSUES_URL];
 		const basePrefix = BASE_PATH.replace(/\/$/, '');
 		const brand = await page.evaluate(() => ({
 			name: document.querySelector('.svc-brand-name')?.textContent,

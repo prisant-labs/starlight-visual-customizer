@@ -7,6 +7,8 @@ and in [`docs/releases/`](docs/releases/README.md), one file per release. Versio
 
 ## Unreleased
 
+- **A "Report a problem" link.** The About dialog, the About page and the product page's footer now
+  link to the repository's issue chooser, where the bug form and the feature form start.
 - **Security: the build uses `sharp` 0.35.5.** Astro's image service runs `sharp` while the site
   builds. Version 0.35.4 carried a flaw in its SVG library, librsvg. The build processes only the
   project's own images, and `sharp` never runs in a visitor's browser, so the live site was not
