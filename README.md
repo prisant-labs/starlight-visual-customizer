@@ -4,6 +4,7 @@
 fonts, layout and components on real Starlight pages, then export one CSS file.**
 
 [![Try it live](https://img.shields.io/badge/Try_it_live-open_the_studio-4453c9?style=for-the-badge)](https://projects.prisantlabs.com/starlight-visual-customizer/studio/)
+
 [![Latest release](https://img.shields.io/github/v/release/prisant-labs/starlight-visual-customizer?sort=semver&label=release)](https://github.com/prisant-labs/starlight-visual-customizer/releases)
 [![MIT license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built for Starlight 0.42.6](https://img.shields.io/badge/Starlight-0.42.6-6d4aff)](https://starlight.astro.build/)
